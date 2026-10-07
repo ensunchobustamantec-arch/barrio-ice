@@ -1,10 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Todos pueden VER el menú; solo el dueño puede cambiarlo.
+    // Reemplaza este valor con el UID REAL del dueño. Debe coincidir con CFG.adminUid.
+    function isOwner() {
+      return request.auth != null &&
+        request.auth.uid == 'NDdEIdTQiqMS947ENRr7aEq1i6B3';
+    }
+
     match /tienda/menu {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == 'PEGA_AQUI_EL_UID_DEL_DUENO';
+      allow write: if isOwner();
+    }
+
+    match /pedidos/{pedidoId} {
+      // El cliente solo puede crear pedidos nuevos, con una forma limitada y valores acotados.
+      allow create: if validNewOrder();
+      // Un enlace de seguimiento conoce el ID y puede leer únicamente ese documento.
+      allow get: if true;
+      // La lista, los cambios y la eliminación son exclusivos del dueño.
+      allow list, update, delete: if isOwner();
+    }
+
+    function validNewOrder() {
+      return request.resource.data.keys().hasOnly([
+          'items', 'cliente', 'entrega', 'pago', 'conCuanto', 'notas',
+          'subtotal', 'descuento', 'domicilio', 'total', 'promo',
+          'estado', 'fecha', 'creadoEn'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'items', 'cliente', 'entrega', 'pago', 'subtotal', 'descuento',
+          'domicilio', 'total', 'promo', 'estado', 'fecha', 'creadoEn'
+        ]) &&
+        request.resource.data.items is list &&
+        request.resource.data.items.size() > 0 &&
+        request.resource.data.items.size() <= 30 &&
+        request.resource.data.cliente is map &&
+        request.resource.data.cliente.keys().hasOnly(['nombre', 'celular']) &&
+        request.resource.data.cliente.nombre is string &&
+        request.resource.data.cliente.nombre.size() >= 1 &&
+        request.resource.data.cliente.nombre.size() <= 60 &&
+        request.resource.data.cliente.celular is string &&
+        request.resource.data.cliente.celular.size() >= 10 &&
+        request.resource.data.cliente.celular.size() <= 18 &&
+        request.resource.data.entrega is map &&
+        request.resource.data.entrega.keys().hasOnly(['tipo', 'direccion', 'referencia']) &&
+        request.resource.data.entrega.tipo in ['domicilio', 'recoger'] &&
+        request.resource.data.entrega.direccion is string &&
+        request.resource.data.entrega.direccion.size() <= 140 &&
+        request.resource.data.entrega.referencia is string &&
+        request.resource.data.entrega.referencia.size() <= 140 &&
+        request.resource.data.pago in ['Efectivo', 'Nequi', 'Daviplata'] &&
+        request.resource.data.conCuanto is number &&
+        request.resource.data.conCuanto >= 0 &&
+        request.resource.data.notas is string &&
+        request.resource.data.notas.size() <= 300 &&
+        request.resource.data.subtotal is number &&
+        request.resource.data.descuento is number &&
+        request.resource.data.domicilio is number &&
+        request.resource.data.total is number &&
+        request.resource.data.total >= 0 &&
+        request.resource.data.total <= 2000000 &&
+        request.resource.data.promo is string &&
+        request.resource.data.promo.size() <= 80 &&
+        request.resource.data.estado == 'Nuevo' &&
+        request.resource.data.fecha is string &&
+        request.resource.data.fecha.size() == 10 &&
+        request.resource.data.creadoEn is timestamp;
     }
   }
 }
