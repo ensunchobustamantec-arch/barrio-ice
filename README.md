@@ -35,11 +35,13 @@ La primera cuenta autorizada y sus permisos se controlan con el UID de Firebase;
 
 La rama de trabajo es `mejoras-v4`; los cambios se proponen mediante PR y no se mezclan automáticamente en `main`. Vercel puede generar una vista previa para la rama/PR.
 
-Para verificar la lógica promocional y la interfaz, ejecuta con Node.js y Playwright instalados:
+Para instalar la dependencia de pruebas y verificar la lógica promocional y la interfaz:
 
 ~~~powershell
-node tests/promotions.browser.cjs
-node tests/visual-check.cjs
+cd tests
+npm install
+npx playwright install chromium
+npm test
 ~~~
 
 Las capturas de referencia del chequeo visual quedan en `tests/screenshots/`.
