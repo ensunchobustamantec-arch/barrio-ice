@@ -6,6 +6,7 @@ const { chromium } = require("playwright");
 
 const root = path.resolve(__dirname, "..");
 const output = path.join(__dirname, "screenshots");
+const saveScreenshots = process.env.VISUAL_SCREENSHOTS !== "0";
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".webmanifest": "application/manifest+json", ".rules": "text/plain" };
 const sampleMenu = {
   whatsapp: "573023489776",
@@ -96,13 +97,20 @@ const server = http.createServer((request, response) => {
         assert.ok(titleFits, `el titular debe caber en ${width}x${height}`);
         if (width === 390 && height === 844) {
           await page.evaluate(() => { if (document.getElementById("sheet").classList.contains("open")) closeCart(); });
-          await page.screenshot({ path: path.join(output, "tienda-movil-" + theme + ".jpg"), type: "jpeg", quality: 76 });
+          if (saveScreenshots) await page.screenshot({ path: path.join(output, "tienda-movil-" + theme + ".jpg"), type: "jpeg", quality: 76 });
           await page.getByRole("button", { name: /Pequeño/ }).first().click();
           console.log("Línea agregada desde la tienda, verificando carrito");
           const cartState = await page.evaluate(() => ({ lines: typeof cart === "undefined" ? "no cart" : cart.length, total: document.getElementById("fabTotal")?.textContent, toast: document.getElementById("toast")?.textContent, ready: typeof store === "undefined" ? "no store" : store.ready }));
           assert.ok(cartState.lines > 0, "agregar desde una tarjeta debe actualizar el carrito: " + JSON.stringify(cartState));
           await page.getByRole("button", { name: /Mi pedido/ }).click();
           await page.getByText("Subtotal", { exact: true }).waitFor({ timeout: 5000 });
+          const openCartState = await page.evaluate(() => ({ modal: document.getElementById("sheet").getAttribute("aria-hidden") === "false", inertPage: document.getElementById("storefront").hasAttribute("inert"), fixedBody: getComputedStyle(document.body).position === "fixed", focused: document.activeElement.id }));
+          assert.deepEqual(openCartState, { modal: true, inertPage: true, fixedBody: true, focused: "close" }, "el carrito debe atrapar el foco y bloquear el fondo");
+          await page.keyboard.press("Escape");
+          await page.waitForFunction(() => !document.getElementById("sheet").classList.contains("open"));
+          const closedCartState = await page.evaluate(() => ({ modal: document.getElementById("sheet").getAttribute("aria-hidden") === "true", inertPage: document.getElementById("storefront").hasAttribute("inert"), fixedBody: getComputedStyle(document.body).position === "fixed", focused: document.activeElement.id }));
+          assert.deepEqual(closedCartState, { modal: true, inertPage: false, fixedBody: false, focused: "fab" }, "al cerrar se debe restaurar scroll, fondo y foco");
+          await page.getByRole("button", { name: /Mi pedido/ }).click();
           const cartText = await page.locator("#summary").innerText();
           assert.match(cartText, /Ahorro por promo/);
           assert.match(cartText, /Se paga aparte/);
@@ -116,7 +124,54 @@ const server = http.createServer((request, response) => {
         }
         if (width === 1440 && height === 900) {
           await page.evaluate(() => { if (document.getElementById("sheet").classList.contains("open")) closeCart(); });
-          await page.screenshot({ path: path.join(output, "tienda-escritorio-" + theme + ".jpg"), type: "jpeg", quality: 76 });
+          if (saveScreenshots) await page.screenshot({ path: path.join(output, "tienda-escritorio-" + theme + ".jpg"), type: "jpeg", quality: 76 });
+        }
+        if (width === 360 && height === 640) {
+          const stress = await page.evaluate(() => {
+            const day = String(new Date().getDay());
+            const longName = "SaborSinEspacios" + "X".repeat(86);
+            const names = Array.from({ length: 45 }, (_, index) => index === 0 ? longName : "Sabor de prueba " + String(index).padStart(2, "0"));
+            menu.cat = names.map((name, index) => ({ n: name, c: index % 2 ? "#5bc0eb" : "#9b3fd6", l: index === 0 }));
+            menu.dias[day] = names;
+            menu.agotados[day] = [names[1]];
+            menu.precios.semana = [999999999999, 999999999999, 999999999999];
+            menu.precios.jueves = [...menu.precios.semana];
+            menu.precios.finde = [...menu.precios.semana];
+            menu.bebidas = [{ n: "Bebida de prueba con nombre muy largo", p: 999999999999, icon: "🥤" }];
+            menu.combos = [{ n: "Combo de prueba con nombre excesivamente largo", d: "Descripción larga para comprobar el ajuste de la tarjeta", p: 999999999999, items: [] }];
+            render();
+            const cards = [...document.querySelectorAll("#flavors .flavor")];
+            return {
+              count: cards.length,
+              documentWidth: document.documentElement.scrollWidth,
+              clientWidth: document.documentElement.clientWidth,
+              overflowingCards: cards.filter(node => node.scrollWidth > node.clientWidth + 1).length,
+              overflowingSizeButtons: [...document.querySelectorAll(".size")].filter(node => node.scrollWidth > node.clientWidth + 1).length,
+              longNameFits: cards[0]?.querySelector("h3")?.scrollWidth <= cards[0]?.querySelector("h3")?.clientWidth + 1,
+              adultBadge: cards[0]?.querySelector(".tag.adult")?.textContent,
+              soldDisabled: [...(cards[1]?.querySelectorAll(".size") || [])].every(node => node.disabled)
+            };
+          });
+          assert.equal(stress.count, 45, "la tienda debe mostrar más de 40 productos");
+          assert.ok(stress.documentWidth <= stress.clientWidth, "los datos largos no deben crear scroll horizontal: " + JSON.stringify(stress));
+          assert.equal(stress.overflowingCards, 0, "las tarjetas de productos no deben desbordarse: " + JSON.stringify(stress));
+          assert.equal(stress.overflowingSizeButtons, 0, "los precios extensos deben caber en sus botones: " + JSON.stringify(stress));
+          assert.equal(stress.longNameFits, true, "los nombres sin espacios deben partirse dentro de la tarjeta");
+          assert.match(stress.adultBadge, /\+18/, "la tarjeta +18 debe conservar la etiqueta");
+          assert.equal(stress.soldDisabled, true, "un producto agotado debe mantener sus tamaños desactivados");
+          await page.evaluate(() => { menu.dias[String(new Date().getDay())] = []; menu.combos = []; menu.bebidas = []; render(); });
+          assert.match(await page.locator("#flavors").innerText(), /Hoy aún no hay sabores publicados/);
+          await page.evaluate(() => {
+            document.getElementById("name").value = "L".repeat(60);
+            cart = Array.from({ length: 48 }, (_, index) => ({ k: "edge:" + index, n: "Pedido " + index + " · producto con nombre largo", s: "Grande", p: 999999999999, q: 1, g: false, adulto: false, tipo: "bebida" }));
+            draw(); openCart();
+          });
+          const longOrder = await page.evaluate(() => ({ lines: document.querySelectorAll("#lines .cart-line").length, sheetScrolls: document.getElementById("sheet").scrollHeight > document.getElementById("sheet").clientHeight, horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth, nameLength: document.getElementById("name").value.length }));
+          assert.equal(longOrder.lines, 48, "un pedido largo debe conservar todas sus líneas");
+          assert.equal(longOrder.sheetScrolls, true, "el carrito largo debe poder desplazarse dentro de la hoja");
+          assert.equal(longOrder.horizontalOverflow, false, "el pedido largo no debe ampliar la pantalla");
+          assert.equal(longOrder.nameLength, 60, "el nombre largo debe respetar el límite del campo");
+          await page.evaluate(() => closeCart());
         }
         await page.close();
       }
@@ -134,7 +189,7 @@ const server = http.createServer((request, response) => {
         await page.getByRole("button", { name: "Entrar" }).click();
         try { await page.getByRole("heading", { name: "Estado de la tienda" }).waitFor({ timeout: 7000 }); }
         catch { throw new Error("No abrió el panel: " + JSON.stringify({ state: await page.evaluate(() => { try { adminRender(); return { error: document.getElementById("loginError")?.textContent, welcome: document.getElementById("welcome")?.textContent, storeReady: typeof store === "undefined" ? null : store.ready, visible: document.getElementById("login")?.className, panel: document.getElementById("panel")?.className, view: document.getElementById("adminView")?.innerText?.slice(0, 400) }; } catch (error) { return { error: String(error), stack: error.stack }; } }), pageErrors: errors })); }
-        await page.screenshot({ path: path.join(output, "panel-" + label + "-" + theme + ".jpg"), type: "jpeg", quality: 76 });
+        if (saveScreenshots) await page.screenshot({ path: path.join(output, "panel-" + label + "-" + theme + ".jpg"), type: "jpeg", quality: 76 });
         assert.equal(await page.locator("#login .notice").count(), 0, "el aviso retirado no debe reaparecer en el login");
         assert.equal((await page.locator(".admin-top h1").innerText()).replace(/\s+/g, " ").trim(), "Panel del barrio");
         await page.getByRole("button", { name: "MENÚ" }).click();
@@ -194,7 +249,7 @@ const server = http.createServer((request, response) => {
       }
     }
     assert.deepEqual(errors, [], "la página no debe generar errores de JavaScript");
-    console.log(`Comprobación visual headless: ${dimensions.length} tamaños × ${(process.env.VISUAL_QUICK === "1" ? 1 : 2)} temas; panel autenticado; capturas guardadas en tests/screenshots.`);
+    console.log(`Comprobación visual headless: ${dimensions.length} tamaños × ${(process.env.VISUAL_QUICK === "1" ? 1 : 2)} temas; panel autenticado${saveScreenshots ? "; capturas guardadas en tests/screenshots" : ""}.`);
   } finally {
     await browser.close();
     server.close();
