@@ -1,0 +1,13 @@
+{
+  "name": "barrio-ice-tests",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:promotions && npm run test:visual",
+    "test:promotions": "node promotions.browser.cjs",
+    "test:visual": "node visual-check.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
+

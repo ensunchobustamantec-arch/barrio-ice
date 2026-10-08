@@ -1,8 +1,11 @@
-const CACHE = 'barrio-ice-v3';
+const CACHE = 'barrio-ice-v4';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './pricing.js',
+  './enhancements.js',
+  './enhancements.css',
   './assets/generated/icon-192.png',
   './assets/generated/icon-512.png',
   './assets/generated/logo-transparent.png'
@@ -42,3 +45,4 @@ self.addEventListener('fetch', event => {
     )
   );
 });
+
