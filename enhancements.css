@@ -138,4 +138,26 @@ dialog::backdrop { background: #00111ab8; }
   .hero .hero-logo { width: 160px; max-height: 170px; margin-bottom: 0; }
   .hero h1 { margin: 6px auto; }
 }
+.top { gap: 8px; }
+.brand { flex: 1 1 auto; min-width: 0; gap: 10px; }
+.brand > span { min-width: 0; overflow: hidden; }
+.brand img { display: block; flex: 0 0 auto; width: auto; height: 40px; max-width: 44px; padding: 2px; border: 1px solid #a9d8eb; border-radius: 10px; background: #edf9ff; object-fit: contain; filter: none; }
+.brand b { font-size: clamp(.98rem, 4.5vw, 1.25rem); line-height: 1.05; white-space: nowrap; }
+.brand small { display: block; overflow: hidden; color: var(--muted); font-size: .54rem; letter-spacing: .08em; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.actions { flex: 0 0 auto; gap: 6px; }
+.carttop { flex: 0 0 auto; white-space: nowrap; }
+.login-card h2 { margin: 7px 0 14px; }
+@media (min-width: 700px) {
+  .brand { gap: 12px; }
+  .brand img { height: 52px; max-width: 56px; }
+  .brand small { font-size: .6rem; }
+}
+@media (max-width: 380px) {
+  .brand { gap: 7px; }
+  .brand img { height: 40px; max-width: 42px; }
+  .brand b { font-size: .96rem; }
+  .brand small { display: none; }
+  .actions { gap: 5px; }
+  .carttop { padding-inline: 9px; font-size: .86rem; }
+}
 
