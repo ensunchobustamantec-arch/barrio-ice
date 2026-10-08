@@ -6,6 +6,8 @@
   const weekdayKeys = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const baseMerge = merge;
   const baseRender = render;
+  const revealedKeys = new Set();
+  let revealObserver = null;
   const adminState = { tab: "today", from: dateKey(), to: dateKey(), status: "", search: "", period: "today", statsPeriod: "today" };
 
   function normalMenu(data) {
@@ -65,6 +67,24 @@
 
   installHero();
 
+  function installLoadingSkeletons() {
+    const card = '<article class="skeleton-card" aria-hidden="true"><span class="skeleton-line short"></span><span class="skeleton-line"></span><span class="skeleton-line short"></span><span class="skeleton-button"></span></article>';
+    [
+      ["flavors", 3, false],
+      ["combos", 2, true],
+      ["drinks", 2, true]
+    ].forEach(([id, count, compact]) => {
+      const grid = $(id);
+      if (!grid || grid.childElementCount) return;
+      grid.classList.add("skeleton-grid");
+      if (compact) grid.dataset.loadingKind = "compact";
+      grid.setAttribute("aria-busy", "true");
+      grid.innerHTML = card.repeat(count);
+    });
+  }
+
+  installLoadingSkeletons();
+
   function dayPlan(day = now().getDay()) {
     const result = BarrioIcePricing.planForDay(day, menu);
     return Object.assign({}, result, { g: result.active ? result.receive : 0, p: result.prices });
@@ -114,6 +134,14 @@
 
   render = function () {
     baseRender();
+    ["flavors", "combos", "drinks"].forEach(id => {
+      const grid = $(id);
+      if (!grid) return;
+      revealObserver?.unobserve(grid);
+      grid.classList.remove("skeleton-grid");
+      delete grid.dataset.loadingKind;
+      grid.setAttribute("aria-busy", "false");
+    });
     showPromoBanner();
     const todayNames = menu.dias?.[now().getDay()] || [];
     document.querySelectorAll(".flavor").forEach(card => {
@@ -140,6 +168,7 @@
       const item = menu.combos[+button.dataset.combo], card = button.closest(".combo");
       if (card) { card.hidden = !item || item.active === false; const price = card.querySelector("p"); if (item && price) price.textContent = (item.d || "") + " · " + fmt(item.p); }
     });
+    decorateRevealTargets();
   };
 
   addFlavor = function (name, sizeIndex, source) {
@@ -743,17 +772,202 @@
     }, () => { $("trackingCopy").textContent = "No pudimos actualizar el estado. Revisa tu conexión."; });
   };
 
-  setInterval(showPromoBanner, 60000);
-  let scrollFrame = false;
-  window.addEventListener("scroll", () => {
-    if (scrollFrame || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    scrollFrame = true;
-    requestAnimationFrame(() => {
-      const shift = Math.min(20, window.scrollY * .035);
-      document.querySelectorAll(".cube").forEach((cube, index) => { cube.style.translate = "0 " + (shift * (index + 1) * .18) + "px"; });
-      scrollFrame = false;
+  function reducedMotion() { return matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  if ("IntersectionObserver" in window) {
+    revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const target = entry.target;
+        if (target.matches(".hero")) {
+          target.classList.toggle("motion-paused", !entry.isIntersecting);
+          return;
+        }
+        if (target.matches(".ticker, .skeleton-grid")) {
+          target.classList.toggle("is-offscreen", !entry.isIntersecting);
+          return;
+        }
+        if (!entry.isIntersecting) return;
+        const key = target.dataset.revealKey;
+        target.classList.remove("reveal-pending");
+        target.classList.add("reveal-visible");
+        if (key) revealedKeys.add(key);
+        revealObserver.unobserve(target);
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+  }
+
+  function decorateRevealTargets() {
+    const targets = document.querySelectorAll(".flavor, .drink, .combo, .feature, .info article, .faq details");
+    targets.forEach((node, index) => {
+      let key;
+      if (node.matches(".flavor")) key = "flavor:" + (node.querySelector("[data-flavor]")?.dataset.flavor || index);
+      else if (node.matches(".drink")) key = "drink:" + (node.querySelector("h3")?.childNodes[0]?.textContent || index).trim();
+      else if (node.matches(".combo")) key = "combo:" + (node.querySelector("h3")?.textContent || index).trim();
+      else if (node.matches(".feature")) key = "feature:daily";
+      else if (node.matches(".faq details")) key = "faq:" + (node.querySelector("summary")?.textContent || index).trim();
+      else key = "info:" + (node.querySelector("h3")?.textContent || index).trim();
+      node.dataset.revealKey = key;
+      if (reducedMotion() || !revealObserver || revealedKeys.has(key)) {
+        node.classList.remove("reveal-pending");
+        node.classList.add("reveal-visible");
+        revealedKeys.add(key);
+        return;
+      }
+      node.classList.remove("reveal-visible");
+      node.classList.add("reveal-pending");
+      revealObserver.observe(node);
     });
-  }, { passive: true });
+    document.querySelectorAll(".skeleton-grid").forEach(grid => revealObserver?.observe(grid));
+  }
+
+  function setupMotion() {
+    const hero = document.querySelector(".hero"), ticker = document.querySelector(".ticker");
+    if (hero && !reducedMotion()) hero.classList.add("hero-enter");
+    hero && revealObserver?.observe(hero);
+    ticker && revealObserver?.observe(ticker);
+    decorateRevealTargets();
+
+    let tickerResumeTimer = 0;
+    ticker?.addEventListener("pointerdown", event => {
+      if (event.pointerType !== "touch") return;
+      ticker.classList.add("is-paused");
+      clearTimeout(tickerResumeTimer);
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(type => ticker?.addEventListener(type, () => {
+      clearTimeout(tickerResumeTimer);
+      tickerResumeTimer = setTimeout(() => ticker.classList.remove("is-paused"), 700);
+    }));
+    document.addEventListener("visibilitychange", () => document.documentElement.classList.toggle("document-hidden", document.hidden));
+    const theme = $("theme");
+    if (theme?.onclick) {
+      const changeTheme = theme.onclick;
+      theme.onclick = function (event) {
+        document.documentElement.classList.add("theme-transition");
+        changeTheme.call(this, event);
+        clearTimeout(theme.transitionTimer);
+        theme.transitionTimer = setTimeout(() => document.documentElement.classList.remove("theme-transition"), 280);
+      };
+    }
+    $("sheet").style.setProperty("--safe-t", "env(safe-area-inset-top, 0px)");
+  }
+
+  const baseOpenCart = openCart;
+  const baseCloseCart = closeCart;
+  let cartOpen = false, cartReturnFocus = null, cartScrollY = 0;
+  let bodyStyleBeforeCart = null, inertBeforeCart = null;
+  function openCartWithFocus() {
+    if (!cart.length) return baseOpenCart();
+    if (cartOpen) return;
+    cartReturnFocus = document.activeElement;
+    cartScrollY = window.scrollY;
+    bodyStyleBeforeCart = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width
+    };
+    inertBeforeCart = ["storefront", "tracking", "admin", "fab", "floatWa"].map(id => {
+      const node = $(id);
+      return node ? [node, node.inert, node.hasAttribute("inert"), node.getAttribute("aria-hidden")] : null;
+    }).filter(Boolean);
+    baseOpenCart();
+    cartOpen = true;
+    const sheet = $("sheet");
+    sheet.inert = false;
+    sheet.removeAttribute("inert");
+    sheet.setAttribute("aria-hidden", "false");
+    inertBeforeCart.forEach(([node]) => { node.inert = true; node.setAttribute("inert", ""); node.setAttribute("aria-hidden", "true"); });
+    document.body.style.position = "fixed";
+    document.body.style.top = -cartScrollY + "px";
+    document.body.style.width = "100%";
+    requestAnimationFrame(() => $("close")?.focus({ preventScroll: true }));
+  }
+  function closeCartWithFocus() {
+    if (!cartOpen) return baseCloseCart();
+    baseCloseCart();
+    cartOpen = false;
+    const sheet = $("sheet");
+    sheet.inert = true;
+    sheet.setAttribute("inert", "");
+    sheet.setAttribute("aria-hidden", "true");
+    inertBeforeCart?.forEach(([node, inert, hadInert, ariaHidden]) => {
+      node.inert = inert;
+      if (!hadInert) node.removeAttribute("inert");
+      if (ariaHidden === null) node.removeAttribute("aria-hidden"); else node.setAttribute("aria-hidden", ariaHidden);
+    });
+    inertBeforeCart = null;
+    if (bodyStyleBeforeCart) Object.assign(document.body.style, bodyStyleBeforeCart);
+    bodyStyleBeforeCart = null;
+    const scrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "auto";
+    window.scrollTo(0, cartScrollY);
+    document.documentElement.style.scrollBehavior = scrollBehavior;
+    if (cartReturnFocus?.isConnected) cartReturnFocus.focus({ preventScroll: true });
+    cartReturnFocus = null;
+  }
+  openCart = openCartWithFocus;
+  closeCart = closeCartWithFocus;
+  $("cartTop").onclick = openCartWithFocus;
+  $("fab").onclick = openCartWithFocus;
+  $("close").onclick = closeCartWithFocus;
+  $("scrim").onclick = closeCartWithFocus;
+  $("sheet").inert = true;
+  $("sheet").setAttribute("inert", "");
+  $("sheet").setAttribute("aria-hidden", "true");
+  document.addEventListener("keydown", event => {
+    if (!cartOpen) return;
+    if (event.key === "Escape") { event.preventDefault(); closeCartWithFocus(); return; }
+    if (event.key !== "Tab") return;
+    const focusable = [...$("sheet").querySelectorAll('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])')]
+      .filter(node => !node.hidden && node.getAttribute("aria-hidden") !== "true" && node.getClientRects().length > 0);
+    if (!focusable.length) { event.preventDefault(); $("sheet").focus(); return; }
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }, true);
+
+  fly = function (source) {
+    if (!source || reducedMotion()) return;
+    const origin = source.closest(".flavor")?.querySelector(".cup") || source;
+    const from = origin.getBoundingClientRect();
+    const fab = $("fab");
+    const target = fab && getComputedStyle(fab).display !== "none" && !fab.classList.contains("hide") ? fab : $("cartTop");
+    const to = target.getBoundingClientRect();
+    const x = from.left + from.width / 2, y = from.top + from.height / 2;
+    const particle = document.createElement("i");
+    particle.className = "flying";
+    particle.setAttribute("aria-hidden", "true");
+    particle.textContent = "🧊";
+    particle.style.left = x + "px";
+    particle.style.top = y + "px";
+    particle.style.setProperty("--fly-x", (to.left + to.width / 2 - x) + "px");
+    particle.style.setProperty("--fly-y", (to.top + to.height / 2 - y) + "px");
+    document.body.append(particle);
+    particle.addEventListener("animationend", () => particle.remove(), { once: true });
+    setTimeout(() => particle.remove(), 700);
+  };
+
+  const regularAdminRender = adminRender;
+  let adminTabIntent = false;
+  document.addEventListener("click", event => {
+    if (admin && event.target.closest("[data-admin-tab]")) adminTabIntent = true;
+  }, true);
+  adminRender = function () {
+    const animateTab = adminTabIntent && !reducedMotion();
+    adminTabIntent = false;
+    if (!animateTab) return regularAdminRender();
+    const view = $("adminView");
+    view.classList.remove("admin-content-enter");
+    const result = regularAdminRender();
+    void view.offsetWidth;
+    view.classList.add("admin-content-enter");
+    clearTimeout(view.motionTimer);
+    view.motionTimer = setTimeout(() => view.classList.remove("admin-content-enter"), 240);
+    return result;
+  };
+
+  setupMotion();
+
+  setInterval(showPromoBanner, 60000);
   render();
 })();
 
