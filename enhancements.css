@@ -275,6 +275,8 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; opacity: .62; }
   scrollbar-gutter: stable;
   padding-bottom: calc(23px + var(--safe-b));
 }
+.fab { transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out); }
+:root.hero-in-view .fab { opacity: 0; visibility: hidden; pointer-events: none; transform: translate3d(0, 20px, 0); }
 .toast { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
 .bump { animation: bump 420ms var(--ease-out); }
 .flying {
