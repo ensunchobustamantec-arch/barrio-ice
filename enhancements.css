@@ -347,7 +347,7 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; opacity: .62; }
   .sheet-head h2 { font-size: 1.9rem; }
 }
 @keyframes hero-enter { from { opacity: 0; transform: translate3d(0, 24px, 0) scale(.985); } to { opacity: 1; transform: none; } }
-@keyframes logo-breathe { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-9px) rotate(1deg); } }
+@keyframes logo-breathe { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-10px) rotate(1deg); } }
 @keyframes cart-flight { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.7) rotate(-24deg); } 20% { opacity: 1; transform: translate3d(0, -12px, 0) scale(1.12) rotate(18deg); } 100% { opacity: 0; transform: translate3d(var(--fly-x), var(--fly-y), 0) scale(.48) rotate(205deg); } }
 @keyframes skeleton-sweep { to { transform: translateX(100%); } }
 @keyframes bump { 45% { transform: scale(1.035); } }
@@ -398,9 +398,12 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; opacity: .62; }
 }
 .hero-logo {
   z-index: 2;
-  width: min(100%, 310px);
+  width: auto;
+  height: 100%;
+  max-width: min(100%, 410px);
   max-height: 100%;
   margin: 0;
+  object-fit: contain;
   animation: logo-breathe 4.2s var(--ease-in-out) 700ms infinite;
   will-change: transform;
 }
