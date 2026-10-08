@@ -39,7 +39,20 @@
     if (logo) {
       logo.className = "hero-logo";
       logo.alt = "Logo de Barrio Ice";
-      hero.insertBefore(logo, hero.firstChild);
+      const scene = document.createElement("div");
+      scene.className = "hero-mark-scene";
+      ["one", "two", "three", "four"].forEach(name => {
+        const shard = document.createElement("span");
+        shard.className = "hero-ice-shard shard-" + name;
+        shard.setAttribute("aria-hidden", "true");
+        scene.append(shard);
+      });
+      scene.append(logo);
+      const glint = document.createElement("span");
+      glint.className = "hero-mark-glint";
+      glint.setAttribute("aria-hidden", "true");
+      scene.append(glint);
+      hero.insertBefore(scene, hero.firstChild);
     }
     const title = hero.querySelector("h1");
     if (title) title.innerHTML = "<span>El barrio se</span><span>sirve bien frío</span>";
@@ -796,13 +809,10 @@
   }
 
   function decorateRevealTargets() {
-    const targets = document.querySelectorAll(".flavor, .drink, .combo, .feature, .info article, .faq details");
+    const targets = document.querySelectorAll(".feature, .info article, .faq details");
     targets.forEach((node, index) => {
       let key;
-      if (node.matches(".flavor")) key = "flavor:" + (node.querySelector("[data-flavor]")?.dataset.flavor || index);
-      else if (node.matches(".drink")) key = "drink:" + (node.querySelector("h3")?.childNodes[0]?.textContent || index).trim();
-      else if (node.matches(".combo")) key = "combo:" + (node.querySelector("h3")?.textContent || index).trim();
-      else if (node.matches(".feature")) key = "feature:daily";
+      if (node.matches(".feature")) key = "feature:daily";
       else if (node.matches(".faq details")) key = "faq:" + (node.querySelector("summary")?.textContent || index).trim();
       else key = "info:" + (node.querySelector("h3")?.textContent || index).trim();
       node.dataset.revealKey = key;
