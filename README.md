@@ -5,8 +5,10 @@ Tienda web móvil para pedir granizados, gaseosas y cervezas de Barrio Ice en Mo
 ## Qué incluye
 
 - Diseño urbano responsive, modo claro/oscuro, tarjeta social, favicon y PWA.
-- Promos calculadas con la hora de Colombia: 2x1 lunes a miércoles, 3x2 jueves y precios normales de viernes a domingo. En cada grupo, el granizado más barato es gratis.
+- Promos calculadas con la hora de Colombia: 2x1 lunes a miércoles, 3x2 jueves y precios normales de viernes a domingo. Se regala un granizado del mismo precio (2x1 y 3x2).
 - Pedido por WhatsApp y respaldo del pedido en Firestore.
+- El domicilio no se suma al total: la web muestra "Se paga aparte" y el mensaje de WhatsApp lo indica. Las promos son por mismo precio: 2x1 (compras uno y te regalan otro del mismo precio) y 3x2 (compras dos del mismo precio y te regalan el tercero). Granizados de precios distintos no se combinan, y los combos no entran en la promo.
+- Al agregar un producto aparece un aviso arriba con botón "Ver pedido", y las tarjetas quedan marcadas con la cantidad elegida.
 - Seguimiento público y en tiempo real por ID de pedido.
 - Panel /#admin: catálogo, sabores diarios, agotados, horario, cierre manual, precios, pagos, pedidos, estados, sonido, resumen y CSV.
 - Datos de formulario recordados solamente en el navegador del cliente.
