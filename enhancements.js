@@ -856,6 +856,7 @@
         const target = entry.target;
         if (target.matches(".hero")) {
           target.classList.toggle("motion-paused", !entry.isIntersecting);
+          document.documentElement.classList.toggle("hero-in-view", entry.isIntersecting);
           return;
         }
         if (target.matches(".ticker, .skeleton-grid")) {
