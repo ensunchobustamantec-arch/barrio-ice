@@ -1,59 +1,52 @@
-# Barrio Ice · Cold Flow 🧊
+# Barrio Ice · tienda de pedidos
 
-Tienda web móvil para pedir granizados, gaseosas y cervezas de Barrio Ice en Montería. Es una página estática, sin compilación: Vercel la publica directamente desde el repositorio.
+Tienda web móvil para pedir granizados, bebidas y combos de Barrio Ice en Montería. Es una página estática, sin compilación; Vercel puede publicar directamente la rama elegida.
 
-## Qué incluye
+## Promociones y pedidos
 
-- Diseño urbano responsive, modo claro/oscuro, tarjeta social, favicon y PWA.
-- Promos calculadas con la hora de Colombia: 2x1 lunes a miércoles, 3x2 jueves y precios normales de viernes a domingo. Se regala un granizado del mismo precio (2x1 y 3x2).
-- Pedido por WhatsApp y respaldo del pedido en Firestore.
-- El domicilio no se suma al total: la web muestra "Se paga aparte" y el mensaje de WhatsApp lo indica. Las promos son por mismo precio: 2x1 (compras uno y te regalan otro del mismo precio) y 3x2 (compras dos del mismo precio y te regalan el tercero). Granizados de precios distintos no se combinan, y los combos no entran en la promo.
-- Al agregar un producto aparece un aviso arriba con botón "Ver pedido", y las tarjetas quedan marcadas con la cantidad elegida.
-- Seguimiento público y en tiempo real por ID de pedido.
-- Panel /#admin: catálogo, sabores diarios, agotados, horario, cierre manual, precios, pagos, pedidos, estados, sonido, resumen y CSV.
-- Datos de formulario recordados solamente en el navegador del cliente.
+- Lunes a miércoles: 2x1 en granizados del mismo tamaño y precio. Jueves: 3x2 con la misma condición. Viernes a domingo: precio normal. Los días de promoción se pueden activar o desactivar desde el panel.
+- Cada regalo queda visible como una línea gratuita, con selector de sabor cuando hace falta. Granizados de diferente tamaño o precio no se mezclan; bebidas y combos no participan.
+- El resumen muestra valor antes de descuentos, ahorro y total a pagar. El domicilio se coordina aparte y no altera ese total.
+- El pedido se envía por WhatsApp y se guarda en Firestore. La tienda incluye seguimiento público por ID; el panel privado reúne pedidos, ventas, catálogo, horarios, promociones y configuración.
+- Interfaz adaptable, temas claro y oscuro, banner configurable, modo instalación PWA y navegación móvil optimizada.
 
-## Preparación única en Firebase
+## Configuración de Firebase
 
-La configuración web del proyecto barrio-ice ya está en index.html. No crees otro proyecto.
+El proyecto Firebase existente está configurado en `index.html`; no hace falta crear otro.
 
-1. En Firebase Authentication, confirma que el usuario dueño usa el método **Correo/contraseña**.
-2. Copia el **UID** de ese usuario.
-3. El UID del dueño ya está configurado en CFG.adminUid y en firestore.rules.
-4. En Firebase Console abre **Firestore Database → Reglas**, pega todo el contenido de firestore.rules y pulsa **Publicar**.
+1. En Firebase Authentication, habilita Correo/contraseña para la cuenta dueña y confirma el UID.
+2. El UID dueño ya está configurado en `CFG.adminUid` y en [firestore.rules](firestore.rules).
+3. En Firebase Console, abre **Firestore Database → Reglas**, copia el archivo completo `firestore.rules` y pulsa **Publicar**. La versión nueva permite guardar los campos de promoción y hasta 60 líneas de pedido para separar productos pagados y regalos.
+4. Despliega el sitio y prueba una orden desde el dominio antes de abrir la tienda al público.
 
-## Usar el panel
+## Guía rápida del dueño
 
-1. Abre TU-DOMINIO/#admin.
-2. Inicia sesión con el correo dueño de Firebase.
-3. En **Menú**, agrega sabores, marca los que llevan licor y selecciona los de cada día. Usa **Agotados hoy** para quitarlos de venta temporalmente.
-4. En **Tienda**, actualiza horario, domicilio, WhatsApp, Nequi, Daviplata, enlaces y precios. Los ajustes se guardan en tienda/menu.
-5. En **Pedidos**, activa el sonido después de tocar el botón, cambia cada estado y usa el selector de fecha o el botón CSV.
+Entra a `TU-DOMINIO/#admin` e inicia sesión con el correo de Firebase autorizado.
 
-Los precios de jueves usan inicialmente los de lunes a miércoles. Está indicado en el código y puede modificarse desde el panel cuando se confirme la regla definitiva.
+- **HOY:** revisa el estado de apertura, sabores disponibles y resumen de ventas del día. Ajusta disponibilidad del día sin borrar el catálogo.
+- **PEDIDOS:** busca por cliente o ID, filtra por fechas y estado, abre WhatsApp, cambia el estado o imprime el comprobante. Los estados incluyen recibido, preparando, listo, enviado, entregado y cancelado.
+- **MENÚ:** edita sabores, precios por tamaño y día, disponibilidad, bebidas, combos y sabores disponibles por jornada. Configura por separado lunes-miércoles, jueves y fin de semana; puedes pausar cada promo o mitad y mitad. Usa **Guardar precios y promos** para conservar los cambios.
+- **VENTAS:** consulta totales y comparaciones por periodo, descuentos, cantidades y productos. Exporta el rango elegido a Excel desde el botón de exportación.
+- **AJUSTES:** configura apertura y cierre para cada día, teléfono y enlaces de pago, texto de cierre y banner de promoción. Guarda y comprueba la vista pública.
 
-## Probar la rama
+La primera cuenta autorizada y sus permisos se controlan con el UID de Firebase; la configuración web pública de Firebase no es una contraseña. Las reglas de Firestore son el control de acceso.
 
-~~~powershell
-git switch mejoras-v2
-git status
-~~~
+## Pruebas y vista previa
 
-Vercel creará un despliegue de vista previa al subir la rama al remoto. Para una prueba local sencilla:
+La rama de trabajo es `mejoras-v4`; los cambios se proponen mediante PR y no se mezclan automáticamente en `main`. Vercel puede generar una vista previa para la rama/PR.
+
+Para verificar la lógica promocional y la interfaz, ejecuta con Node.js y Playwright instalados:
 
 ~~~powershell
-npx serve .
+node tests/promotions.browser.cjs
+node tests/visual-check.cjs
 ~~~
 
-Abre el enlace que indique el comando. Comprueba al menos 360×640, 390×844, 412×915, 768×1024 y 1440×900. En móvil, prueba añadir, modificar y enviar un pedido de prueba; en /#admin, cambia un estado y verifica la pantalla de seguimiento.
+Las capturas de referencia del chequeo visual quedan en `tests/screenshots/`.
+
+Antes de publicar, revisa la vista previa en 360×640, 390×844, 412×915, 768×1024 y 1440×900; prueba los temas claro y oscuro, un día 2x1, jueves 3x2, precios/tamaños distintos, bebidas y combos, selector del sabor regalado, domicilio aparte, efectivo y cambio, y las cuatro secciones principales del panel.
 
 ## PWA y recursos
 
-manifest.webmanifest y sw.js habilitan la instalación. Los iconos, versiones transparentes del logo y la imagen social se generan en assets/generated/ a partir de assets/logo.jpg; el script que los genera se conserva allí para poder rehacerlos.
+`manifest.webmanifest` y `sw.js` habilitan la instalación y caché básica. El service worker debe actualizar su caché cuando cambie el nombre de versión. Los logos, iconos e imagen social están en `assets/`.
 
-## Seguridad
-
-- Los textos aportados por clientes y administrador se limpian antes de renderizarse.
-- El cliente puede crear pedidos y leer un pedido con su ID; solo el UID del dueño puede listar, editar o borrar.
-- El antiguo PIN de prueba 1234 fue eliminado.
-- La configuración pública de Firebase no es una contraseña; las reglas de Firestore son la barrera de acceso.

@@ -25,6 +25,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly([
           'items', 'cliente', 'entrega', 'pago', 'conCuanto', 'notas',
           'subtotal', 'descuento', 'domicilio', 'total', 'promo',
+          'promoBuy', 'promoReceive',
           'estado', 'fecha', 'creadoEn'
         ]) &&
         request.resource.data.keys().hasAll([
@@ -33,7 +34,8 @@ service cloud.firestore {
         ]) &&
         request.resource.data.items is list &&
         request.resource.data.items.size() > 0 &&
-        request.resource.data.items.size() <= 30 &&
+        // Un carrito de hasta 30 líneas pagadas puede producir líneas adicionales de regalo.
+        request.resource.data.items.size() <= 60 &&
         request.resource.data.cliente is map &&
         request.resource.data.cliente.keys().hasOnly(['nombre', 'celular']) &&
         request.resource.data.cliente.nombre is string &&
@@ -69,3 +71,4 @@ service cloud.firestore {
     }
   }
 }
+
