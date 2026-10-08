@@ -25,7 +25,7 @@ Entra a `TU-DOMINIO/#admin` e inicia sesión con el correo de Firebase autorizad
 
 - **HOY:** revisa el estado de apertura, sabores disponibles y resumen de ventas del día. Ajusta disponibilidad del día sin borrar el catálogo.
 - **PEDIDOS:** busca por cliente o ID, filtra por fechas y estado, abre WhatsApp, cambia el estado o imprime el comprobante. Los estados incluyen recibido, preparando, listo, enviado, entregado y cancelado.
-- **MENÚ:** edita sabores, precios por tamaño y día, disponibilidad, bebidas, combos y sabores disponibles por jornada. Configura por separado lunes-miércoles, jueves y fin de semana; puedes pausar cada promo o mitad y mitad. Usa **Guardar precios y promos** para conservar los cambios.
+- **MENÚ:** edita sabores, precios por tamaño y día, disponibilidad, bebidas, combos y sabores disponibles por jornada. Guarda los datos de un sabor con **Guardar catálogo**; los cambios de edad mínima se sincronizan también al guardar sabores del día o precios. Configura por separado lunes-miércoles, jueves y fin de semana; puedes pausar cada promo o mitad y mitad.
 - **VENTAS:** consulta totales y comparaciones por periodo, descuentos, cantidades y productos. Exporta el rango elegido a Excel desde el botón de exportación.
 - **AJUSTES:** configura apertura y cierre para cada día, teléfono y enlaces de pago, texto de cierre y banner de promoción. Guarda y comprueba la vista pública.
 

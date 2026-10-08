@@ -16,7 +16,10 @@
     out.mitadMitad = out.mitadMitad !== false;
     out.closedMessage = clean(out.closedMessage || "En este momento estamos cerrados. Vuelve en nuestro horario de atención.", 180);
     out.promoBanner = clean(out.promoBanner || "", 180);
-    out.cat = (out.cat || []).map(f => Object.assign({ active: true }, f));
+    out.cat = (out.cat || []).map(f => {
+      const adult = Boolean(f?.l ?? f?.adulto ?? false);
+      return Object.assign({ active: true }, f, { l: adult, adulto: adult });
+    });
     out.bebidas = (out.bebidas || []).map(b => Object.assign({ active: true, icon: "Vaso" }, b));
     out.combos = (out.combos || []).map(c => Object.assign({ active: true, p: (c.items || []).reduce((n, x) => n + (+x.p || 0), 0) }, c));
     return out;
@@ -118,6 +121,14 @@
       if (!button) return;
       const item = flavor(button.dataset.flavor);
       const inactive = !item || item.active === false;
+      const ageBadge = card.querySelector(".tag.adult");
+      if (item && (item.l || item.adulto) && !ageBadge) {
+        const badge = document.createElement("span");
+        badge.className = "tag adult";
+        badge.textContent = "+18 · LICOR";
+        const existingBadge = card.querySelector(".tag");
+        if (existingBadge) existingBadge.after(badge); else card.prepend(badge);
+      } else if ((!item || !(item.l || item.adulto)) && ageBadge) ageBadge.remove();
       card.querySelectorAll("[data-flavor]").forEach(sizeButton => { sizeButton.disabled = sizeButton.disabled || inactive; });
       card.querySelector(".half-trigger")?.remove();
       if (menu.mitadMitad && todayNames.filter(name => flavor(name)?.active !== false && !sold(name)).length > 1) {
@@ -461,12 +472,24 @@
     node.textContent = text;
     node.className = ok ? "saved" : "error";
   }
+  function syncCatalogFromControls() {
+    document.querySelectorAll("[data-cat-name]").forEach(input => {
+      const index = +input.dataset.catName, item = menu.cat[index], old = item?.n, name = clean(input.value, 30);
+      if (!item) return;
+      if (old && name && old !== name) Object.keys(menu.dias || {}).forEach(day => { menu.dias[day] = (menu.dias[day] || []).map(value => value === old ? name : value); });
+      item.n = name || old;
+    });
+    document.querySelectorAll("[data-cat-color]").forEach(input => { const item = menu.cat[+input.dataset.catColor]; if (item) item.c = safeColor(input.value); });
+    document.querySelectorAll("[data-cat-adult]").forEach(input => { const item = menu.cat[+input.dataset.catAdult]; if (item) item.l = item.adulto = input.checked; });
+    document.querySelectorAll("[data-cat-active]").forEach(input => { const item = menu.cat[+input.dataset.catActive]; if (item) item.active = input.checked; });
+  }
   async function saveMenu(noteId) {
+    syncCatalogFromControls();
     try {
       await store.save(menu);
       if ($("welcome")) { $("welcome").textContent = "Cambios guardados correctamente."; $("welcome").className = "notice"; }
-      saveNotice($(noteId), "Guardado correctamente.", true);
       render(); adminRender();
+      saveNotice($(noteId), "Guardado correctamente.", true);
     } catch (error) {
       console.error(error);
       if ($("welcome")) { $("welcome").textContent = "No se pudo guardar. Revisa la conexión e inténtalo de nuevo."; $("welcome").className = "notice error"; }
@@ -484,6 +507,9 @@
     const drinks = (menu.bebidas || []).map((item, index) => '<div class="editable-row"><div class="field"><label>Bebida</label><input data-drink-name="' + index + '" value="' + esc(item.n) + '"></div><div class="field"><label>Precio</label><input type="number" min="0" data-drink-price="' + index + '" value="' + (+item.p || 0) + '"></div><label class="check"><input type="checkbox" data-drink-active="' + index + '" ' + (item.active !== false ? "checked" : "") + '> Activa</label><button class="secondary" data-delete-drink="' + index + '">Eliminar</button></div>').join("");
     const combos = (menu.combos || []).map((item, index) => '<div class="editable-row"><div class="field"><label>Combo</label><input data-combo-name="' + index + '" value="' + esc(item.n) + '"></div><div class="field"><label>Descripción</label><input data-combo-description="' + index + '" value="' + esc(item.d || "") + '"></div><div class="field"><label>Precio</label><input type="number" min="0" data-combo-price="' + index + '" value="' + (+item.p || 0) + '"></div><label class="check"><input type="checkbox" data-combo-active="' + index + '" ' + (item.active !== false ? "checked" : "") + '> Activo</label><button class="secondary" data-delete-combo="' + index + '">Eliminar</button></div>').join("");
     $("adminView").innerHTML = '<div class="admin-grid"><article class="card"><h2>Catálogo de sabores</h2><p>Edita nombre, color, edad mínima y disponibilidad.</p><div class="table-like">' + catalog + '</div><div class="row"><div class="field"><label for="newFlavorName">Nuevo sabor</label><input id="newFlavorName" maxlength="30"></div><div class="field"><label for="newFlavorColor">Color</label><input id="newFlavorColor" type="color" value="#5bc0eb"></div><label class="check"><input id="newFlavorAdult" type="checkbox"> +18</label><button class="secondary" id="addFlavorV4">Agregar</button></div></article><article class="card"><h2>Sabores por día</h2><div class="daypick">' + [1, 2, 3, 4, 5, 6, 0].map(day => '<button type="button" data-v4-day="' + day + '" class="' + (day === selectedDay ? "active" : "") + '">' + days[day].slice(0, 3) + '</button>').join("") + '</div><div class="chips">' + flavors.filter(item => item.active !== false).map(item => '<button class="choice ' + (chosen.includes(item.n) ? "active" : "") + '" data-v4-flavor="' + esc(item.n) + '">' + esc(item.n) + '</button>').join("") + '</div><div class="row"><div class="field"><label for="copyFromDay">Copiar desde otro día</label><select id="copyFromDay">' + [1, 2, 3, 4, 5, 6, 0].filter(day => day !== selectedDay).map(day => '<option value="' + day + '">' + days[day] + '</option>').join("") + '</select></div><button class="secondary" id="copyDay">Copiar</button><button class="secondary" id="repeatYesterday">Repetir ayer</button></div><div class="save"><button class="primary" id="saveDayMenu">Guardar sabores</button><span class="saved" id="menuSaved"></span></div></article><article class="card"><h2>Precios</h2>' + prices + '<h2 style="margin-top:15px">Promociones</h2>' + ["lunes", "martes", "miercoles", "jueves"].map((day, index) => '<label class="switch"><span>' + ["Lunes 2x1", "Martes 2x1", "Miércoles 2x1", "Jueves 3x2"][index] + '</span><input type="checkbox" data-promo-day="' + day + '" ' + (menu.promos[day] !== false ? "checked" : "") + '></label>').join("") + '<label class="switch"><span>Permitir mitad y mitad</span><input id="halfEnabled" type="checkbox" ' + (menu.mitadMitad ? "checked" : "") + '></label><div class="save"><button class="primary" id="savePrices">Guardar precios y promos</button><span id="priceSaved" class="saved"></span></div></article><article class="card"><h2>Bebidas</h2><div class="table-like">' + drinks + '</div><div class="row"><div class="field"><label for="newDrinkName">Nueva bebida</label><input id="newDrinkName"></div><div class="field"><label for="newDrinkPrice">Precio</label><input id="newDrinkPrice" type="number" min="0"></div><button class="secondary" id="addDrinkV4">Agregar bebida</button></div><h2 style="margin-top:22px">Combos</h2><div class="table-like">' + combos + '</div><div class="form-grid"><div class="field"><label for="newComboName">Nombre del combo</label><input id="newComboName"></div><div class="field"><label for="newComboDescription">Descripción</label><input id="newComboDescription"></div><div class="field"><label for="newComboPrice">Precio</label><input id="newComboPrice" type="number" min="0"></div></div><button class="secondary" id="addComboV4">Agregar combo</button></article></div>';
+    const catalogCard = [...document.querySelectorAll("#adminView .card")].find(card => card.querySelector("#newFlavorName"));
+    if (catalogCard && !catalogCard.querySelector("#saveCatalogV4")) catalogCard.insertAdjacentHTML("beforeend", '<div class="save"><button class="primary" id="saveCatalogV4">Guardar catálogo</button><span id="catalogSaved" class="saved"></span></div>');
+    $("saveCatalogV4").onclick = () => saveMenu("catalogSaved");
     $("saveDayMenu").onclick = () => saveMenu("menuSaved");
     $("savePrices").onclick = () => {
       document.querySelectorAll("[data-cat-name]").forEach(input => { const index = +input.dataset.catName; const old = menu.cat[index]?.n; const name = clean(input.value, 30); if (old && name && old !== name) { Object.keys(menu.dias).forEach(day => { menu.dias[day] = (menu.dias[day] || []).map(value => value === old ? name : value); }); } if (menu.cat[index]) menu.cat[index].n = name || old; });
@@ -660,7 +686,8 @@
     }
     if (target.id === "addFlavorV4") {
       const name = clean($("newFlavorName").value, 30);
-      if (name && !menu.cat.some(item => item.n.toLowerCase() === name.toLowerCase())) menu.cat.push({ n: name, c: safeColor($("newFlavorColor").value), l: $("newFlavorAdult").checked, active: true });
+      const adult = $("newFlavorAdult").checked;
+      if (name && !menu.cat.some(item => item.n.toLowerCase() === name.toLowerCase())) menu.cat.push({ n: name, c: safeColor($("newFlavorColor").value), l: adult, adulto: adult, active: true });
       menuView(); return;
     }
     if (target.id === "copyDay") { const from = +$("copyFromDay").value; menu.dias[selectedDay] = [...(menu.dias[from] || [])]; menuView(); return; }
