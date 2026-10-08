@@ -1,4 +1,4 @@
-const CACHE = 'barrio-ice-v4';
+const CACHE = 'barrio-ice-v5';
 const SHELL = [
   './',
   './index.html',
