@@ -3241,8 +3241,36 @@
         route();
         let id = new URLSearchParams(location.search).get("pedido");
         if (id) showTracking(id);
-        if ("serviceWorker" in navigator)
-          navigator.serviceWorker.register("./sw.js").catch(() => {});
+        if ("serviceWorker" in navigator) {
+          const hadController = !!navigator.serviceWorker.controller;
+          let reloaded = false;
+          let reloadTimer = null;
+          const reloadWhenSafe = () => {
+            if (
+              reloaded ||
+              !hadController ||
+              cart.length > 0 ||
+              $("sheet").classList.contains("open")
+            ) {
+              return;
+            }
+            reloaded = true;
+            clearInterval(reloadTimer);
+            location.reload();
+          };
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (!hadController || reloaded) return;
+            reloadWhenSafe();
+            reloadTimer = setInterval(reloadWhenSafe, 500);
+          });
+          navigator.serviceWorker
+            .register("/sw.js", { updateViaCache: "none" })
+            .then((registration) => {
+              registration.update();
+              setInterval(() => registration.update(), 60 * 60 * 1000);
+            })
+            .catch(() => {});
+        }
       }
       document.addEventListener("click", (e) => {
         if (e.target.id === "toastGo") openCart();
