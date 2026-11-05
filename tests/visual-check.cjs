@@ -227,6 +227,15 @@ const server = http.createServer((request, response) => {
       const response = await fetch(new URL(adminPath, address));
       assert.equal(response.status, 200, `el recurso del panel debe responder 200: ${adminPath}`);
     }
+    const compatibilityPage = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      serviceWorkers: "block",
+    });
+    await compatibilityPage.goto(address + "/#admin", {
+      waitUntil: "domcontentloaded",
+    });
+    await compatibilityPage.waitForURL("**/admin/", { timeout: 5000 });
+    await compatibilityPage.close();
     const dimensions =
       process.env.VISUAL_QUICK === "1"
         ? [[390, 844]]
@@ -270,6 +279,15 @@ const server = http.createServer((request, response) => {
             logo.currentSrc.includes("/assets/brand/")
           );
         });
+        await page.waitForFunction(() => {
+          const logo = document.querySelector(".hero-logo");
+          return (
+            logo?.complete &&
+            logo.naturalWidth > 1 &&
+            logo.currentSrc.includes("/assets/brand/")
+          );
+        });
+        await page.waitForTimeout(800);
         const socialImages = await page
           .locator('meta[property="og:image"], meta[name="twitter:image"]')
           .evaluateAll((tags) => tags.map((tag) => tag.content));
@@ -376,7 +394,7 @@ const server = http.createServer((request, response) => {
           assert.ok(
             measurements.statusBottom < measurements.logoTop &&
               measurements.logoTop < measurements.titleTop,
-            "en móvil, el hero debe ordenar estado, logo y texto",
+            `en móvil, el hero debe ordenar estado, logo y texto: ${JSON.stringify(measurements)}`,
           );
         } else {
           assert.ok(

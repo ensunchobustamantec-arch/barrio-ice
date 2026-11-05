@@ -7,7 +7,7 @@
   justify-items: center;
   align-content: center;
   min-height: clamp(580px, 82svh, 760px);
-  gap: 10px;
+  gap: 32px;
   padding-block: clamp(24px, 5svh, 52px);
   text-align: center;
 }
@@ -358,13 +358,7 @@ body {
   width: 44px;
   height: 44px;
 }
-.choice {
-  min-height: 44px;
-}
 .toast button {
-  min-height: 44px;
-}
-.order select {
   min-height: 44px;
 }
 .cart-line.gift {
@@ -395,13 +389,6 @@ body {
   margin-top: 5px;
   padding: 0 10px;
 }
-.admin-nav #newBadge {
-  display: inline-block;
-  min-width: 8px;
-  margin-left: 4px;
-  color: var(--yellow);
-  font-size: 1rem;
-}
 .change-copy {
   display: block;
   min-height: 20px;
@@ -410,56 +397,6 @@ body {
   font-size: 0.82rem;
   font-weight: 850;
 }
-.admin {
-  padding-bottom: calc(90px + var(--safe-b));
-}
-.tabs {
-  display: none !important;
-}
-.admin-nav {
-  position: fixed;
-  z-index: 85;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 3px;
-  padding: 7px 8px calc(7px + var(--safe-b));
-  border-top: 1px solid var(--line);
-  background: var(--glass);
-  box-shadow: 0 -8px 24px #00111a18;
-  backdrop-filter: blur(18px);
-}
-.admin-nav button {
-  min-width: 0;
-  min-height: 55px;
-  padding: 5px 2px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--muted);
-  font-size: clamp(0.58rem, 2.3vw, 0.73rem);
-  font-weight: 950;
-  letter-spacing: 0.015em;
-}
-.admin-nav button.active {
-  background: var(--ink);
-  color: var(--paper);
-}
-#adminView {
-  padding-bottom: 8px;
-}
-.admin-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
-}
-.admin-actions button,
-.admin-actions a {
-  min-height: 44px;
-}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
@@ -467,30 +404,6 @@ body {
 }
 .form-grid .field {
   margin: 6px 0;
-}
-.table-like {
-  display: grid;
-  gap: 8px;
-  margin-top: 10px;
-}
-.editable-row {
-  display: grid;
-  grid-template-columns: minmax(110px, 1.3fr) minmax(75px, 0.7fr) auto;
-  align-items: end;
-  gap: 6px;
-  padding: 9px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: var(--paper);
-}
-.editable-row .field {
-  margin: 0;
-}
-.editable-row .field label {
-  font-size: 0.68rem;
-}
-.editable-row button {
-  min-height: 44px;
 }
 .filter-grid {
   display: grid;
@@ -507,18 +420,6 @@ body {
   border-radius: 10px;
   background: var(--paper);
   color: var(--ink);
-}
-.order-line {
-  margin-top: 5px !important;
-  padding-left: 8px;
-  border-left: 2px solid var(--ice);
-}
-.order .admin-actions {
-  margin-top: 8px;
-}
-.admin-actions .secondary {
-  padding: 0 11px;
-  text-decoration: none;
 }
 .chart-grid {
   display: grid;
@@ -573,16 +474,6 @@ dialog::backdrop {
   .hero-copy {
     padding-bottom: 14px;
   }
-  .admin {
-    padding-bottom: calc(100px + var(--safe-b));
-  }
-  .admin-nav {
-    right: max(calc((100vw - 1050px) / 2), 0px);
-    left: max(calc((100vw - 1050px) / 2), 0px);
-    border: 1px solid var(--line);
-    border-bottom: 0;
-    border-radius: 17px 17px 0 0;
-  }
 }
 @media (min-width: 901px) {
   .hero {
@@ -624,12 +515,6 @@ dialog::backdrop {
     align-items: flex-start;
     flex-direction: column;
     gap: 2px;
-  }
-  .editable-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  .editable-row button {
-    grid-column: 1 / -1;
   }
 }
 @media (max-width: 699px) {
@@ -708,9 +593,6 @@ dialog::backdrop {
 .carttop {
   flex: 0 0 auto;
   white-space: nowrap;
-}
-.login-card h2 {
-  margin: 7px 0 14px;
 }
 @media (min-width: 700px) {
   .brand {
@@ -856,33 +738,6 @@ select {
 .combo h3 {
   overflow-wrap: anywhere;
 }
-.primary,
-.secondary,
-.add,
-.size,
-.qty button,
-.close,
-.fab,
-.carttop,
-.admin-nav button {
-  transition:
-    transform 160ms var(--ease-out),
-    box-shadow 160ms var(--ease-out),
-    background-color 160ms var(--ease-out),
-    border-color 160ms var(--ease-out),
-    color 160ms var(--ease-out);
-}
-.primary:active,
-.secondary:active,
-.add:active,
-.size:active,
-.qty button:active,
-.close:active,
-.fab:active,
-.carttop:active,
-.admin-nav button:active {
-  transform: scale(0.97);
-}
 .primary:active {
   box-shadow: 0 3px 0 #b88100;
 }
@@ -909,29 +764,12 @@ button:disabled,
   touch-action: manipulation;
 }
 .add,
-.half-trigger,
-.qty button,
-.close,
-.carttop,
-.admin-actions button {
-  min-height: 46px;
-}
-.add,
 .qty button,
 .close {
   min-width: 46px;
 }
 .gift-same {
   min-height: 46px;
-}
-.choice,
-.order select {
-  min-height: 44px;
-}
-.check,
-.switch {
-  min-height: 44px;
-  align-items: center;
 }
 .toolbar input {
   min-height: 44px;
@@ -1179,15 +1017,6 @@ button:disabled,
 .saved:not(:empty) {
   animation: save-confirm 220ms var(--ease-out) both;
 }
-.admin-nav {
-  padding-bottom: calc(7px + var(--safe-b));
-}
-.admin-nav button {
-  min-height: 55px;
-}
-.admin-content-enter {
-  animation: admin-view-in 200ms var(--ease-out) both;
-}
 :root.theme-transition body,
 :root.theme-transition .top,
 :root.theme-transition .flavor,
@@ -1315,11 +1144,6 @@ button:disabled,
     transform: none;
   }
 }
-@keyframes admin-view-in {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
   to {
     opacity: 1;
     transform: none;
