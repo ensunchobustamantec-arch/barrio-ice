@@ -15,6 +15,8 @@ const SHELL = [
   "/theme-init.js",
   "/pricing.js",
   "/shared/menu-schema.js",
+  "/store-firebase.js",
+  "/hero-scene.js",
   "/storefront.js",
   "/motion.js",
   "/checkout.js",
