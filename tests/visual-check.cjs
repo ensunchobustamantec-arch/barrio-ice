@@ -109,6 +109,20 @@ const sampleOrders = [
   },
 ];
 
+function freezeDate() {
+  const NativeDate = Date;
+  const fixedTime = new NativeDate("2026-10-07T12:00:00-05:00").valueOf();
+  class FixedDate extends NativeDate {
+    constructor(...args) {
+      super(...(args.length ? args : [fixedTime]));
+    }
+    static now() {
+      return fixedTime;
+    }
+  }
+  window.Date = FixedDate;
+}
+
 function firebaseStub(file) {
   if (file === "firebase-app.js")
     return "export function initializeApp(config){return {config};}";
@@ -212,6 +226,7 @@ const server = http.createServer((request, response) => {
         });
         await interceptFirebase(page);
         page.on("pageerror", (error) => errors.push(error.message));
+        await page.addInitScript(freezeDate);
         await page.addInitScript(
           (themeValue) =>
             localStorage.setItem(
@@ -225,7 +240,11 @@ const server = http.createServer((request, response) => {
         await page.waitForSelector(".flavor");
         await page.waitForFunction(() => {
           const logo = document.querySelector(".brand img");
-          return logo?.complete && logo.naturalWidth > 0;
+          return (
+            logo?.complete &&
+            logo.naturalWidth > 1 &&
+            logo.currentSrc.includes("/assets/brand/")
+          );
         });
         const socialImages = await page
           .locator('meta[property="og:image"], meta[name="twitter:image"]')
@@ -233,16 +252,23 @@ const server = http.createServer((request, response) => {
         assert.deepEqual(
           socialImages,
           [
-            "https://barrio-ice.vercel.app/assets/generated/og-barrio-ice-1200x630.png",
-            "https://barrio-ice.vercel.app/assets/generated/og-barrio-ice-1200x630.png",
+            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg",
+            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg",
           ],
           "las imágenes sociales deben usar una URL absoluta de producción",
         );
         const measurements = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
+          documentHeight: document.documentElement.scrollHeight,
           logoTop: document.querySelector(".hero-logo")?.getBoundingClientRect()
             .top,
+          logoLeft: document
+            .querySelector(".hero-logo")
+            ?.getBoundingClientRect().left,
+          copyRight: document
+            .querySelector(".hero-copy")
+            ?.getBoundingClientRect().right,
           headerLogo: (() => {
             const logo = document.querySelector(".brand img"),
               box = logo.getBoundingClientRect();
@@ -261,8 +287,12 @@ const server = http.createServer((request, response) => {
           actionsRight: document
             .querySelector(".actions")
             ?.getBoundingClientRect().right,
-          titleTop: document.querySelector(".hero h1")?.getBoundingClientRect()
-            .top,
+          titleTop: document
+            .querySelector(".hero .lede")
+            ?.getBoundingClientRect().top,
+          statusBottom: document
+            .querySelector(".hero > .eyebrow")
+            ?.getBoundingClientRect().bottom,
           promoTop: document
             .getElementById("promoBanner")
             ?.getBoundingClientRect().top,
@@ -318,13 +348,21 @@ const server = http.createServer((request, response) => {
           measurements.actionsRight <= width,
           `los controles del header se desbordan en ${width}px`,
         );
+        if (width < 901) {
+          assert.ok(
+            measurements.statusBottom < measurements.logoTop &&
+              measurements.logoTop < measurements.titleTop,
+            "en móvil, el hero debe ordenar estado, logo y texto",
+          );
+        } else {
+          assert.ok(
+            measurements.logoLeft >= measurements.copyRight - 1,
+            `en escritorio, el logo debe ocupar la columna derecha sin cruzar el texto (${width}px): ${JSON.stringify(measurements)}`,
+          );
+        }
         assert.ok(
-          measurements.logoTop < measurements.titleTop,
-          "el logo debe quedar arriba del titular",
-        );
-        assert.ok(
-          measurements.promoTop < height,
-          `la promo del día debe verse sin desplazarse en ${width}x${height}: ${JSON.stringify(measurements)}`,
+          measurements.promoTop < measurements.documentHeight,
+          `la promo debe seguir accesible al desplazarse en ${width}x${height}`,
         );
         assert.equal(measurements.theme, theme);
         assert.deepEqual(
@@ -334,8 +372,15 @@ const server = http.createServer((request, response) => {
         );
         const titleFits = await page
           .locator(".hero h1")
-          .evaluate((node) => node.scrollWidth <= node.clientWidth + 1);
-        assert.ok(titleFits, `el titular debe caber en ${width}x${height}`);
+          .evaluate((node) =>
+            node.classList.contains("sr-only")
+              ? node.textContent === "Barrio Ice · Granizados en Montería"
+              : node.scrollWidth <= node.clientWidth + 1,
+          );
+        assert.ok(
+          titleFits,
+          `el título accesible debe caber en ${width}x${height}`,
+        );
         if (width === 390 && height === 844) {
           await page.evaluate(() => {
             if (document.getElementById("sheet").classList.contains("open"))
@@ -604,6 +649,7 @@ const server = http.createServer((request, response) => {
         });
         await interceptFirebase(page);
         page.on("pageerror", (error) => errors.push(error.message));
+        await page.addInitScript(freezeDate);
         await page.addInitScript(
           (themeValue) =>
             localStorage.setItem(

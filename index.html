@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-CO">
   <head>
     <meta charset="utf-8" />
     <meta
@@ -7,6 +7,21 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#07131d" />
+    <script>
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem("barrio-ice-theme"));
+          var theme =
+            saved ||
+            (matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
     <meta
       name="description"
       content="Granizados, gaseosas y cervezas bien frías en Montería."
@@ -16,16 +31,17 @@
     <meta property="og:description" content="Del barrio, bien helado." />
     <meta
       property="og:image"
-      content="https://barrio-ice.vercel.app/assets/generated/og-barrio-ice-1200x630.png"
+      content="https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:image"
-      content="https://barrio-ice.vercel.app/assets/generated/og-barrio-ice-1200x630.png"
+      content="https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg"
     />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="icon" href="assets/generated/favicon-32.png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="assets/generated/apple-touch-icon.png" />
+    <link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" />
+    <link rel="icon" href="/assets/brand/favicon-48.png" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
     <title>Barrio Ice · Granizados en Montería</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -283,129 +299,6 @@
       .secondary {
         background: var(--glass);
         color: var(--ink);
-      }
-      .art {
-        position: absolute;
-        z-index: -1;
-        bottom: 0;
-        left: 50%;
-        width: min(520px, 100%);
-        height: 280px;
-        transform: translateX(-50%);
-        pointer-events: none;
-      }
-      .art img {
-        position: absolute;
-        top: 5px;
-        left: calc(50% - 86px);
-        width: 172px;
-        filter: drop-shadow(0 17px 20px #07131d55);
-        animation: bob 5s ease-in-out infinite;
-      }
-      .cube {
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        border: 1px solid #fff;
-        background: linear-gradient(135deg, #fff, #5bc0eb55);
-        border-radius: 4px;
-        box-shadow: inset 3px 3px 5px #fff8;
-        animation: float var(--t) ease-in-out infinite alternate;
-      }
-      .cube.a {
-        left: 8%;
-        top: 50%;
-        --t: 4s;
-      }
-      .cube.b {
-        right: 7%;
-        top: 31%;
-        width: 25px;
-        height: 25px;
-        --t: 5s;
-      }
-      .cube.c {
-        left: 20%;
-        top: 9%;
-        width: 12px;
-        height: 12px;
-        --t: 3s;
-      }
-      .sky {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        height: 120px;
-        background: var(--ink);
-        clip-path: polygon(
-          0 100%,
-          0 57%,
-          7% 57%,
-          7% 25%,
-          15% 25%,
-          15% 68%,
-          23% 68%,
-          23% 10%,
-          35% 10%,
-          35% 54%,
-          43% 54%,
-          43% 28%,
-          54% 28%,
-          54% 65%,
-          63% 65%,
-          63% 5%,
-          76% 5%,
-          76% 54%,
-          84% 54%,
-          84% 26%,
-          93% 26%,
-          93% 63%,
-          100% 63%,
-          100% 100%
-        );
-      }
-      .sky:after {
-        content: "";
-        position: absolute;
-        top: 40px;
-        left: 0;
-        width: 100%;
-        height: 10px;
-        background: repeating-linear-gradient(
-          90deg,
-          transparent 0 18px,
-          #ffd447 19px 24px,
-          transparent 25px 48px
-        );
-        animation: lights 3s steps(2) infinite;
-      }
-      .pole {
-        position: absolute;
-        right: 10%;
-        bottom: 88px;
-        width: 5px;
-        height: 104px;
-        border-radius: 4px;
-        background: var(--ink);
-      }
-      .pole:before {
-        content: "";
-        position: absolute;
-        top: 7px;
-        left: -14px;
-        width: 33px;
-        height: 4px;
-        background: var(--ink);
-      }
-      .wire {
-        position: absolute;
-        right: 10%;
-        bottom: 165px;
-        width: 160px;
-        height: 70px;
-        border-top: 3px solid var(--ink);
-        border-radius: 50%;
-        transform: rotate(-10deg);
       }
       .ticker {
         overflow: hidden;
@@ -1335,21 +1228,6 @@
         font-size: 0.65rem;
         font-weight: 900;
       }
-      @keyframes bob {
-        50% {
-          transform: translateY(-12px) rotate(-2deg);
-        }
-      }
-      @keyframes float {
-        to {
-          transform: translateY(-23px) rotate(75deg);
-        }
-      }
-      @keyframes lights {
-        50% {
-          opacity: 0.2;
-        }
-      }
       @keyframes fill {
         from {
           height: 8%;
@@ -1369,34 +1247,6 @@
       @media (min-width: 700px) {
         body {
           padding-bottom: 0;
-        }
-        .hero {
-          grid-template-columns: 1.1fr 0.9fr;
-          text-align: left;
-          place-items: center;
-        }
-        .hero-copy {
-          justify-self: start;
-        }
-        .lede {
-          margin: 0;
-        }
-        .buttons {
-          justify-content: start;
-        }
-        .art {
-          position: relative;
-          left: auto;
-          transform: none;
-          width: 100%;
-          height: 390px;
-        }
-        .art img {
-          width: 220px;
-          left: calc(50% - 110px);
-        }
-        .sky {
-          height: 170px;
         }
         .week {
           gap: 8px;
@@ -1513,29 +1363,6 @@
         }
       }
       @media (max-width: 699px) {
-        .hero {
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-          align-items: center;
-          min-height: 0;
-          padding: 26px 0 0;
-        }
-        .hero:before {
-          top: 60px;
-          left: 50%;
-          transform: translateX(-50%);
-        }
-        .art {
-          position: relative;
-          left: auto;
-          bottom: auto;
-          transform: none;
-          width: 100%;
-          height: 300px;
-          margin-top: 14px;
-          flex: none;
-        }
       }
       @media (min-width: 700px) {
         .toast {
@@ -1546,29 +1373,6 @@
           max-width: 360px;
         }
       }
-
-      :root[data-theme="dark"] .art img,
-      :root[data-theme="dark"] .tracker img {
-        box-sizing: border-box;
-        background: #edf9ff;
-        border-radius: 22px;
-        padding: 10px;
-      }
-      .footer img {
-        box-sizing: content-box;
-        background: #edf9ff;
-        border-radius: 18px;
-        padding: 9px;
-      }
-      @media (max-width: 699px) {
-        .art {
-          height: 340px;
-        }
-        .art img {
-          width: 150px;
-          left: calc(50% - 75px);
-        }
-      }
     </style>
     <link rel="stylesheet" href="./enhancements.css" />
   </head>
@@ -1576,7 +1380,10 @@
     <header class="top shell">
       <a class="brand" href="#inicio" aria-label="Barrio Ice inicio"
         ><img
-          src="assets/generated/logo-mark-transparent.png"
+          data-brand="logo-mark"
+          width="40"
+          height="35"
+          src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
           alt="Logo Barrio Ice"
         /><span><b>BARRIO ICE</b><small>COLD FLOW · MONTERÍA</small></span></a
       >
@@ -1594,7 +1401,7 @@
           <span class="eyebrow"
             ><i class="dot"></i><span id="heroStatus">Cargando</span></span
           >
-          <h1><span>BARRIO</span><span>ICE</span></h1>
+          <h1 class="sr-only">Barrio Ice · Granizados en Montería</h1>
           <p class="lede">
             Granizados con sabor a esquina, gaseosas heladas y cervezas para
             soltar el calor de Montería.
@@ -1603,13 +1410,6 @@
             <a class="primary" href="#sabores">Pedir algo frío ↓</a
             ><button class="secondary" id="repeat">↻ Repetir mi pedido</button>
           </div>
-        </div>
-        <div class="art" aria-hidden="true">
-          <i class="cube a"></i><i class="cube b"></i><i class="cube c"></i
-          ><img src="assets/generated/logo-transparent.png" alt="" /><i
-            class="pole"
-          ></i
-          ><i class="wire"></i><i class="sky"></i>
         </div>
       </section>
       <div class="ticker" aria-hidden="true">
@@ -1702,7 +1502,14 @@
         </details>
       </section>
       <footer class="footer">
-        <img src="assets/generated/logo-transparent.png" alt="Barrio Ice" />
+        <img
+          data-brand="logo-mark"
+          width="105"
+          height="92"
+          src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+          alt="Logo Barrio Ice"
+          loading="lazy"
+        />
         <p>
           Del barrio, bien helado. Granizados, gaseosas y cervezas en Montería.
         </p>
@@ -1716,7 +1523,13 @@
     </main>
     <main id="tracking" class="shell hide">
       <section class="tracker">
-        <img src="assets/generated/logo-transparent.png" alt="Barrio Ice" />
+        <img
+          data-brand="logo"
+          width="120"
+          height="186"
+          src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+          alt="Barrio Ice · Cold Flow"
+        />
         <h1>Tu pedido va en flow</h1>
         <p id="trackingCopy">Buscando tu pedido…</p>
         <div class="steps" id="steps"></div>
