@@ -31,6 +31,16 @@ Entra a `TU-DOMINIO/#admin` e inicia sesión con el correo de Firebase autorizad
 
 La primera cuenta autorizada y sus permisos se controlan con el UID de Firebase; la configuración web pública de Firebase no es una contraseña. Las reglas de Firestore son el control de acceso.
 
+## Archivos de la tienda
+
+- `index.html` contiene el marcado y carga estilos y scripts en orden.
+- `styles.css`, `layout.css`, `catalog.css`, `site.css` y `motion-effects.css` conservan los estilos por secciones; el orden de carga mantiene la cascada.
+- `theme-init.js` aplica el tema antes del primer pintado para evitar destellos.
+- `shared/menu-schema.js` normaliza el catálogo; `pricing.js` calcula promociones y totales.
+- `storefront.js` mantiene el catálogo, Firebase, carrito y render de la tienda.
+- `checkout.js` valida y guarda pedidos; `motion.js` anima el hero, contenido y tarjetas; `cart-motion.js` gestiona el panel accesible del pedido.
+- `sw.js` define los archivos de la tienda almacenados en caché. Los hooks de prueba se activan solo en `localhost` con `?e2e=1`.
+
 ## Pruebas y vista previa
 
 La rama de trabajo es `mejoras-v4`; los cambios se proponen mediante PR y no se mezclan automáticamente en `main`. Vercel puede generar una vista previa para la rama/PR.

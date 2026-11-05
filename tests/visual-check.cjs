@@ -322,7 +322,7 @@ const server = http.createServer((request, response) => {
             ),
           theme,
         );
-        await page.goto(address, { waitUntil: "domcontentloaded" });
+        await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#promoBannerTitle");
         await page.waitForSelector(".flavor");
         await page.waitForFunction(() => {
@@ -480,7 +480,7 @@ const server = http.createServer((request, response) => {
         if (width === 390 && height === 844) {
           await page.evaluate(() => {
             if (document.getElementById("sheet").classList.contains("open"))
-              closeCart();
+              window.__barrio.closeCart();
           });
           if (saveScreenshots)
             await page.screenshot({
@@ -494,10 +494,10 @@ const server = http.createServer((request, response) => {
             .click();
           console.log("Línea agregada desde la tienda, verificando carrito");
           const cartState = await page.evaluate(() => ({
-            lines: typeof cart === "undefined" ? "no cart" : cart.length,
+            lines: window.__barrio?.cart?.length ?? "no cart",
             total: document.getElementById("fabTotal")?.textContent,
             toast: document.getElementById("toast")?.textContent,
-            ready: typeof store === "undefined" ? "no store" : store.ready,
+            ready: window.__barrio?.store?.ready ?? "no store",
           }));
           assert.ok(
             cartState.lines > 0,
@@ -566,7 +566,7 @@ const server = http.createServer((request, response) => {
         if (width === 1440 && height === 900) {
           await page.evaluate(() => {
             if (document.getElementById("sheet").classList.contains("open"))
-              closeCart();
+              window.__barrio.closeCart();
           });
           if (saveScreenshots)
             await page.screenshot({
@@ -584,24 +584,24 @@ const server = http.createServer((request, response) => {
                 ? longName
                 : "Sabor de prueba " + String(index).padStart(2, "0"),
             );
-            menu.cat = names.map((name, index) => ({
+            window.__barrio.menu.cat = names.map((name, index) => ({
               n: name,
               c: index % 2 ? "#5bc0eb" : "#9b3fd6",
               l: index === 0,
             }));
-            menu.dias[day] = names;
-            menu.agotados[day] = [names[1]];
-            menu.precios.semana = [999999999999, 999999999999, 999999999999];
-            menu.precios.jueves = [...menu.precios.semana];
-            menu.precios.finde = [...menu.precios.semana];
-            menu.bebidas = [
+            window.__barrio.menu.dias[day] = names;
+            window.__barrio.menu.agotados[day] = [names[1]];
+            window.__barrio.menu.precios.semana = [999999999999, 999999999999, 999999999999];
+            window.__barrio.menu.precios.jueves = [...window.__barrio.menu.precios.semana];
+            window.__barrio.menu.precios.finde = [...window.__barrio.menu.precios.semana];
+            window.__barrio.menu.bebidas = [
               {
                 n: "Bebida de prueba con nombre muy largo",
                 p: 999999999999,
                 icon: "🥤",
               },
             ];
-            menu.combos = [
+            window.__barrio.menu.combos = [
               {
                 n: "Combo de prueba con nombre excesivamente largo",
                 d: "Descripción larga para comprobar el ajuste de la tarjeta",
@@ -609,7 +609,7 @@ const server = http.createServer((request, response) => {
                 items: [],
               },
             ];
-            render();
+            window.__barrio.render();
             const cards = [...document.querySelectorAll("#flavors .flavor")];
             return {
               count: cards.length,
@@ -669,10 +669,10 @@ const server = http.createServer((request, response) => {
             "un producto agotado debe mantener sus tamaños desactivados",
           );
           await page.evaluate(() => {
-            menu.dias[String(new Date().getDay())] = [];
-            menu.combos = [];
-            menu.bebidas = [];
-            render();
+            window.__barrio.menu.dias[String(new Date().getDay())] = [];
+            window.__barrio.menu.combos = [];
+            window.__barrio.menu.bebidas = [];
+            window.__barrio.render();
           });
           assert.match(
             await page.locator("#flavors").innerText(),
@@ -680,7 +680,7 @@ const server = http.createServer((request, response) => {
           );
           await page.evaluate(() => {
             document.getElementById("name").value = "L".repeat(60);
-            cart = Array.from({ length: 48 }, (_, index) => ({
+            window.__barrio.cart = Array.from({ length: 48 }, (_, index) => ({
               k: "edge:" + index,
               n: "Pedido " + index + " · producto con nombre largo",
               s: "Grande",
@@ -690,8 +690,8 @@ const server = http.createServer((request, response) => {
               adulto: false,
               tipo: "bebida",
             }));
-            draw();
-            openCart();
+            window.__barrio.draw();
+            window.__barrio.openCart();
           });
           const longOrder = await page.evaluate(() => ({
             lines: document.querySelectorAll("#lines .cart-line").length,
@@ -723,7 +723,7 @@ const server = http.createServer((request, response) => {
             60,
             "el nombre largo debe respetar el límite del campo",
           );
-          await page.evaluate(() => closeCart());
+          await page.evaluate(() => window.__barrio.closeCart());
         }
         await page.close();
       }
@@ -852,8 +852,11 @@ const server = http.createServer((request, response) => {
           await page.locator('[data-order-select="PEDIDO1"]').check();
           assert.equal(await page.locator("#deleteSelected").isEnabled(), true);
           const bulkDeleteDialog = page.waitForEvent("dialog");
-          await page.locator("#deleteSelected").click();
+          const bulkDeleteClick = page
+            .locator("#deleteSelected")
+            .click({ noWaitAfter: true });
           await (await bulkDeleteDialog).accept();
+          await bulkDeleteClick;
           await page.locator('[data-order-id="PEDIDO1"]').waitFor({ state: "detached" });
           const deletedOrder = page.evaluate(() =>
             JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]").some(
@@ -862,8 +865,11 @@ const server = http.createServer((request, response) => {
           );
           assert.equal(await deletedOrder, false);
           const singleDeleteDialog = page.waitForEvent("dialog");
-          await page.locator('[data-delete-order="PEDIDO2"]').click();
+          const singleDeleteClick = page
+            .locator('[data-delete-order="PEDIDO2"]')
+            .click({ noWaitAfter: true });
           await (await singleDeleteDialog).accept();
+          await singleDeleteClick;
           await page.locator('[data-order-id="PEDIDO2"]').waitFor({ state: "detached" });
           const flavorName = "Tequila de prueba";
           await page.locator('[data-admin-tab="menu"]').click();
@@ -899,8 +905,8 @@ const server = http.createServer((request, response) => {
             () => JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").dias?.["3"],
           );
           assert.ok(availability?.includes(flavorName), "el sabor debe publicarse para el miércoles");
-          await page.goto(address + "/", { waitUntil: "domcontentloaded" });
-          await page.waitForFunction(() => typeof store !== "undefined" && store.ready);
+          await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
+          await page.waitForFunction(() => !!window.__barrio?.store?.ready);
           const flavorCard = page.locator(".flavor").filter({ hasText: flavorName });
           await flavorCard.waitFor();
           assert.match(await flavorCard.locator(".tag.adult").innerText(), /\+18/);
@@ -925,7 +931,7 @@ const server = http.createServer((request, response) => {
               url: location.href,
               error: document.getElementById("checkoutError")?.textContent,
               age: document.getElementById("age")?.checked,
-              adult: cart.some((line) => line.adulto),
+              adult: window.__barrio.cart.some((line) => line.adulto),
               writes: JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]").length,
             }));
             throw new Error(
