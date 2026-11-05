@@ -1,0 +1,60 @@
+{
+  "source_size": [
+    625,
+    970
+  ],
+  "windows": [
+    {
+      "left": 37.28,
+      "top": 43.71,
+      "width": 1.44,
+      "height": 1.55
+    },
+    {
+      "left": 38.24,
+      "top": 45.77,
+      "width": 1.44,
+      "height": 1.55
+    },
+    {
+      "left": 58.24,
+      "top": 37.63,
+      "width": 1.92,
+      "height": 1.86
+    },
+    {
+      "left": 60.0,
+      "top": 40.41,
+      "width": 1.6,
+      "height": 1.65
+    },
+    {
+      "left": 60.8,
+      "top": 44.74,
+      "width": 1.92,
+      "height": 2.06
+    },
+    {
+      "left": 71.2,
+      "top": 41.55,
+      "width": 0.96,
+      "height": 1.34
+    },
+    {
+      "left": 73.12,
+      "top": 41.55,
+      "width": 1.44,
+      "height": 1.86
+    }
+  ],
+  "sparkle": {
+    "left": 78.88,
+    "top": 16.19
+  },
+  "mark_crop_in_logo": {
+    "left": 4.0,
+    "top": 4.12,
+    "width": 92.0,
+    "height": 51.96
+  }
+}
