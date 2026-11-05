@@ -1,0 +1,9 @@
+tests
+docs
+README.md
+CODEX-TASK.md
+CODEX-TASK-barrio-ice.md
+firebase.json
+.firebaserc
+firestore.rules
+firestore.rules.transition
