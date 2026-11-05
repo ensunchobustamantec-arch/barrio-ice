@@ -32,6 +32,7 @@ let seen = new Set();
 let admin = false;
 let selectedDay = now().getDay();
 let store = null;
+let menuDocumentExists = false;
 let audio = null;
 let unsubscribeOrders = null;
 let unsubscribeMenu = null;
@@ -1136,7 +1137,10 @@ function beep() {
       esc(menu.promoBanner || "") +
       '</textarea></div><div class="field"><label>Mensaje de tienda cerrada</label><textarea id="closedSetting" maxlength="180">' +
       esc(menu.closedMessage || "") +
-      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article><article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article></div>';
+      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article><article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article><article class="card diagnostics" id="diagnosticsCard"><h2>Diagnóstico</h2><p>Estado actual del menú y la conexión.</p><ul class="diagnostic-list">' +
+      diagnosticsMarkup() +
+      "</ul></article></div>";
+    showPanelVersion();
     $("saveSettingsV4").onclick = async () => {
       const hours = {};
       [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
@@ -1748,6 +1752,144 @@ function showConnectionError() {
   welcome.textContent = "No se pudieron cargar los datos. Revisa las reglas y el UID.";
   welcome.className = "muted error";
 }
+
+function diagnosticRow(key, label, ok, detail) {
+  return (
+    '<li data-diagnostic="' +
+    key +
+    '" class="diagnostic-' +
+    (ok ? "ok" : "warn") +
+    '"><span><b aria-hidden="true">' +
+    (ok ? "✓" : "⚠") +
+    "</b> " +
+    label +
+    '</span><small>' +
+    esc(detail) +
+    "</small></li>"
+  );
+}
+
+function diagnosticsMarkup() {
+  const socialUrlIsSet = (value, hostname) => {
+    if (!value) return false;
+    try {
+      const url = new URL(value);
+      if (hostname === "instagram")
+        return /^(www\.)?instagram\.com$/i.test(url.hostname) &&
+          url.pathname.replace(/\/$/, "") !== "";
+      const place = (
+        url.searchParams.get("q") ||
+        url.searchParams.get("query") ||
+        url.pathname.split("/").filter(Boolean).pop() ||
+        ""
+      )
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/\+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      return !/^(monteria(?:,? colombia)?|colombia)$/.test(place);
+    } catch {
+      return false;
+    }
+  };
+  const hoursComplete = [0, 1, 2, 3, 4, 5, 6].every((day) => {
+    const hours = menu.horario?.[day] || menu.horario?.[days[day]];
+    if (!hours) return false;
+    return [hours.abre || hours.open, hours.cierra || hours.close].every(
+      (value) => /^\d{2}:\d{2}$/.test(String(value || "")),
+    );
+  });
+  const whatsapp = String(menu.whatsapp || "").replace(/\D/g, ""),
+    nequi = String(menu.pagos?.Nequi || "").replace(/\D/g, ""),
+    daviplata = String(menu.pagos?.Daviplata || "").replace(/\D/g, ""),
+    lastOrder = orders.reduce(
+      (latest, order) =>
+        !latest || orderCreatedAt(order) > orderCreatedAt(latest)
+          ? order
+          : latest,
+      null,
+    ),
+    reviewed = orders.filter((order) => orderAudit(order).length).length,
+    lastOrderTimestamp = lastOrder ? orderCreatedAt(lastOrder) : NaN,
+    lastOrderDate = Number.isFinite(lastOrderTimestamp)
+      ? new Intl.DateTimeFormat("es-CO", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(lastOrderTimestamp))
+      : lastOrder
+        ? "Fecha no disponible"
+        : "Sin pedidos";
+  return [
+    diagnosticRow(
+      "instagram",
+      "Instagram configurado",
+      socialUrlIsSet(menu.instagram, "instagram"),
+      menu.instagram || "Falta el enlace real del negocio",
+    ),
+    diagnosticRow(
+      "maps",
+      "Ubicación configurada",
+      socialUrlIsSet(menu.maps, "maps"),
+      menu.maps || "Falta el enlace real de Google Maps",
+    ),
+    diagnosticRow(
+      "whatsapp",
+      "WhatsApp internacional",
+      /^57\d{10}$/.test(whatsapp),
+      whatsapp ? "+" + whatsapp : "Falta un número de 12 dígitos que empiece por 57",
+    ),
+    diagnosticRow("nequi", "Nequi configurado", nequi.length > 0, nequi || "Sin número"),
+    diagnosticRow(
+      "daviplata",
+      "Daviplata configurado",
+      daviplata.length > 0,
+      daviplata || "Sin número",
+    ),
+    diagnosticRow(
+      "hours",
+      "Horario definido para los 7 días",
+      hoursComplete,
+      hoursComplete ? "Los siete días tienen hora de apertura y cierre" : "Completa los horarios diarios",
+    ),
+    diagnosticRow(
+      "menu-document",
+      "Documento tienda/menu",
+      menuDocumentExists,
+      menuDocumentExists ? "Documento disponible en Firestore" : "Documento no encontrado en Firestore",
+    ),
+    diagnosticRow(
+      "app-check",
+      "App Check configurado",
+      Boolean(APP_CHECK_SITE_KEY),
+      APP_CHECK_SITE_KEY ? "Clave de sitio presente" : "Falta la clave de sitio reCAPTCHA v3",
+    ),
+    '<li class="diagnostic-version"><span>Versión del panel</span><small id="diagnosticsVersion" aria-live="polite">Consultando service worker…</small></li>',
+    diagnosticRow(
+      "orders",
+      "Último pedido y revisión",
+      reviewed === 0,
+      lastOrderDate + " · " + orders.length + " pedidos · " + reviewed + " ⚠ Revisar",
+    ),
+  ].join("");
+}
+
+async function showPanelVersion() {
+  const node = $("diagnosticsVersion");
+  if (!node) return;
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration("/admin/"),
+      scriptUrl = registration?.active?.scriptURL || "/admin/sw.js",
+      response = await fetch(scriptUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error("Versión no disponible");
+    const source = await response.text(),
+      build = source.match(/const BUILD = ["']([^"']+)["']/)?.[1];
+    node.textContent = build && !build.startsWith("__") ? build : "Desarrollo";
+  } catch {
+    node.textContent = "No disponible";
+  }
+}
 function stopPanel() {
   unsubscribeOrders?.();
   unsubscribeMenu?.();
@@ -1774,6 +1916,7 @@ function makeLocalTestStore() {
     }
   };
   menu = BarrioShared.mergeMenu(readMenu());
+  menuDocumentExists = true;
   orders = readOrders();
   store = {
     ready: true,
@@ -1935,7 +2078,10 @@ async function initializeFirebase() {
     watchMenu(callback, onError) {
       return dbSdk.onSnapshot(
         dbSdk.doc(db, "tienda", "menu"),
-        (snapshot) => callback(snapshot.exists() ? snapshot.data() : DEFAULTS),
+        (snapshot) => {
+          menuDocumentExists = snapshot.exists();
+          callback(snapshot.exists() ? snapshot.data() : DEFAULTS);
+        },
         onError,
       );
     },

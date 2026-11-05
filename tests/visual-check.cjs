@@ -886,6 +886,15 @@ const server = http.createServer((request, response) => {
         assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");
         if (theme === "light" && label === "movil") {
           await page.locator('[data-admin-tab="settings"]').click();
+          const diagnostics = page.locator("#diagnosticsCard");
+          await diagnostics.waitFor();
+          assert.equal(await diagnostics.locator('[data-diagnostic="menu-document"]').getAttribute("class"), "diagnostic-ok");
+          assert.equal(await diagnostics.locator('[data-diagnostic="whatsapp"]').getAttribute("class"), "diagnostic-ok");
+          assert.equal(await diagnostics.locator('[data-diagnostic="hours"]').getAttribute("class"), "diagnostic-ok");
+          assert.ok(await diagnostics.locator("[data-diagnostic]").count() >= 9);
+          await page.waitForFunction(
+            () => !!document.getElementById("diagnosticsVersion")?.textContent,
+          );
           await page.locator("#repairTrackingV4").click();
           await page.getByText("2 seguimientos reparados.", { exact: true }).waitFor();
           const repairedTracking = await page.evaluate(() =>
