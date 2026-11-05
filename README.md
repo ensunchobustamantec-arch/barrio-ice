@@ -1,64 +1,62 @@
-# Barrio Ice · tienda de pedidos
+# Barrio Ice · tienda y panel
 
-Tienda web móvil para pedir granizados, bebidas y combos de Barrio Ice en Montería. Es una página estática, sin compilación; Vercel puede publicar directamente la rama elegida.
+Tienda estática de pedidos para Barrio Ice, Montería. Se publica desde Vercel sin bundler; Firebase conserva el menú, los pedidos y el seguimiento.
 
-## Promociones y pedidos
+## Estructura
 
-- Lunes a miércoles: 2x1 en granizados del mismo tamaño y precio. Jueves: 3x2 con la misma condición. Viernes a domingo: precio normal. Los días de promoción se pueden activar o desactivar desde el panel.
-- Cada regalo queda visible como una línea gratuita, con selector de sabor cuando hace falta. Granizados de diferente tamaño o precio no se mezclan; bebidas y combos no participan.
-- El resumen muestra valor antes de descuentos, ahorro y total a pagar. El domicilio se coordina aparte y no altera ese total.
-- El pedido se envía por WhatsApp y se guarda en Firestore. La tienda incluye seguimiento público por ID; el panel privado reúne pedidos, ventas, catálogo, horarios, promociones y configuración.
-- Interfaz adaptable, temas claro y oscuro, banner configurable, modo instalación PWA y navegación móvil optimizada.
+- `index.html`: tienda, SEO y marcado. `styles.css`, `layout.css`, `catalog.css`, `site.css` y `motion-effects.css`: estilos, cargados en ese orden.
+- `theme-init.js`: aplica el tema antes del primer pintado.
+- `shared/menu-schema.js`: configuración Firebase, valores por defecto y normalización del menú.
+- `pricing.js`: única fuente para promos y totales. No edites su lógica sin caracterizarla y probarla.
+- `store-firebase.js`: inicializa Firebase y guarda pedidos; `storefront.js`: catálogo y carrito; `checkout.js`: valida el pedido; `hero-scene.js`, `motion.js` y `cart-motion.js`: animación y accesibilidad.
+- `admin/index.html`, `admin/admin.js`, `admin/admin.css`: panel privado; `admin/manifest.webmanifest` y `admin/sw.js`: su PWA independiente.
+- `manifest.webmanifest` y `sw.js`: PWA de la tienda. `scripts/stamp-version.mjs` pone automáticamente el SHA de Vercel en ambos service workers durante el build.
 
-## Configuración de Firebase
+## Uso e instalación
 
-El proyecto Firebase existente está configurado en `index.html`; no hace falta crear otro.
+- Tienda: [barrio-ice.vercel.app](https://barrio-ice.vercel.app/). El cliente puede pedir en el navegador o instalar la PWA.
+- Panel: [barrio-ice.vercel.app/admin/](https://barrio-ice.vercel.app/admin/). Inicia sesión con el correo autorizado de Firebase; no existe una clave de prueba.
+- En Android/Chrome o escritorio/Chrome/Edge, abre la URL y elige **Instalar app** o **Añadir a pantalla de inicio** en el menú del navegador. En iPhone/iPad, abre la URL en Safari, toca **Compartir** y **Añadir a pantalla de inicio**. Repite el proceso para `/admin/` si también quieres instalar el panel.
 
-1. En Firebase Authentication, habilita Correo/contraseña para la cuenta dueña y confirma el UID.
-2. El UID dueño ya está configurado en `CFG.adminUid` y en [firestore.rules](firestore.rules).
-3. En Firebase Console, abre **Firestore Database → Reglas**, copia el archivo completo `firestore.rules` y pulsa **Publicar**. La versión nueva permite guardar los campos de promoción y hasta 60 líneas de pedido para separar productos pagados y regalos.
-4. Despliega el sitio y prueba una orden desde el dominio antes de abrir la tienda al público.
+## Firebase y publicación de reglas
 
-## Guía rápida del dueño
+La configuración pública del proyecto está en `shared/menu-schema.js`; el acceso de administración se restringe por Firebase Authentication y `firestore.rules`.
 
-Entra a `TU-DOMINIO/#admin` e inicia sesión con el correo de Firebase autorizado.
+1. Publica primero `firestore.rules.transition` desde Firebase Console → Firestore → Reglas.
+2. Publica el código actualizado desde el PR a `main` y confirma que la PWA se actualice.
+3. Espera siete días y revisa en **Ajustes → Diagnóstico** que los pedidos nuevos incluyan mayoría de edad y documento de seguimiento.
+4. Publica después `firestore.rules` estrictas y prueba un pedido real. Si falla, vuelve temporalmente a las reglas de transición.
+5. Mantén App Check en modo monitor siete días; aplica protección obligatoria cuando más del 95 % de las solicitudes sean válidas.
 
-- **HOY:** revisa el estado de apertura, sabores disponibles y resumen de ventas del día. Ajusta disponibilidad del día sin borrar el catálogo.
-- **PEDIDOS:** busca por cliente o ID, filtra por fechas y estado, abre WhatsApp, cambia el estado o imprime el comprobante. Los estados incluyen recibido, preparando, listo, enviado, entregado y cancelado.
-- **MENÚ:** edita sabores, precios por tamaño y día, disponibilidad, bebidas, combos y sabores disponibles por jornada. Guarda los datos de un sabor con **Guardar catálogo**; los cambios de edad mínima se sincronizan también al guardar sabores del día o precios. Configura por separado lunes-miércoles, jueves y fin de semana; puedes pausar cada promo o mitad y mitad.
-- **VENTAS:** consulta totales y comparaciones por periodo, descuentos, cantidades y productos. Exporta el rango elegido a Excel desde el botón de exportación.
-- **AJUSTES:** configura apertura y cierre para cada día, teléfono y enlaces de pago, texto de cierre y banner de promoción. Guarda y comprueba la vista pública.
+No publiques reglas estrictas antes de completar el periodo de transición: puede bloquear clientes con versiones antiguas en caché.
 
-La primera cuenta autorizada y sus permisos se controlan con el UID de Firebase; la configuración web pública de Firebase no es una contraseña. Las reglas de Firestore son el control de acceso.
-
-## Archivos de la tienda
-
-- `index.html` contiene el marcado y carga estilos y scripts en orden.
-- `styles.css`, `layout.css`, `catalog.css`, `site.css` y `motion-effects.css` conservan los estilos por secciones; el orden de carga mantiene la cascada.
-- `theme-init.js` aplica el tema antes del primer pintado para evitar destellos.
-- `shared/menu-schema.js` normaliza el catálogo; `pricing.js` calcula promociones y totales.
-- `storefront.js` mantiene el catálogo, Firebase, carrito y render de la tienda.
-- `checkout.js` valida y guarda pedidos; `motion.js` anima el hero, contenido y tarjetas; `cart-motion.js` gestiona el panel accesible del pedido.
-- `sw.js` define los archivos de la tienda almacenados en caché. Los hooks de prueba se activan solo en `localhost` con `?e2e=1`.
-
-## Pruebas y vista previa
-
-La rama de trabajo es `mejoras-v4`; los cambios se proponen mediante PR y no se mezclan automáticamente en `main`. Vercel puede generar una vista previa para la rama/PR.
-
-Para instalar la dependencia de pruebas y verificar la lógica promocional y la interfaz:
+## Pruebas
 
 ~~~powershell
 cd tests
-npm install
+npm ci
 npx playwright install chromium
 npm test
+npm run test:rules
 ~~~
 
-Las capturas de referencia del chequeo visual quedan en `tests/screenshots/`.
+La suite comprueba precios, promociones, tienda y panel con Playwright; las reglas usan el emulador Firestore. Las capturas actualizadas se guardan en `tests/screenshots/`.
 
-Antes de publicar, revisa la vista previa en 360×640, 390×844, 412×915, 768×1024 y 1440×900; prueba los temas claro y oscuro, un día 2x1, jueves 3x2, precios/tamaños distintos, bebidas y combos, selector del sabor regalado, domicilio aparte, efectivo y cambio, y las cuatro secciones principales del panel.
+## Antes de publicar
 
-## PWA y recursos
+- [ ] El PR pasa las pruebas y se ve bien en 360×640, 390×844, 412×915, 768×1024 y 1440×900, en ambos temas.
+- [ ] Probar menú, promos, +18, carrito, recogida/domicilio, pago, WhatsApp y seguimiento en la vista previa.
+- [ ] Confirmar en Vercel que `main` es producción y que cada PR crea una vista previa.
+- [ ] Publicar reglas siguiendo el orden de transición anterior; confirmar el dominio autorizado en Firebase Authentication.
+- [ ] Revisar **Ajustes → Diagnóstico**, horarios, WhatsApp, pagos, Instagram y ubicación reales.
+- [ ] No agregar secretos, direcciones, coordenadas ni enlaces sociales no confirmados.
 
-`manifest.webmanifest` y `sw.js` habilitan la instalación y caché básica. El service worker debe actualizar su caché cuando cambie el nombre de versión. Los logos, iconos e imagen social están en `assets/`.
+## Pendiente del dueño
 
+- Agregar `barrio-ice.vercel.app` a los dominios autorizados de Firebase.
+- Publicar reglas de transición y, después del periodo indicado, las reglas estrictas.
+- Registrar la app en Firebase App Check con una clave de sitio reCAPTCHA v3; activar enforcement después del monitoreo.
+- Configurar presupuestos y alertas de facturación de Firebase.
+- Confirmar Instagram y enlace de ubicación reales, dirección, coordenadas y horarios por día; no están inventados en los metadatos.
+- Proteger `main` para exigir PR y revisar que Vercel genere previews.
+- Verificar el sitio en Google Search Console y crear o reclamar el perfil de Google Business Profile.

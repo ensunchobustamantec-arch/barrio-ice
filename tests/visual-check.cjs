@@ -19,7 +19,15 @@ const types = {
 const sampleMenu = {
   whatsapp: "573023489776",
   horarios: {},
-  horario: { abre: "00:00", cierra: "23:59" },
+  horario: {
+    0: { abre: "00:00", cierra: "23:59" },
+    1: { abre: "00:00", cierra: "23:59" },
+    2: { abre: "00:00", cierra: "23:59" },
+    3: { abre: "00:00", cierra: "23:59" },
+    4: { abre: "00:00", cierra: "23:59" },
+    5: { abre: "00:00", cierra: "23:59" },
+    6: { abre: "00:00", cierra: "23:59" },
+  },
   precios: {
     semana: [12000, 15000, 18000],
     jueves: [12000, 15000, 18000],
@@ -388,6 +396,22 @@ const server = http.createServer((request, response) => {
             logo.currentSrc.includes("/assets/brand/")
           );
         });
+        if (width === 390 && theme === "light") {
+          const initialTransferBytes = await page.evaluate(() => {
+            const origin = location.origin;
+            const resources = performance
+              .getEntriesByType("resource")
+              .filter((entry) => new URL(entry.name).origin === origin);
+            const navigation = performance.getEntriesByType("navigation")[0];
+            return resources.reduce((total, entry) => total + entry.transferSize, 0) +
+              (navigation?.transferSize || 0);
+          });
+          console.log("Transferencia inicial sin fuentes/Firebase:", initialTransferBytes, "bytes");
+          assert.ok(
+            initialTransferBytes < 1_000_000,
+            "la carga inicial de tienda debe mantenerse por debajo de 1 MB",
+          );
+        }
         await page.waitForTimeout(800);
         const socialImages = await page
           .locator('meta[property="og:image"], meta[name="twitter:image"]')
@@ -779,7 +803,10 @@ const server = http.createServer((request, response) => {
       ? ["light"]
       : ["light", "dark"]) {
       for (const [label, viewport] of process.env.VISUAL_QUICK === "1"
-        ? [["movil", { width: 390, height: 844 }]]
+        ? [
+            ["movil", { width: 390, height: 844 }],
+            ["escritorio", { width: 1440, height: 900 }],
+          ]
         : [
             ["movil", { width: 390, height: 844 }],
             ["escritorio", { width: 1440, height: 900 }],
@@ -826,7 +853,7 @@ const server = http.createServer((request, response) => {
             .waitFor();
         };
         await openAdmin();
-        if (saveScreenshots)
+        if (saveScreenshots && label === "movil")
           await page.screenshot({
             path: path.join(output, "admin-" + label + "-" + theme + ".jpg"),
             type: "jpeg",
@@ -1003,6 +1030,50 @@ const server = http.createServer((request, response) => {
           const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
           assert.match(trackingText.join(" "), /Cliente/);
           assert.doesNotMatch(trackingText.join(" "), /3001234567|Prueba/);
+        }
+        if (label === "escritorio") {
+          await page.locator('[data-admin-tab="settings"]').click();
+          const bottomControl = page.locator("#repairTrackingV4");
+          await bottomControl.waitFor();
+          await page.evaluate(async () => {
+            document.documentElement.style.scrollBehavior = "auto";
+            document
+              .getElementById("repairTrackingV4")
+              .scrollIntoView({ block: "end" });
+            await new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            );
+          });
+          const bottomBar = await page.evaluate(() => {
+            const last = document
+              .getElementById("repairTrackingV4")
+              ?.getBoundingClientRect();
+            const nav = document.querySelector(".admin-nav")?.getBoundingClientRect();
+            return {
+              actionBottom: last?.bottom ?? null,
+              actionTop: last?.top ?? null,
+              viewportHeight: innerHeight,
+              navTop: nav?.top ?? null,
+              navBottom: nav?.bottom ?? null,
+              hiddenByNav: !!last && !!nav && last.top < nav.bottom,
+            };
+          });
+          console.log("Panel al final del scroll:", JSON.stringify(bottomBar));
+          assert.ok(
+            bottomBar.actionBottom <= bottomBar.viewportHeight,
+            "la última acción del panel debe quedar dentro del viewport al final",
+          );
+          assert.equal(
+            bottomBar.hiddenByNav,
+            false,
+            "la navegación no debe tapar la última acción del panel",
+          );
+          if (saveScreenshots)
+            await page.screenshot({
+              path: path.join(output, "admin-escritorio-" + theme + ".jpg"),
+              type: "jpeg",
+              quality: 76,
+            });
         }
         await page.close();
       }
