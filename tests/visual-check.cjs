@@ -129,7 +129,61 @@ function firebaseStub(file) {
   if (file === "firebase-auth.js")
     return `const listeners=[];let current=null;export function getAuth(){return {};}export function onAuthStateChanged(auth,cb){listeners.push(cb);setTimeout(()=>cb(current),0);return ()=>{};}export async function signInWithEmailAndPassword(auth,email){current={uid:"NDdEIdTQiqMS947ENRr7aEq1i6B3",email};listeners.forEach(cb=>cb(current));return {user:current};}export async function signOut(){current=null;listeners.forEach(cb=>cb(null));}`;
   if (file === "firebase-firestore.js")
-    return `const menu=JSON.parse(localStorage.getItem("barrio-ice-visual-menu")||JSON.stringify(${JSON.stringify(sampleMenu)}));const orders=${JSON.stringify(sampleOrders)};orders[0].creadoEn={toDate:()=>new Date("2026-10-07T23:54:00Z")};orders[1].creadoEn={toDate:()=>new Date("2026-10-07T21:00:00Z")};export function getFirestore(){return {};}export function doc(db,...parts){return {path:parts.join("/")};}export function collection(db,...parts){return {path:parts.join("/")};}export function query(){return {query:true};}export function orderBy(){return {};}export function onSnapshot(ref,cb){if(ref.query)cb({docs:orders.map(o=>({id:o.id,data:()=>o}))});else if(ref.path==="tienda/menu")cb({exists:()=>true,data:()=>menu});else cb({exists:()=>false});return ()=>{};}export function serverTimestamp(){return new Date();}export async function addDoc(){return {id:"TEST123"};}export async function setDoc(ref,data){localStorage.setItem("barrio-ice-visual-menu",JSON.stringify(data));}export async function updateDoc(){}`;
+    return `
+      const menu = JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || JSON.stringify(${JSON.stringify(sampleMenu)}));
+      const orders = ${JSON.stringify(sampleOrders)};
+      orders[0].creadoEn = { toDate: () => new Date("2026-10-07T23:54:00Z") };
+      orders[1].creadoEn = { toDate: () => new Date("2026-10-07T21:00:00Z") };
+      let nextId = 0;
+      const saved = JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]");
+      const tracking = Object.fromEntries(saved.filter((item) => item.path.startsWith("seguimiento/")).map((item) => [item.path, item.data]));
+      export function getFirestore() { return {}; }
+      export function collection(db, ...parts) { return { path: parts.join("/") }; }
+      export function doc(dbOrCollection, ...parts) {
+        if (!parts.length && dbOrCollection?.path === "pedidos") {
+          nextId += 1;
+          const id = "TESTORDER000000000000000000" + nextId;
+          return { id, path: "pedidos/" + id };
+        }
+        const path = parts.join("/");
+        return { id: parts.at(-1), path };
+      }
+      export function query() { return { query: true }; }
+      export function orderBy() { return {}; }
+      export function onSnapshot(ref, callback) {
+        if (ref.query) callback({ docs: orders.map((order) => ({ id: order.id, data: () => order })) });
+        else if (ref.path === "tienda/menu") callback({ exists: () => true, data: () => menu });
+        else if (ref.path.startsWith("seguimiento/")) {
+          const data = tracking[ref.path];
+          callback({ exists: () => !!data, id: ref.id, data: () => data });
+        } else callback({ exists: () => false });
+        return () => {};
+      }
+      export function serverTimestamp() { return new Date(); }
+      export function writeBatch() {
+        const writes = [];
+        return {
+          set(ref, data) { writes.push({ path: ref.path, data }); },
+          update(ref, data) { writes.push({ path: ref.path, data }); },
+          delete(ref) { writes.push({ path: ref.path, delete: true }); },
+          async commit() {
+            const current = JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]");
+            for (const write of writes) {
+              if (write.path.startsWith("seguimiento/")) tracking[write.path] = write.data;
+              if (write.path.startsWith("pedidos/") && !write.delete) orders.unshift({ id: write.path.split("/")[1], ...write.data });
+              current.push(write);
+            }
+            localStorage.setItem("barrio-ice-visual-writes", JSON.stringify(current));
+          },
+        };
+      }
+      export async function addDoc() { return { id: "TEST123" }; }
+      export async function setDoc(ref, data) {
+        localStorage.setItem("barrio-ice-visual-menu", JSON.stringify(data));
+      }
+      export async function updateDoc() {}
+      export async function getDoc(ref) { return { exists: () => !!tracking[ref.path], data: () => tracking[ref.path] }; }
+    `;
   return "";
 }
 
@@ -805,6 +859,43 @@ const server = http.createServer((request, response) => {
           await page.locator("#cash").fill("15000");
           await page.locator("#send").click();
           assert.match(await page.locator("#checkoutError").innerText(), /Confirma que eres mayor de 18 años/);
+          await page.locator("#age").check();
+          assert.equal(await page.locator("#age").isChecked(), true, "la confirmación debe quedar marcada");
+          await page.evaluate(() => { window.open = () => null; });
+          await page.locator("#send").click();
+          await page.waitForFunction(
+            () => new URLSearchParams(location.search).has("pedido"),
+            { timeout: 5000 },
+          ).catch(async () => {
+            const failureState = await page.evaluate(() => ({
+              url: location.href,
+              error: document.getElementById("checkoutError")?.textContent,
+              age: document.getElementById("age")?.checked,
+              adult: cart.some((line) => line.adulto),
+              writes: JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]").length,
+            }));
+            throw new Error(
+              "pedido adulto no se guardó: " +
+                JSON.stringify({ failureState, pageErrors: errors }),
+            );
+          });
+          const orderWrites = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]"),
+          );
+          const orderWrite = orderWrites.find((write) => write.path.startsWith("pedidos/"));
+          const trackingWrite = orderWrites.find((write) => write.path.startsWith("seguimiento/"));
+          assert.ok(orderWrite, "el pedido adulto debe guardarse en Firestore");
+          assert.ok(trackingWrite, "el seguimiento debe crearse en el mismo lote");
+          assert.equal(orderWrite.data.mayor18, true);
+          assert.equal(orderWrite.data.tieneLicor, true);
+          assert.deepEqual(
+            Object.keys(trackingWrite.data).sort(),
+            ["creadoEn", "estado", "fecha", "nombreCorto", "tipo"],
+            "el documento público de seguimiento no debe incluir datos personales",
+          );
+          const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
+          assert.match(trackingText.join(" "), /Cliente/);
+          assert.doesNotMatch(trackingText.join(" "), /3001234567|Prueba/);
         }
         await page.close();
       }

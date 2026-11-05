@@ -1949,7 +1949,10 @@
         let r = totals(),
           delivery = $("delivery").value === "domicilio",
           name = clean($("name").value, 60),
-          phone = clean($("phone").value, 18),
+          phone = clean(
+            $("phone").value.replace(/[^0-9+()\s-]/g, ""),
+            18,
+          ),
           address = clean($("address").value, 140),
           reference = clean($("reference").value, 140),
           notes = clean($("notes").value, 300),
@@ -1987,10 +1990,14 @@
           items: cart.map((x) => ({
             n: clean(x.n, 80),
             s: clean(x.s, 30),
+            sabores: BarrioIcePricing.flavorNames(x).slice(0, 2),
             p: +x.p,
             q: +x.q,
             g: !!x.g,
+            tipo: x.tipo || (x.g ? "granizado" : "bebida"),
             adulto: !!x.adulto,
+            regalo: !!x.regalo,
+            promo: clean(x.promo || "", 30),
           })),
           cliente: { nombre: name, celular: phone },
           entrega: {
@@ -2006,12 +2013,16 @@
           domicilio: r.delivery,
           total: r.total,
           promo: plan().title,
+          promoBuy: plan().g === 2 ? 1 : plan().g === 3 ? 2 : 0,
+          promoReceive: plan().g,
+          mayor18: $("age").checked === true,
+          tieneLicor: r.lines.some((line) => line.adulto),
           estado: "Nuevo",
           fecha: dateKey(),
           creadoEn: store.time(),
         };
         try {
-          o.id = await store.create(o);
+          o.id = await store.createOrder(o);
           local.set("last", o);
           cart = [];
           draw();
@@ -2097,14 +2108,29 @@
         time() {
           return this.F.serverTimestamp();
         }
-        create(o) {
-          return this.F.addDoc(this.F.collection(this.db, "pedidos"), o).then(
-            (x) => x.id,
-          );
+        async createOrder(order) {
+          const { doc, collection, writeBatch } = this.F;
+          const reference = doc(collection(this.db, "pedidos"));
+          const first =
+            (order.cliente.nombre || "")
+              .trim()
+              .split(/\s+/)[0]
+              .slice(0, 20) || "Cliente";
+          const batch = writeBatch(this.db);
+          batch.set(reference, order);
+          batch.set(doc(this.db, "seguimiento", reference.id), {
+            estado: "Nuevo",
+            tipo: order.entrega.tipo,
+            fecha: order.fecha,
+            creadoEn: order.creadoEn,
+            nombreCorto: first,
+          });
+          await batch.commit();
+          return reference.id;
         }
-        watch(id, ok, bad) {
+        watchTracking(id, ok, bad) {
           return this.F.onSnapshot(
-            this.F.doc(this.db, "pedidos", id),
+            this.F.doc(this.db, "seguimiento", id),
             (s) =>
               ok(s.exists() ? Object.assign({ id: s.id }, s.data()) : null),
             bad,
@@ -2121,20 +2147,18 @@
             "No pudimos conectarnos al seguimiento. Conserva tu WhatsApp para novedades.";
           return;
         }
-        store.watch(
+        store.watchTracking(
           id,
           (o) => {
             if (!o) {
-              $("trackingCopy").textContent = "No encontramos ese pedido.";
+              $("trackingCopy").textContent =
+                "No encontramos ese pedido. Si lo hiciste antes de esta actualización, escríbenos por WhatsApp.";
               return;
             }
             let state = o.estado || "Nuevo";
+            let type = o.tipo === "domicilio" ? "Domicilio" : "Recoger";
             $("trackingCopy").textContent =
-              state === "Cancelado"
-                ? "Este pedido fue cancelado. Escríbenos para ayudarte."
-                : state === "Entregado"
-                  ? "¡Pedido entregado! Gracias por ser parte del barrio."
-                  : "Pedido #" + id.slice(-6).toUpperCase() + " · " + state;
+              "Pedido #" + id.slice(-6).toUpperCase() + " · " + state + " · " + type;
             $("steps").innerHTML = states
               .slice(0, 4)
               .map(
@@ -2152,10 +2176,9 @@
                   "</span></div>",
               )
               .join("");
-            $("trackingMeta").textContent = o.cliente?.nombre
+            $("trackingMeta").textContent = o.nombreCorto
               ? "A nombre de " +
-                o.cliente.nombre +
-                ". Te avisamos también por WhatsApp."
+                o.nombreCorto
               : "";
           },
           () => {

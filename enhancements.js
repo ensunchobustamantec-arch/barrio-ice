@@ -692,7 +692,10 @@
     const result = totals();
     const delivery = $("delivery").value === "domicilio";
     const name = clean($("name").value, 60),
-      phone = clean($("phone").value, 18);
+      phone = clean(
+        $("phone").value.replace(/[^0-9+()\s-]/g, ""),
+        18,
+      );
     const address = clean($("address").value, 140),
       reference = clean($("reference").value, 140);
     const notes = clean($("notes").value, 300),
@@ -749,7 +752,7 @@
       },
       pago: method,
       conCuanto: method === "Efectivo" ? cash : 0,
-      notas,
+      notas: notes,
       subtotal: result.subtotal,
       descuento: result.discount,
       domicilio: 0,
@@ -757,12 +760,14 @@
       promo: promo.active ? promo.name : "Sin promo",
       promoBuy: promo.buy,
       promoReceive: promo.receive,
+      mayor18: $("age").checked === true,
+      tieneLicor: result.lines.some((line) => line.adulto),
       estado: "Nuevo",
       fecha: dateKey(),
       creadoEn: store.time(),
     };
     try {
-      order.id = await store.create(order);
+      order.id = await store.createOrder(order);
       local.set("last", order);
       cart = [];
       draw();
@@ -853,20 +858,18 @@
         "No pudimos conectarnos al seguimiento. Conserva tu WhatsApp para novedades.";
       return;
     }
-    store.watch(
+    store.watchTracking(
       id,
       (order) => {
         if (!order) {
-          $("trackingCopy").textContent = "No encontramos ese pedido.";
+          $("trackingCopy").textContent =
+            "No encontramos ese pedido. Si lo hiciste antes de esta actualización, escríbenos por WhatsApp.";
           return;
         }
         const state = order.estado || "Nuevo";
+        const type = order.tipo === "domicilio" ? "Domicilio" : "Recoger";
         $("trackingCopy").textContent =
-          state === "Cancelado"
-            ? "Este pedido fue cancelado. Escríbenos para ayudarte."
-            : state === "Entregado"
-              ? "¡Pedido entregado! Gracias por ser parte del barrio."
-              : "Pedido #" + id.slice(-6).toUpperCase() + " · " + state;
+          "Pedido #" + id.slice(-6).toUpperCase() + " · " + state + " · " + type;
         $("steps").innerHTML = [
           "Nuevo",
           "Preparando",
@@ -889,10 +892,9 @@
               "</span></div>",
           )
           .join("");
-        $("trackingMeta").textContent = order.cliente?.nombre
+        $("trackingMeta").textContent = order.nombreCorto
           ? "A nombre de " +
-            clean(order.cliente.nombre, 60) +
-            ". Domicilio se paga aparte."
+            clean(order.nombreCorto, 20)
           : "";
       },
       () => {
