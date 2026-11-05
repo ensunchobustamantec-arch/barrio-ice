@@ -758,7 +758,7 @@ const server = http.createServer((request, response) => {
               JSON.stringify(loadedAdult),
           );
           await page.evaluate(() =>
-            startAdmin({ uid: CFG.adminUid, email: "dueno@example.com" }),
+            startAdmin({ uid: BarrioShared.ADMIN_UID, email: "dueno@example.com" }),
           );
           try {
             await page

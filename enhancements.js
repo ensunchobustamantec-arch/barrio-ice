@@ -27,7 +27,6 @@
     "viernes",
     "sábado",
   ];
-  const baseMerge = merge;
   const baseRender = render;
   const baseAdd = add;
   const revealedKeys = new Set();
@@ -42,51 +41,7 @@
     statsPeriod: "today",
   };
 
-  function normalMenu(data) {
-    const out = data || {};
-    out.promos = Object.assign(
-      { lunes: true, martes: true, miercoles: true, jueves: true },
-      out.promos || {},
-    );
-    out.precios = Object.assign(
-      {
-        semana: [12000, 15000, 18000],
-        jueves: [12000, 15000, 18000],
-        finde: [8000, 12000, 15000],
-      },
-      out.precios || {},
-    );
-    if (!out.precios.jueves) out.precios.jueves = [...out.precios.semana];
-    out.mitadMitad = out.mitadMitad !== false;
-    out.closedMessage = clean(
-      out.closedMessage ||
-        "En este momento estamos cerrados. Vuelve en nuestro horario de atención.",
-      180,
-    );
-    out.promoBanner = clean(out.promoBanner || "", 180);
-    out.cat = (out.cat || []).map((f) => {
-      const adult = Boolean(f?.l ?? f?.adulto ?? false);
-      return Object.assign({ active: true }, f, { l: adult, adulto: adult });
-    });
-    out.bebidas = (out.bebidas || []).map((b) =>
-      Object.assign({ active: true, icon: "Vaso" }, b),
-    );
-    out.combos = (out.combos || []).map((c) =>
-      Object.assign(
-        {
-          active: true,
-          p: (c.items || []).reduce((n, x) => n + (+x.p || 0), 0),
-        },
-        c,
-      ),
-    );
-    return out;
-  }
-
-  merge = function (data) {
-    return normalMenu(baseMerge(data));
-  };
-  menu = normalMenu(menu);
+  menu = BarrioShared.mergeMenu(menu);
   if (!menu.precios.jueves) menu.precios.jueves = [...menu.precios.semana];
 
   const HERO_WINDOWS = [

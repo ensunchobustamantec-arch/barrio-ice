@@ -8,6 +8,7 @@ const SHELL = [
   "/index.html",
   "/manifest.webmanifest",
   "/pricing.js",
+  "/shared/menu-schema.js",
   "/enhancements.js",
   "/enhancements.css",
   "/assets/brand/icon-192.png",

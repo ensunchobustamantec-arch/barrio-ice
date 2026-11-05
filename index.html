@@ -1688,85 +1688,21 @@
       </div>
     </section>
     <script src="./pricing.js"></script>
+    <script src="./shared/menu-schema.js"></script>
     <script>
-      const CFG = {
-        firebase: {
-          apiKey: "AIzaSyAbHiV6QfffMZBzNlhnQvbFjAWVwhytyqQ",
-          authDomain: "barrio-ice.firebaseapp.com",
-          projectId: "barrio-ice",
-          appId: "1:217758174077:web:11461a142a90e070d11a14",
-        },
-        adminUid: "NDdEIdTQiqMS947ENRr7aEq1i6B3",
-        defaults: {
-          whatsapp: "573023489776",
-          domicilio: 3000,
-          pagos: { Nequi: "302 348 9776", Daviplata: "302 348 9776" },
-          instagram: "https://instagram.com/",
-          maps: "https://maps.google.com/?q=Monter%C3%ADa%2C+Colombia",
-          horario: { abre: "11:00", cierra: "22:00" },
-          cerradaManual: false,
-          precios: {
-            semana: [12000, 15000, 18000],
-            finde: [8000, 12000, 15000],
-          },
-          bebidas: [
-            { n: "Gaseosa", p: 3000, icon: "🥤" },
-            { n: "Cerveza", p: 5000, icon: "🍺", adulto: true },
-          ],
-          combos: [
-            {
-              n: "Combo parche",
-              d: "2 granizados pequeños + gaseosa",
-              items: [
-                { n: "Granizado sorpresa", s: "Pequeño", p: 8000, g: true },
-                { n: "Granizado sorpresa", s: "Pequeño", p: 8000, g: true },
-                { n: "Gaseosa", p: 3000 },
-              ],
-            },
-          ],
-          cat: [
-            { n: "Mora", c: "#9b3fd6" },
-            { n: "Limón", c: "#b8e61f" },
-            { n: "Maracuyá", c: "#ffb300" },
-            { n: "Lulo", c: "#6fd13a" },
-            { n: "Mango biche", c: "#cde04b" },
-            { n: "Coco", c: "#f2e6cc" },
-            { n: "Fresa", c: "#ff4f70" },
-            { n: "Smirnoff", c: "#eb3b5a", l: true },
-          ],
-          dias: {
-            1: ["Mora", "Limón", "Maracuyá"],
-            2: ["Lulo", "Mango biche", "Coco"],
-            3: ["Mora", "Fresa", "Limón"],
-            4: ["Maracuyá", "Lulo", "Coco"],
-            5: ["Mora", "Mango biche", "Limón", "Fresa"],
-            6: ["Maracuyá", "Lulo", "Fresa", "Coco"],
-            0: ["Mora", "Limón", "Mango biche", "Coco"],
-          },
-          agotados: {},
-        },
-      };
+      const BarrioShared = window.BarrioShared;
+      const {
+        FIREBASE_CONFIG,
+        ADMIN_UID,
+        DEFAULTS,
+        now,
+        dateKey,
+        esc,
+        clean,
+        fmt,
+      } = BarrioShared;
       const $ = (x) => document.getElementById(x),
         $$ = (x) => [...document.querySelectorAll(x)],
-        copy = (x) => JSON.parse(JSON.stringify(x)),
-        esc = (x) =>
-          String(x ?? "").replace(
-            /[&<>'"]/g,
-            (c) =>
-              ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                "'": "&#39;",
-                '"': "&quot;",
-              })[c],
-          ),
-        clean = (x, m = 300) =>
-          String(x ?? "")
-            .replace(/[<>\u0000-\u001f]/g, " ")
-            .trim()
-            .slice(0, m),
-        fmt = (x) => "$" + Math.round(Number(x) || 0).toLocaleString("es-CO"),
         days = [
           "domingo",
           "lunes",
@@ -1792,30 +1728,8 @@
           } catch {}
         },
       };
-      function now() {
-        return new Date(
-          new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }),
-        );
-      }
-      function dateKey(d = now()) {
-        return (
-          d.getFullYear() +
-          "-" +
-          String(d.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(d.getDate()).padStart(2, "0")
-        );
-      }
-      function merge(x) {
-        let d = copy(CFG.defaults),
-          o = x && typeof x === "object" ? x : {};
-        return Object.assign(d, o, {
-          pagos: Object.assign(d.pagos, o.pagos || {}),
-          horario: Object.assign(d.horario, o.horario || {}),
-          precios: Object.assign(d.precios, o.precios || {}),
-          dias: Object.assign(d.dias, o.dias || {}),
-          agotados: o.agotados || {},
-        });
+      function merge(data) {
+        return BarrioShared.mergeMenu(data);
       }
       let menu = merge(),
         cart = [],
@@ -1966,8 +1880,8 @@
           )
           .join("");
         let wa = String(menu.whatsapp).replace(/\D/g, ""),
-          maps = menu.maps || CFG.defaults.maps,
-          insta = menu.instagram || CFG.defaults.instagram;
+          maps = menu.maps || DEFAULTS.maps,
+          insta = menu.instagram || DEFAULTS.instagram;
         ["contact", "floatWa"].forEach(
           (x) => ($(x).href = "https://wa.me/" + wa),
         );
@@ -2413,7 +2327,7 @@
               U = z[2];
             this.F = F;
             this.U = U;
-            this.db = F.getFirestore(A.initializeApp(CFG.firebase));
+            this.db = F.getFirestore(A.initializeApp(FIREBASE_CONFIG));
             this.auth = U.getAuth();
             this.ref = F.doc(this.db, "tienda", "menu");
             this.ready = true;
@@ -2832,8 +2746,8 @@
           Nequi: clean($("nequi").value, 50),
           Daviplata: clean($("davi").value, 50),
         };
-        menu.instagram = clean($("insta").value, 200) || CFG.defaults.instagram;
-        menu.maps = clean($("map").value, 300) || CFG.defaults.maps;
+        menu.instagram = clean($("insta").value, 200) || DEFAULTS.instagram;
+        menu.maps = clean($("map").value, 300) || DEFAULTS.maps;
         menu.precios = {
           semana: sizes.map((x, i) => Math.max(0, +$("sp" + i).value || 0)),
           finde: sizes.map((x, i) => Math.max(0, +$("ep" + i).value || 0)),
@@ -2885,8 +2799,8 @@
       }
       function startAdmin(user) {
         let configured =
-            CFG.adminUid && CFG.adminUid !== "PEGA_AQUI_EL_UID_DEL_DUENO",
-          allowed = configured && user?.uid === CFG.adminUid;
+            ADMIN_UID && ADMIN_UID !== "PEGA_AQUI_EL_UID_DEL_DUENO",
+          allowed = configured && user?.uid === ADMIN_UID;
         if (user && !allowed) {
           $("loginError").textContent = configured
             ? "Este correo no tiene permiso de dueño."
