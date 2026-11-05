@@ -154,6 +154,27 @@ function beep() {
   function orderDate(order) {
     return String(order.fecha || "").slice(0, 10);
   }
+  function orderCreatedAt(order) {
+    const value = order.creadoEn;
+    const date =
+      typeof value?.toDate === "function"
+        ? value.toDate()
+        : value instanceof Date
+          ? value
+          : new Date(order.fecha || "");
+    return date.getTime();
+  }
+  function publicTracking(order, estado = order.estado || "Nuevo") {
+    return {
+      estado,
+      tipo: order.entrega?.tipo === "domicilio" ? "domicilio" : "recoger",
+      fecha: order.fecha || "",
+      creadoEn: order.creadoEn || store.time(),
+      nombreCorto:
+        (order.cliente?.nombre || "").trim().split(/\s+/)[0].slice(0, 20) ||
+        "Cliente",
+    };
+  }
   function linesText(order) {
     return (order.items || []).map(orderLineText).join(" · ");
   }
@@ -191,8 +212,100 @@ function beep() {
     );
   }
   function setOrderStatus(id, status) {
-    if (store?.ready)
-      return store.update(id, { estado: status, actualizadoEn: store.time() });
+    if (store?.ready) {
+      const order = orders.find((item) => item.id === id);
+      return store.update(
+        id,
+        { estado: status, actualizadoEn: store.time() },
+        order,
+      );
+    }
+  }
+  function orderAudit(order) {
+    const warnings = [];
+    const paidLines = (order.items || []).filter((item) => item.regalo !== true);
+    const date = new Date((order.fecha || dateKey()) + "T12:00:00");
+    const totals = BarrioIcePricing.calculate(
+      paidLines,
+      Number.isNaN(date.getTime()) ? now().getDay() : date.getDay(),
+      menu,
+    );
+    if (
+      totals.total !== Number(order.total || 0) ||
+      totals.subtotal !== Number(order.subtotal || 0) ||
+      totals.discount !== Number(order.descuento || 0)
+    )
+      warnings.push("Total no cuadra con los productos y la promo");
+
+    const priceArrays = [
+      menu.precios?.semana,
+      menu.precios?.jueves,
+      menu.precios?.finde,
+    ].filter(Array.isArray);
+    for (const item of paidLines) {
+      const price = Number(item.p);
+      const isGranizado = item.g === true || item.tipo === "granizado";
+      let valid = false;
+      if (isGranizado) {
+        const size = ["Pequeño", "Mediano", "Grande"].indexOf(item.s);
+        valid =
+          size >= 0 &&
+          priceArrays.some((prices) => Number(prices[size]) === price);
+      } else {
+        const catalog = [...(menu.bebidas || []), ...(menu.combos || [])];
+        valid = catalog.some(
+          (product) => product.n === item.n && Number(product.p) === price,
+        );
+      }
+      if (!valid) {
+        warnings.push("Precio fuera del menú: " + (item.n || "producto"));
+        break;
+      }
+    }
+
+    const phone = String(order.cliente?.celular || "").replace(/\D/g, "");
+    const created = orderCreatedAt(order);
+    if (
+      phone &&
+      orders.some((other) => {
+        if (other.id === order.id) return false;
+        const otherPhone = String(other.cliente?.celular || "").replace(/\D/g, "");
+        const otherCreated = orderCreatedAt(other);
+        return (
+          phone === otherPhone &&
+          otherPhone &&
+          Number.isFinite(created) &&
+          Number.isFinite(otherCreated) &&
+          Math.abs(created - otherCreated) < 3 * 60 * 1000
+        );
+      })
+    )
+      warnings.push("Posible duplicado: mismo celular en menos de 3 minutos");
+
+    if (
+      /(?:https?:\/\/|www\.)/i.test(
+        [order.cliente?.nombre, order.entrega?.direccion].join(" "),
+      ) ||
+      String(order.notas || "").length > 250
+    )
+      warnings.push("Texto sospechoso en nombre, dirección o notas");
+    return warnings;
+  }
+  async function deleteOrders(ids) {
+    if (!ids.length) return;
+    const message =
+      ids.length === 1
+        ? "¿Eliminar este pedido y su seguimiento?"
+        : "¿Eliminar " + ids.length + " pedidos seleccionados y sus seguimientos?";
+    if (!window.confirm(message)) return;
+    try {
+      await Promise.all(ids.map((id) => store.deleteOrder(id)));
+      orders = orders.filter((order) => !ids.includes(order.id));
+      ordersView();
+    } catch (error) {
+      console.error(error);
+      window.alert("No se pudieron eliminar los pedidos seleccionados.");
+    }
   }
   function printOrder(id) {
     const order = orders.find((item) => item.id === id);
@@ -317,10 +430,11 @@ function beep() {
       list.length +
       " pedido" +
       (list.length === 1 ? "" : "s") +
-      '</strong><button class="secondary" id="sound">Activar sonido</button><button class="primary" id="xlsx">Exportar Excel (.xlsx)</button></div><div class="orders">' +
+      '</strong><button class="secondary" id="deleteSelected" disabled>Eliminar seleccionados</button><button class="secondary" id="sound">Activar sonido</button><button class="primary" id="xlsx">Exportar Excel (.xlsx)</button></div><div class="orders">' +
       (list.length
         ? list
             .map((order) => {
+              const warnings = orderAudit(order);
               const options = orderStates
                 .map(
                   (state) =>
@@ -332,7 +446,11 @@ function beep() {
                 )
                 .join("");
               return (
-                '<article class="order"><div class="order-top"><div><h3>' +
+                '<article class="order" data-order-id="' +
+                esc(order.id) +
+                '"><div class="order-top"><div><label class="order-select"><input type="checkbox" aria-label="Seleccionar pedido" data-order-select="' +
+                esc(order.id) +
+                '"></label><h3>' +
                 esc(order.cliente?.nombre || "Cliente") +
                 (order.estado === "Nuevo"
                   ? ' <span class="new">NUEVO</span>'
@@ -347,7 +465,13 @@ function beep() {
                 esc(linesText(order)) +
                 "</p><p>Domicilio: se paga aparte.</p><b>" +
                 fmt(order.total) +
-                '</b></div><select data-status="' +
+                '</b>' +
+                (warnings.length
+                  ? '<p class="audit-warning" data-audit-warning><b>⚠ Revisar</b><br>' +
+                    warnings.map(esc).join("<br>") +
+                    "</p>"
+                  : "") +
+                '</div><select data-status="' +
                 esc(order.id) +
                 '" aria-label="Cambiar estado">' +
                 options +
@@ -355,7 +479,9 @@ function beep() {
                 esc(orderContactLink(order)) +
                 '" target="_blank" rel="noopener">Responder por WhatsApp</a><button class="secondary" data-print="' +
                 esc(order.id) +
-                '">Imprimir comanda</button></div></article>'
+                '">Imprimir comanda</button><button class="secondary danger-action" data-delete-order="' +
+                esc(order.id) +
+                '">Eliminar</button></div></article>'
               );
             })
             .join("")
@@ -385,6 +511,19 @@ function beep() {
     };
     $("sound").onclick = activateSound;
     $("xlsx").onclick = exportExcel;
+    const deleteSelected = $("deleteSelected");
+    const selectedOrders = () => $$('[data-order-select]:checked');
+    const syncDeleteButton = () => {
+      deleteSelected.disabled = selectedOrders().length === 0;
+    };
+    $$('[data-order-select]').forEach((input) =>
+      input.addEventListener("change", syncDeleteButton),
+    );
+    deleteSelected.onclick = () =>
+      deleteOrders(selectedOrders().map((input) => input.dataset.orderSelect));
+    $$('[data-delete-order]').forEach((button) => {
+      button.onclick = () => deleteOrders([button.dataset.deleteOrder]);
+    });
   }
 
   function hourOf(order) {
@@ -997,7 +1136,7 @@ function beep() {
       esc(menu.promoBanner || "") +
       '</textarea></div><div class="field"><label>Mensaje de tienda cerrada</label><textarea id="closedSetting" maxlength="180">' +
       esc(menu.closedMessage || "") +
-      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article></div>';
+      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article><article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article></div>';
     $("saveSettingsV4").onclick = async () => {
       const hours = {};
       [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
@@ -1022,6 +1161,24 @@ function beep() {
       menu.promoBanner = clean($("promoSetting").value, 180);
       menu.closedMessage = clean($("closedSetting").value, 180);
       await saveMenu("settingsSaved");
+    };
+    $("repairTrackingV4").onclick = async () => {
+      const button = $("repairTrackingV4");
+      const result = $("trackingRepairResult");
+      button.disabled = true;
+      result.textContent = "Revisando pedidos recientes…";
+      try {
+        const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const recent = orders.filter((order) => orderCreatedAt(order) >= cutoff);
+        const repaired = await store.repairRecentTracking(recent);
+        result.textContent =
+          repaired + " seguimiento" + (repaired === 1 ? " reparado." : "s reparados.");
+      } catch (error) {
+        console.error(error);
+        result.textContent = "No se pudo reparar el seguimiento.";
+      } finally {
+        button.disabled = false;
+      }
     };
   }
 
@@ -1562,7 +1719,15 @@ function startPanel(user) {
   unsubscribeOrders = store.watchOrders((nextOrders) => {
     const incoming = nextOrders.filter((order) => !seen.has(order.id));
     orders = nextOrders;
-    if (ordersLoaded && incoming.some((order) => order.estado === "Nuevo")) beep();
+    if (
+      ordersLoaded &&
+      incoming.some(
+        (order) =>
+          order.estado === "Nuevo" &&
+          !orderAudit(order).some((warning) => warning.startsWith("Total no cuadra")),
+      )
+    )
+      beep();
     orders.forEach((order) => seen.add(order.id));
     if ($("newBadge"))
       $("newBadge").textContent = String(
@@ -1622,6 +1787,37 @@ function makeLocalTestStore() {
         order.id === id ? Object.assign({}, order, value) : order,
       );
       localStorage.setItem("barrio-ice-visual-orders", JSON.stringify(orders));
+      const tracking = JSON.parse(
+        localStorage.getItem("barrio-ice-visual-tracking") || "{}",
+      );
+      const order = orders.find((item) => item.id === id) || {};
+      tracking[id] = Object.assign(
+        tracking[id] || publicTracking(order),
+        { estado: value.estado, actualizadoEn: value.actualizadoEn },
+      );
+      localStorage.setItem("barrio-ice-visual-tracking", JSON.stringify(tracking));
+    },
+    deleteOrder: async (id) => {
+      orders = orders.filter((order) => order.id !== id);
+      localStorage.setItem("barrio-ice-visual-orders", JSON.stringify(orders));
+      const tracking = JSON.parse(
+        localStorage.getItem("barrio-ice-visual-tracking") || "{}",
+      );
+      delete tracking[id];
+      localStorage.setItem("barrio-ice-visual-tracking", JSON.stringify(tracking));
+    },
+    repairRecentTracking: async (recentOrders) => {
+      const tracking = JSON.parse(
+        localStorage.getItem("barrio-ice-visual-tracking") || "{}",
+      );
+      let repaired = 0;
+      for (const order of recentOrders) {
+        if (tracking[order.id]) continue;
+        tracking[order.id] = publicTracking(order);
+        repaired += 1;
+      }
+      localStorage.setItem("barrio-ice-visual-tracking", JSON.stringify(tracking));
+      return repaired;
     },
     watchMenu: (callback) => {
       callback(menu);
@@ -1645,6 +1841,15 @@ if (e2eAllowed) {
       if (!user || user.uid !== ADMIN_UID)
         throw new Error("UID de prueba no autorizado.");
       startPanel(user);
+    },
+    replaceOrders(nextOrders) {
+      orders = nextOrders;
+      ordersLoaded = true;
+      adminState.period = "all";
+      adminState.from = adminState.to = "";
+      adminState.status = "";
+      localStorage.setItem("barrio-ice-visual-orders", JSON.stringify(nextOrders));
+      ordersView();
     },
   });
 } else {
@@ -1684,8 +1889,49 @@ async function initializeFirebase() {
       authSdk.signInWithEmailAndPassword(auth, email, password),
     logout: () => authSdk.signOut(auth),
     save: (value) => dbSdk.setDoc(dbSdk.doc(db, "tienda", "menu"), value),
-    update: (id, value) =>
-      dbSdk.updateDoc(dbSdk.doc(db, "pedidos", id), value),
+    update: async (id, value, order) => {
+      const batch = dbSdk.writeBatch(db);
+      batch.update(dbSdk.doc(db, "pedidos", id), value);
+      const trackingRef = dbSdk.doc(db, "seguimiento", id);
+      const tracking = await dbSdk.getDoc(trackingRef);
+      batch.set(
+        trackingRef,
+        tracking.exists()
+          ? { estado: value.estado, actualizadoEn: value.actualizadoEn }
+          : Object.assign(
+              publicTracking(order || orders.find((item) => item.id === id) || {}, value.estado),
+              { actualizadoEn: value.actualizadoEn },
+            ),
+        { merge: true },
+      );
+      await batch.commit();
+    },
+    async deleteOrder(id) {
+      const batch = dbSdk.writeBatch(db);
+      batch.delete(dbSdk.doc(db, "pedidos", id));
+      batch.delete(dbSdk.doc(db, "seguimiento", id));
+      await batch.commit();
+    },
+    async repairRecentTracking(recentOrders) {
+      let repaired = 0;
+      for (const order of recentOrders) {
+        const reference = dbSdk.doc(db, "seguimiento", order.id);
+        const existing = await dbSdk.getDoc(reference);
+        if (existing.exists()) continue;
+        const first =
+          (order.cliente?.nombre || "").trim().split(/\s+/)[0].slice(0, 20) ||
+          "Cliente";
+        await dbSdk.setDoc(reference, {
+          estado: order.estado || "Nuevo",
+          tipo: order.entrega?.tipo === "domicilio" ? "domicilio" : "recoger",
+          fecha: order.fecha || "",
+          creadoEn: order.creadoEn || dbSdk.serverTimestamp(),
+          nombreCorto: first,
+        });
+        repaired += 1;
+      }
+      return repaired;
+    },
     watchMenu(callback, onError) {
       return dbSdk.onSnapshot(
         dbSdk.doc(db, "tienda", "menu"),

@@ -279,6 +279,37 @@ textarea {
   box-shadow: 0 7px 24px rgb(7 39 56 / 6%);
 }
 
+.order-select {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.order-select input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.audit-warning {
+  border: 1px solid rgb(245 158 11 / 55%);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--danger);
+  background: rgb(245 158 11 / 12%);
+}
+
+.danger-action {
+  color: var(--danger);
+  border-color: currentColor;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .card > :first-child,
 .order > :first-child {
   margin-top: 0;

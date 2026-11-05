@@ -811,6 +811,60 @@ const server = http.createServer((request, response) => {
         const renderedOrders = await page.locator("#adminView").innerText();
         assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");
         if (theme === "light" && label === "movil") {
+          await page.locator('[data-admin-tab="settings"]').click();
+          await page.locator("#repairTrackingV4").click();
+          await page.getByText("2 seguimientos reparados.", { exact: true }).waitFor();
+          const repairedTracking = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-tracking") || "{}"),
+          );
+          assert.equal(Object.keys(repairedTracking).length, 2);
+          assert.deepEqual(
+            Object.keys(repairedTracking.PEDIDO1).sort(),
+            ["creadoEn", "estado", "fecha", "nombreCorto", "tipo"],
+            "la reparación solo debe publicar datos mínimos",
+          );
+          await page.locator('[data-admin-tab="orders"]').click();
+          await page.locator('[data-status="PEDIDO1"]').selectOption("Preparando");
+          await page.waitForFunction(() => {
+            const tracking = JSON.parse(localStorage.getItem("barrio-ice-visual-tracking") || "{}");
+            return tracking.PEDIDO1?.estado === "Preparando";
+          });
+          const updatedTracking = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-tracking") || "{}").PEDIDO1,
+          );
+          assert.equal(updatedTracking.estado, "Preparando");
+          assert.ok(updatedTracking.actualizadoEn);
+          assert.equal("celular" in updatedTracking, false);
+          await page.evaluate(() => {
+            const audited = JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]");
+            audited[0].total = 1;
+            audited[0].notas = "x".repeat(251);
+            audited[0].entrega.direccion = "https://example.com";
+            audited[1].cliente.celular = audited[0].cliente.celular;
+            audited[1].creadoEn = "2026-10-07T23:55:00Z";
+            window.__barrioAdminE2E.replaceOrders(audited);
+          });
+          const auditWarning = page.locator('[data-order-id="PEDIDO1"] [data-audit-warning]');
+          await auditWarning.waitFor();
+          assert.match(await auditWarning.innerText(), /Total no cuadra/);
+          assert.match(await auditWarning.innerText(), /Posible duplicado/);
+          assert.match(await auditWarning.innerText(), /Texto sospechoso/);
+          await page.locator('[data-order-select="PEDIDO1"]').check();
+          assert.equal(await page.locator("#deleteSelected").isEnabled(), true);
+          const bulkDeleteDialog = page.waitForEvent("dialog");
+          await page.locator("#deleteSelected").click();
+          await (await bulkDeleteDialog).accept();
+          await page.locator('[data-order-id="PEDIDO1"]').waitFor({ state: "detached" });
+          const deletedOrder = page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]").some(
+              (order) => order.id === "PEDIDO1",
+            ),
+          );
+          assert.equal(await deletedOrder, false);
+          const singleDeleteDialog = page.waitForEvent("dialog");
+          await page.locator('[data-delete-order="PEDIDO2"]').click();
+          await (await singleDeleteDialog).accept();
+          await page.locator('[data-order-id="PEDIDO2"]').waitFor({ state: "detached" });
           const flavorName = "Tequila de prueba";
           await page.locator('[data-admin-tab="menu"]').click();
           await page.locator("#newFlavorName").fill(flavorName);
