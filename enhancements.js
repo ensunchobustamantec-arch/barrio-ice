@@ -6,6 +6,7 @@
   const weekdayKeys = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const baseMerge = merge;
   const baseRender = render;
+  const baseAdd = add;
   const revealedKeys = new Set();
   let revealObserver = null;
   const adminState = { tab: "today", from: dateKey(), to: dateKey(), status: "", search: "", period: "today", statsPeriod: "today" };
@@ -52,7 +53,19 @@
       glint.className = "hero-mark-glint";
       glint.setAttribute("aria-hidden", "true");
       scene.append(glint);
-      hero.insertBefore(scene, hero.firstChild);
+      const copy = hero.querySelector(".hero-copy");
+      if (copy) copy.after(scene); else hero.append(scene);
+    }
+    if (!hero.querySelector(".hero-snow")) {
+      const snow = document.createElement("div");
+      snow.className = "hero-snow";
+      snow.setAttribute("aria-hidden", "true");
+      for (let index = 0; index < 12; index++) {
+        const flake = document.createElement("span");
+        flake.className = "hero-snowflake";
+        snow.append(flake);
+      }
+      hero.append(snow);
     }
     const title = hero.querySelector("h1");
     if (title) title.innerHTML = "<span>El barrio se</span><span>sirve bien frío</span>";
@@ -213,12 +226,57 @@
     if (!item || item.active === false) return;
     add({ k: "b:" + index, n: item.n, s: "", p: +item.p || 0, q: 1, g: false, tipo: "bebida", adulto: !!item.adulto, sabores: [] }, source);
   };
+  function flashAdded(source) {
+    if (!source || !source.matches("[data-flavor], [data-drink], [data-combo]")) return;
+    if (!source.dataset.originalLabel) source.dataset.originalLabel = source.innerHTML;
+    if (!("originalAriaLabel" in source.dataset)) source.dataset.originalAriaLabel = source.getAttribute("aria-label") || "";
+    clearTimeout(source.addedTimer);
+    source.textContent = "✓ Agregado";
+    source.setAttribute("aria-label", "Agregado al pedido");
+    source.classList.add("is-added");
+    source.addedTimer = setTimeout(() => {
+      if (!source.isConnected) return;
+      source.innerHTML = source.dataset.originalLabel;
+      if (source.dataset.originalAriaLabel) source.setAttribute("aria-label", source.dataset.originalAriaLabel);
+      else source.removeAttribute("aria-label");
+      source.classList.remove("is-added");
+    }, 1200);
+  }
+  function bumpOrderButton() {
+    [$("cartTop"), $("fab")].filter(Boolean).forEach(button => {
+      button.classList.remove("bump");
+      void button.offsetWidth;
+      button.classList.add("bump");
+    });
+  }
+  add = function (item, source, quiet) {
+    baseAdd(item, source, quiet);
+    flashAdded(source);
+    bumpOrderButton();
+  };
 
   function flavorOptions(selected) {
     return allTodayFlavors().map(item => '<option value="' + esc(item.n) + '" ' + (item.n === selected ? "selected" : "") + '>' + esc(item.n) + '</option>').join("");
   }
+  function animateCurrency(node, value, previousValue) {
+    if (!node) return;
+    const previous = Number.isFinite(previousValue) ? previousValue : Number(node.dataset.animatedValue);
+    node.dataset.animatedValue = String(value);
+    if (!Number.isFinite(previous) || reducedMotion()) { node.textContent = fmt(value); return; }
+    cancelAnimationFrame(node.valueFrame || 0);
+    const started = performance.now(), duration = 420;
+    const tick = time => {
+      const progress = Math.min(1, (time - started) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      node.textContent = fmt(Math.round(previous + (value - previous) * eased));
+      if (progress < 1) node.valueFrame = requestAnimationFrame(tick);
+    };
+    node.valueFrame = requestAnimationFrame(tick);
+  }
   function draw() {
     const result = totals();
+    const summaryNode = $("summary");
+    const previousSummaryTotal = Number(summaryNode.dataset.animatedValue);
     const qty = cart.reduce((sum, item) => sum + (+item.q || 0), 0);
     $$(".count").forEach(node => { node.textContent = qty; });
     $("fabTotal").textContent = fmt(result.total);
@@ -230,15 +288,21 @@
     }).join("");
     const gifts = result.giftLines.map(item => '<div class="cart-line gift"><div><b>REGALO ' + esc(String(item.promo).replace(/^Promo\s+/i, "")) + ': ' + item.q + ' x ' + esc(flavorText(item)) + ' · ' + esc(item.s) + '</b><small>Valor: ' + fmt(0) + '</small></div><strong>' + fmt(0) + '</strong></div>').join("");
     $("lines").innerHTML = cart.length ? paid + gifts : '<p class="notice">Agrega algo frío para empezar.</p>';
-    $("summary").innerHTML = cart.length
+    summaryNode.innerHTML = cart.length
       ? '<div><span>Subtotal</span><b>' + fmt(result.subtotal) + '</b></div><div class="discount"><span>Ahorro por promo</span><b>' + (result.discount ? "−" : "") + fmt(result.discount) + '</b></div><div><span>Domicilio</span><b>Se paga aparte</b></div><div class="total"><span>Total</span><b>' + fmt(result.total) + '</b></div>'
       : "";
+    summaryNode.dataset.animatedValue = String(result.total);
+    animateCurrency(summaryNode.querySelector(".total b"), result.total, previousSummaryTotal);
     $("nudge").textContent = result.nudge || (dayPlan().g ? "La promo se aplica sola según el tamaño y precio." : "Fin de semana sin promo: precios normales.");
-    $("total").textContent = fmt(result.total);
+    animateCurrency($("total"), result.total);
     $("ageBox").classList.toggle("hide", !cart.some(item => item.adulto));
     paymentChanged();
     updateCashChange();
     markPicked();
+    document.querySelectorAll(".sizes").forEach(group => {
+      const selected = group.querySelector(".size.on");
+      group.dataset.selectedIndex = selected ? selected.dataset.size : "";
+    });
   }
   function updateCashChange() {
     const node = $("cashChange");
@@ -792,6 +856,7 @@
         const target = entry.target;
         if (target.matches(".hero")) {
           target.classList.toggle("motion-paused", !entry.isIntersecting);
+          document.documentElement.classList.toggle("hero-in-view", entry.isIntersecting);
           return;
         }
         if (target.matches(".ticker, .skeleton-grid")) {
@@ -809,17 +874,25 @@
   }
 
   function decorateRevealTargets() {
-    const targets = document.querySelectorAll(".feature, .info article, .faq details");
+    const targets = document.querySelectorAll(".section > .head, .flavor, .drink, .combo, .feature, .info article, .faq details");
     targets.forEach((node, index) => {
       let key;
-      if (node.matches(".feature")) key = "feature:daily";
-      else if (node.matches(".faq details")) key = "faq:" + (node.querySelector("summary")?.textContent || index).trim();
-      else key = "info:" + (node.querySelector("h3")?.textContent || index).trim();
+      if (node.matches(".section > .head")) key = "section:" + String(node.closest(".section")?.id || node.querySelector("h2")?.textContent || index).trim();
+      else if (node.matches(".flavor")) key = "flavor:" + String(node.querySelector("[data-flavor]")?.dataset.flavor || index).trim();
+      else if (node.matches(".drink")) key = "drink:" + String(node.querySelector("h3")?.textContent || index).trim();
+      else if (node.matches(".combo")) key = "combo:" + String(node.querySelector("h3")?.textContent || index).trim();
+      else if (node.matches(".feature")) key = "feature:daily";
+      else if (node.matches(".faq details")) key = "faq:" + String(node.querySelector("summary")?.textContent || index).trim();
+      else key = "info:" + String(node.querySelector("h3")?.textContent || index).trim();
       node.dataset.revealKey = key;
+      const group = node.closest(".grid, .info, .faq, .section") || node.parentElement;
+      const siblings = group ? [...group.querySelectorAll(":scope > .flavor, :scope > .drink, :scope > .combo, :scope > article, :scope > details, :scope > .head")] : [];
+      node.style.setProperty("--reveal-delay", Math.min(5, Math.max(0, siblings.indexOf(node))) * 85 + "ms");
       if (reducedMotion() || !revealObserver || revealedKeys.has(key)) {
         node.classList.remove("reveal-pending");
         node.classList.add("reveal-visible");
         revealedKeys.add(key);
+        revealObserver?.unobserve(node);
         return;
       }
       node.classList.remove("reveal-visible");
@@ -835,6 +908,17 @@
     hero && revealObserver?.observe(hero);
     ticker && revealObserver?.observe(ticker);
     decorateRevealTargets();
+    document.addEventListener("pointerdown", event => {
+      const card = event.target.closest?.(".flavor");
+      if (card) { card.classList.remove("is-released"); card.classList.add("is-pressed"); }
+    }, true);
+    ["pointerup", "pointercancel"].forEach(type => window.addEventListener(type, event => {
+      const card = event.target?.closest?.(".flavor") || document.querySelector(".flavor.is-pressed");
+      if (!card) return;
+      card.classList.remove("is-pressed");
+      card.classList.add("is-released");
+      card.addEventListener("animationend", () => card.classList.remove("is-released"), { once: true });
+    }, true));
 
     let tickerResumeTimer = 0;
     ticker?.addEventListener("pointerdown", event => {
@@ -882,6 +966,11 @@
     baseOpenCart();
     cartOpen = true;
     const sheet = $("sheet");
+    sheet.classList.remove("cart-enter");
+    void sheet.offsetWidth;
+    sheet.classList.add("cart-enter");
+    clearTimeout(sheet.enterTimer);
+    sheet.enterTimer = setTimeout(() => sheet.classList.remove("cart-enter"), 760);
     sheet.inert = false;
     sheet.removeAttribute("inert");
     sheet.setAttribute("aria-hidden", "false");
@@ -980,4 +1069,3 @@
   setInterval(showPromoBanner, 60000);
   render();
 })();
-
