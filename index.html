@@ -2089,7 +2089,19 @@
               A = z[0],
               F = z[1];
             this.F = F;
-            this.db = F.getFirestore(A.initializeApp(FIREBASE_CONFIG));
+            const app = A.initializeApp(FIREBASE_CONFIG);
+            if (BarrioShared.APP_CHECK_SITE_KEY) {
+              if (["localhost", "127.0.0.1"].includes(location.hostname))
+                self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+              const AC = await import(b + "firebase-app-check.js");
+              AC.initializeAppCheck(app, {
+                provider: new AC.ReCaptchaV3Provider(
+                  BarrioShared.APP_CHECK_SITE_KEY,
+                ),
+                isTokenAutoRefreshEnabled: true,
+              });
+            }
+            this.db = F.getFirestore(app);
             this.ref = F.doc(this.db, "tienda", "menu");
             this.ready = true;
             F.onSnapshot(
