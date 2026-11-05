@@ -325,6 +325,53 @@ const server = http.createServer((request, response) => {
         await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#promoBannerTitle");
         await page.waitForSelector(".flavor");
+        const seo = await page.evaluate(() => {
+          const structuredData = [
+            ...document.querySelectorAll('script[type="application/ld+json"]'),
+          ].map((node) => JSON.parse(node.textContent));
+          return {
+            title: document.title,
+            canonical: document.querySelector('link[rel="canonical"]')?.href,
+            ogUrlCount: document.querySelectorAll('meta[property="og:url"]')
+              .length,
+            h1Count: document.querySelectorAll("h1").length,
+            shop: structuredData.find((node) => node["@type"] === "IceCreamShop"),
+            faq: structuredData.find((node) => node["@type"] === "FAQPage"),
+            genericCardsHidden: [
+              document.getElementById("maps").closest("article").hidden,
+              document.getElementById("instagram").closest("article").hidden,
+              document.getElementById("footMaps").hidden,
+              document.getElementById("footInsta").hidden,
+            ],
+          };
+        });
+        assert.equal(
+          seo.title,
+          "Barrio Ice · Granizados en Montería | 2x1 y 3x2",
+        );
+        assert.equal(seo.canonical, "https://barrio-ice.vercel.app/");
+        assert.equal(seo.ogUrlCount, 1);
+        assert.equal(seo.h1Count, 1);
+        assert.equal(seo.shop.telephone, "+573023489776");
+        assert.equal(seo.faq.mainEntity.length, 3);
+        assert.deepEqual(seo.genericCardsHidden, [true, true, true, true]);
+        await page.evaluate(() => {
+          window.__barrio.menu.instagram = "https://instagram.com/";
+          window.__barrio.menu.maps =
+            "https://maps.google.com/?q=Montería%2C%20Colombia";
+          window.__barrio.render();
+        });
+        assert.deepEqual(
+          await page.evaluate(() => [
+            document.getElementById("maps").closest("article").hidden,
+            document.getElementById("instagram").closest("article").hidden,
+            document.getElementById("footMaps").hidden,
+            document.getElementById("footInsta").hidden,
+            document.getElementById("footMaps").parentElement.hidden,
+          ]),
+          [true, true, true, true, true],
+          "los enlaces genéricos de Instagram y ubicación deben ocultarse",
+        );
         await page.waitForFunction(() => {
           const logo = document.querySelector(".brand img");
           return (

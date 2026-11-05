@@ -193,8 +193,56 @@ const BarrioShared = window.BarrioShared;
         ["contact", "floatWa"].forEach(
           (x) => ($(x).href = "https://wa.me/" + wa),
         );
-        ["maps", "footMaps"].forEach((x) => ($(x).href = maps));
-        ["instagram", "footInsta"].forEach((x) => ($(x).href = insta));
+        const genericInstagram = (value) => {
+            if (!value) return true;
+            try {
+              const url = new URL(value, location.origin);
+              return (
+                /^(www\.)?instagram\.com$/i.test(url.hostname) &&
+                url.pathname.replace(/\/$/, "") === ""
+              );
+            } catch {
+              return true;
+            }
+          },
+          genericMaps = (value) => {
+            if (!value) return true;
+            try {
+              const url = new URL(value, location.origin),
+                destination = (
+                  url.searchParams.get("q") ||
+                  url.searchParams.get("query") ||
+                  url.pathname.split("/").filter(Boolean).pop() ||
+                  ""
+                )
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase()
+                  .replace(/\+/g, " ")
+                  .replace(/\s+/g, " ")
+                  .trim();
+              return /^(monteria(?:,? colombia)?|colombia)$/.test(destination);
+            } catch {
+              return true;
+            }
+          },
+          hasInstagram = !genericInstagram(insta),
+          hasMaps = !genericMaps(maps);
+        ["maps", "footMaps"].forEach((id) => {
+          const link = $(id);
+          if (hasMaps) link.href = maps;
+          else link.removeAttribute("href");
+          if (id === "maps") link.closest("article").hidden = !hasMaps;
+          else link.hidden = !hasMaps;
+        });
+        ["instagram", "footInsta"].forEach((id) => {
+          const link = $(id);
+          if (hasInstagram) link.href = insta;
+          else link.removeAttribute("href");
+          if (id === "instagram") link.closest("article").hidden = !hasInstagram;
+          else link.hidden = !hasInstagram;
+        });
+        $("footMaps").parentElement.hidden = !hasMaps && !hasInstagram;
         draw();
         document.dispatchEvent(new Event("barrio:render"));
       }

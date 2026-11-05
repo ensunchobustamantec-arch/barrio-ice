@@ -636,3 +636,8 @@
 .sizes .size.on span {
   color: var(--muted);
 }
+.info article[hidden],
+.footer a[hidden],
+.footer div[hidden] {
+  display: none !important;
+}

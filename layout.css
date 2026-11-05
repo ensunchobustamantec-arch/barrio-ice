@@ -233,7 +233,7 @@
       .tracker img {
         width: 110px;
       }
-      .tracker h1 {
+      .tracker h2 {
         font-size: clamp(2.4rem, 9vw, 4rem);
         margin: 13px 0;
       }
