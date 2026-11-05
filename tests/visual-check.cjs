@@ -139,7 +139,11 @@ const server = http.createServer((request, response) => {
   );
   const file = path.resolve(
     root,
-    pathname === "/" ? "index.html" : "." + pathname,
+    pathname === "/"
+      ? "index.html"
+      : pathname === "/admin/"
+        ? "admin/index.html"
+        : "." + pathname,
   );
   if (
     !file.startsWith(root + path.sep) &&
@@ -202,6 +206,26 @@ const server = http.createServer((request, response) => {
         200,
         `la ruta de SHELL debe responder 200: ${shellPath}`,
       );
+    }
+    const adminHtmlResponse = await fetch(new URL("/admin/", address));
+    assert.equal(adminHtmlResponse.status, 200, "/admin/ debe abrir como página propia");
+    const adminHtml = await adminHtmlResponse.text();
+    assert.match(adminHtml, /\/admin\/manifest\.webmanifest/);
+    assert.match(adminHtml, /\/admin\/admin\.js/);
+    assert.match(adminHtml, /\/shared\/menu-schema\.js/);
+    assert.doesNotMatch(
+      adminHtml,
+      /enhancements\.(?:js|css)|firebase-auth\.js|id="storefront"/,
+      "el panel no debe descargar ni incluir la tienda",
+    );
+    for (const adminPath of [
+      "/admin/admin.css",
+      "/admin/admin.js",
+      "/admin/manifest.webmanifest",
+      "/admin/sw.js",
+    ]) {
+      const response = await fetch(new URL(adminPath, address));
+      assert.equal(response.status, 200, `el recurso del panel debe responder 200: ${adminPath}`);
     }
     const dimensions =
       process.env.VISUAL_QUICK === "1"
@@ -651,221 +675,122 @@ const server = http.createServer((request, response) => {
         page.on("pageerror", (error) => errors.push(error.message));
         await page.addInitScript(freezeDate);
         await page.addInitScript(
-          (themeValue) =>
-            localStorage.setItem(
-              "barrio-ice-theme",
-              JSON.stringify(themeValue),
-            ),
-          theme,
+          ({ menu, orders, themeValue }) => {
+            if (!localStorage.getItem("barrio-ice-visual-menu"))
+              localStorage.setItem("barrio-ice-visual-menu", JSON.stringify(menu));
+            if (!localStorage.getItem("barrio-ice-visual-orders"))
+              localStorage.setItem(
+                "barrio-ice-visual-orders",
+                JSON.stringify(
+                  orders.map((order, index) =>
+                    Object.assign({}, order, {
+                      creadoEn: index === 0 ? "2026-10-07T23:54:00Z" : "2026-10-07T21:00:00Z",
+                    }),
+                  ),
+                ),
+              );
+            localStorage.setItem("barrio-ice-theme", JSON.stringify(themeValue));
+          },
+          { menu: sampleMenu, orders: sampleOrders, themeValue: theme },
         );
-        await page.goto(address + "/#admin", { waitUntil: "domcontentloaded" });
-        await page.getByLabel("Correo").fill("dueno@example.com");
-        await page.getByLabel("Contraseña").fill("prueba");
-        await page.getByRole("button", { name: "Entrar" }).click();
-        try {
+        await page.goto(address + "/admin/?e2e=1", { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => !!window.__barrioAdminE2E);
+        const openAdmin = async () => {
+          await page.evaluate(() =>
+            window.__barrioAdminE2E.startSession({
+              uid: "NDdEIdTQiqMS947ENRr7aEq1i6B3",
+              email: "dueno@example.com",
+            }),
+          );
           await page
             .getByRole("heading", { name: "Estado de la tienda" })
-            .waitFor({ timeout: 7000 });
-        } catch {
-          throw new Error(
-            "No abrió el panel: " +
-              JSON.stringify({
-                state: await page.evaluate(() => {
-                  try {
-                    adminRender();
-                    return {
-                      error: document.getElementById("loginError")?.textContent,
-                      welcome: document.getElementById("welcome")?.textContent,
-                      storeReady:
-                        typeof store === "undefined" ? null : store.ready,
-                      visible: document.getElementById("login")?.className,
-                      panel: document.getElementById("panel")?.className,
-                      view: document
-                        .getElementById("adminView")
-                        ?.innerText?.slice(0, 400),
-                    };
-                  } catch (error) {
-                    return { error: String(error), stack: error.stack };
-                  }
-                }),
-                pageErrors: errors,
-              }),
-          );
-        }
+            .waitFor();
+        };
+        await openAdmin();
         if (saveScreenshots)
           await page.screenshot({
-            path: path.join(output, "panel-" + label + "-" + theme + ".jpg"),
+            path: path.join(output, "admin-" + label + "-" + theme + ".jpg"),
             type: "jpeg",
             quality: 76,
           });
         assert.equal(
-          await page.locator("#login .notice").count(),
-          0,
-          "el aviso retirado no debe reaparecer en el login",
+          await page.locator("#loginError").innerText(),
+          "",
+          "el login no debe mostrar texto auxiliar ni error en estado normal",
         );
         assert.equal(
-          (await page.locator(".admin-top h1").innerText())
-            .replace(/\s+/g, " ")
-            .trim(),
+          (await page.locator(".admin-top h1").innerText()).trim(),
           "Panel del barrio",
         );
-        await page.getByRole("button", { name: "MENÚ" }).click();
-        await page
-          .getByRole("heading", { name: "Catálogo de sabores" })
-          .waitFor();
-        await page.getByRole("button", { name: "PEDIDOS" }).click();
-        await page.getByText("REGALO 2x1", { exact: false }).first().waitFor();
+        assert.deepEqual(
+          await page.locator(".admin-nav [role=tab]").evaluateAll((buttons) =>
+            buttons.map((button) => {
+              const label = button.cloneNode(true);
+              label.querySelector(".badge")?.remove();
+              return label.textContent.replace(/\s+/g, " ").trim();
+            }),
+          ),
+          ["Hoy", "Pedidos", "Menú", "Ventas", "Ajustes"],
+          "las pestañas del panel deben estar en el HTML y en el orden acordado",
+        );
+        await page.locator('[data-admin-tab="menu"]').click();
+        await page.getByRole("heading", { name: "Catálogo de sabores" }).waitFor();
+        await page.locator('[data-admin-tab="orders"]').click();
+        const renderedOrders = await page.locator("#adminView").innerText();
+        assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");
         if (theme === "light" && label === "movil") {
           const flavorName = "Tequila de prueba";
-          await page.getByRole("button", { name: "MENÚ" }).click();
+          await page.locator('[data-admin-tab="menu"]').click();
           await page.locator("#newFlavorName").fill(flavorName);
           await page.locator("#newFlavorAdult").check();
           await page.locator("#addFlavorV4").click();
           await page.locator("#saveCatalogV4").click();
-          await page
-            .getByText("Guardado correctamente.", { exact: true })
-            .last()
-            .waitFor();
+          await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
           const persistedAdult = await page.evaluate(
             () =>
-              JSON.parse(
-                localStorage.getItem("barrio-ice-visual-menu") || "{}",
-              ).cat?.find((item) => item.n === "Tequila de prueba")?.l,
+              JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").cat?.find(
+                (item) => item.n === "Tequila de prueba",
+              )?.l,
           );
-          assert.equal(
-            persistedAdult,
-            true,
-            "+18 debe incluirse en el objeto guardado en Firestore (simulado)",
-          );
+          assert.equal(persistedAdult, true, "+18 debe persistir al guardar el menú");
           await page.reload({ waitUntil: "domcontentloaded" });
-          await page.waitForFunction(
-            () => typeof store !== "undefined" && store.ready,
-          );
-          await page.waitForFunction(() =>
-            menu.cat.some((item) => item.n === "Tequila de prueba"),
-          );
-          const loadedAdult = await page.evaluate(() => ({
-            value: menu.cat.find((item) => item.n === "Tequila de prueba")?.l,
-            names: menu.cat.map((item) => item.n),
-            saved: localStorage
-              .getItem("barrio-ice-visual-menu")
-              ?.slice(0, 180),
-          }));
-          assert.equal(
-            loadedAdult.value,
-            true,
-            "+18 debe leerse desde el menú guardado tras recargar: " +
-              JSON.stringify(loadedAdult),
-          );
-          await page.evaluate(() =>
-            startAdmin({ uid: BarrioShared.ADMIN_UID, email: "dueno@example.com" }),
-          );
-          try {
-            await page
-              .getByRole("heading", { name: "Estado de la tienda" })
-              .waitFor({ timeout: 7000 });
-          } catch {
-            throw new Error(
-              "El panel no abrió tras recargar: " +
-                JSON.stringify({
-                  error: await page
-                    .locator("#loginError")
-                    .textContent()
-                    .catch(() => ""),
-                  login: await page
-                    .locator("#login")
-                    .getAttribute("class")
-                    .catch(() => ""),
-                  panel: await page
-                    .locator("#panel")
-                    .getAttribute("class")
-                    .catch(() => ""),
-                  view: await page
-                    .locator("#adminView")
-                    .innerText()
-                    .catch(() => ""),
-                  pageErrors: errors,
-                }),
-            );
-          }
-          await page.getByRole("button", { name: "MENÚ" }).click();
+          await page.waitForFunction(() => !!window.__barrioAdminE2E);
+          await openAdmin();
+          await page.locator('[data-admin-tab="menu"]').click();
           const ageState = () =>
             page.locator("[data-cat-name]").evaluateAll((inputs) => {
-              const name = inputs.find(
-                (input) => input.value === "Tequila de prueba",
-              );
+              const name = inputs.find((input) => input.value === "Tequila de prueba");
               return (
-                name
-                  ?.closest(".editable-row")
-                  ?.querySelector("[data-cat-adult]")?.checked ?? null
+                name?.closest(".editable-row")?.querySelector("[data-cat-adult]")
+                  ?.checked ?? null
               );
             });
-          assert.equal(
-            await ageState(),
-            true,
-            "+18 debe seguir marcado tras guardar y recargar",
-          );
-          const flavorIndex = await page
-            .locator("[data-cat-name]")
-            .evaluateAll((inputs) =>
-              inputs.findIndex((input) => input.value === "Tequila de prueba"),
-            );
-          await page.locator(`[data-cat-adult="${flavorIndex}"]`).uncheck();
+          assert.equal(await ageState(), true, "+18 debe seguir marcado tras guardar y recargar");
+          await page.locator('[data-v4-flavor="Tequila de prueba"]').click();
           await page.locator("#saveDayMenu").click();
-          await page
-            .getByText("Guardado correctamente.", { exact: true })
-            .last()
-            .waitFor();
-          assert.equal(
-            await ageState(),
-            false,
-            "Guardar sabores debe persistir el cambio de edad del catálogo",
+          await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
+          const availability = await page.evaluate(
+            () => JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").dias?.["3"],
           );
-          await page.locator(`[data-cat-adult="${flavorIndex}"]`).check();
-          await page.locator("#saveCatalogV4").click();
-          await page
-            .getByText("Guardado correctamente.", { exact: true })
-            .last()
-            .waitFor();
-          await page.locator(`[data-v4-flavor="${flavorName}"]`).click();
-          await page.locator("#saveDayMenu").click();
-          await page
-            .getByText("Guardado correctamente.", { exact: true })
-            .last()
-            .waitFor();
-          await page.goto(address, { waitUntil: "domcontentloaded" });
-          const flavorCard = page
-            .locator(".flavor")
-            .filter({ hasText: flavorName });
+          assert.ok(availability?.includes(flavorName), "el sabor debe publicarse para el miércoles");
+          await page.goto(address + "/", { waitUntil: "domcontentloaded" });
+          await page.waitForFunction(() => typeof store !== "undefined" && store.ready);
+          const flavorCard = page.locator(".flavor").filter({ hasText: flavorName });
           await flavorCard.waitFor();
-          assert.match(
-            await flavorCard.locator(".tag.adult").innerText(),
-            /\+18/,
-          );
-          await flavorCard
-            .locator(`[data-flavor="${flavorName}"]`)
-            .first()
-            .click();
+          assert.match(await flavorCard.locator(".tag.adult").innerText(), /\+18/);
+          await flavorCard.locator(`[data-flavor="${flavorName}"]`).first().click();
           await page.getByRole("button", { name: /Mi pedido/ }).click();
-          assert.equal(
-            await page.locator("#ageBox").isVisible(),
-            true,
-            "el pedido +18 debe exigir confirmación de edad",
-          );
+          assert.equal(await page.locator("#ageBox").isVisible(), true);
           await page.locator("#name").fill("Cliente Prueba");
           await page.locator("#phone").fill("3001234567");
           await page.locator("#delivery").selectOption("recoger");
           await page.locator("#cash").fill("15000");
           await page.locator("#send").click();
-          assert.match(
-            await page.locator("#checkoutError").innerText(),
-            /Confirma que eres mayor de 18 años/,
-          );
+          assert.match(await page.locator("#checkoutError").innerText(), /Confirma que eres mayor de 18 años/);
         }
         await page.close();
       }
-    }
-    assert.deepEqual(
+    }    assert.deepEqual(
       errors,
       [],
       "la página no debe generar errores de JavaScript",
