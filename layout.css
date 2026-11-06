@@ -247,6 +247,18 @@
         margin: 23px 0;
         text-align: left;
       }
+      .tracking-help {
+        max-width: 470px;
+        margin-inline: auto;
+        font-size: 0.95rem;
+      }
+      .tracking-cancelled {
+        border: 1px solid var(--danger);
+        border-radius: 14px;
+        padding: 14px;
+        color: var(--danger) !important;
+        text-align: center;
+      }
       .step {
         display: grid;
         grid-template-columns: 38px 1fr;
@@ -271,6 +283,9 @@
         background: var(--ice);
         border-color: var(--ink);
         color: #07131d;
+      }
+      .step.current {
+        color: var(--ice);
       }
       .card {
         padding: 17px;

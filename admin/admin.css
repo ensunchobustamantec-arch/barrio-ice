@@ -204,6 +204,31 @@ textarea {
   color: var(--text);
 }
 
+.install-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.install-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.install-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 560px) {
+  .install-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .panel {
   min-height: 100dvh;
   padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -520,24 +545,53 @@ small {
 
 .bar-row {
   display: grid;
-  grid-template-columns: minmax(90px, 1fr) minmax(80px, 3fr) auto;
+  grid-template-columns: minmax(100px, 1fr) minmax(80px, 3fr) auto;
   align-items: center;
   gap: 10px;
   margin: 8px 0;
 }
 
-.bar {
-  height: 10px;
+.chart-grid > .card {
+  min-width: 0;
+}
+
+.bar-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bar-track {
+  min-width: 0;
+  height: 12px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--line);
 }
 
-.bar i {
+.bar-track i {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: var(--accent);
+}
+
+.bar-value {
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bar-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 10px;
+  }
+
+  .bar-label {
+    grid-column: 1 / -1;
+  }
 }
 
 .badge {

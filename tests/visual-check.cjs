@@ -820,6 +820,13 @@ const server = http.createServer((request, response) => {
         await interceptFirebase(page);
         page.on("pageerror", (error) => errors.push(error.message));
         await page.addInitScript(freezeDate);
+        if (theme === "light" && label === "movil")
+          await page.addInitScript(() => {
+            Object.defineProperty(navigator, "userAgent", {
+              configurable: true,
+              value: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1",
+            });
+          });
         await page.addInitScript(
           ({ menu, orders, themeValue }) => {
             if (!localStorage.getItem("barrio-ice-visual-menu"))
@@ -853,6 +860,11 @@ const server = http.createServer((request, response) => {
             .waitFor();
         };
         await openAdmin();
+        if (theme === "light" && label === "movil") {
+          assert.equal(await page.locator("#installBar").isVisible(), true);
+          await page.locator("#installNow").click();
+          assert.match(await page.locator("#installHelp").innerText(), /Añadir a pantalla de inicio/);
+        }
         if (saveScreenshots && label === "movil")
           await page.screenshot({
             path: path.join(output, "admin-" + label + "-" + theme + ".jpg"),
@@ -879,12 +891,29 @@ const server = http.createServer((request, response) => {
           ["Hoy", "Pedidos", "Menú", "Ventas", "Ajustes"],
           "las pestañas del panel deben estar en el HTML y en el orden acordado",
         );
+        if (theme === "light" && label === "movil") {
+          await page.locator('[data-admin-tab="stats"]').click();
+          const firstBar = page.locator(".chart-grid .bar-row").first();
+          await firstBar.waitFor();
+          const bounds = await firstBar.evaluate((node) => {
+            const rect = node.getBoundingClientRect();
+            return { left: rect.left, right: rect.right, width: rect.width, viewport: innerWidth };
+          });
+          assert.ok(bounds.width > 0 && bounds.left >= 0 && bounds.right <= bounds.viewport);
+        }
         await page.locator('[data-admin-tab="menu"]').click();
         await page.getByRole("heading", { name: "Catálogo de sabores" }).waitFor();
         await page.locator('[data-admin-tab="orders"]').click();
         const renderedOrders = await page.locator("#adminView").innerText();
         assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");
         if (theme === "light" && label === "movil") {
+          const popupPromise = page.waitForEvent("popup");
+          await page.locator("[data-print]").first().click();
+          const printPopup = await popupPromise;
+          await printPopup.locator(".ticket").waitFor();
+          assert.match(await printPopup.locator(".brand").innerText(), /BARRIO ICE/);
+          assert.ok(await printPopup.locator(".item").count() > 0);
+          await printPopup.close();
           await page.locator('[data-admin-tab="settings"]').click();
           const diagnostics = page.locator("#diagnosticsCard");
           await diagnostics.waitFor();
@@ -1039,6 +1068,11 @@ const server = http.createServer((request, response) => {
           const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
           assert.match(trackingText.join(" "), /Cliente/);
           assert.doesNotMatch(trackingText.join(" "), /3001234567|Prueba/);
+          assert.deepEqual(
+            await page.locator("#steps .step span").allTextContents(),
+            ["Nuevo", "Preparando", "Listo", "En camino", "Entregado"],
+            "el cliente debe poder ver cada estado del pedido",
+          );
         }
         if (label === "escritorio") {
           await page.locator('[data-admin-tab="settings"]').click();
