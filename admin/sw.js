@@ -10,8 +10,9 @@ const SHELL = [
   "/admin/manifest.webmanifest",
   "/pricing.js",
   "/shared/menu-schema.js",
-  "/assets/brand/icon-admin-192.png",
-  "/assets/brand/icon-admin-512.png",
+  "/assets/brand/icon-192.png",
+  "/assets/brand/icon-512.png",
+  "/assets/brand/icon-maskable-512.png",
 ];
 
 self.addEventListener("install", (event) => {

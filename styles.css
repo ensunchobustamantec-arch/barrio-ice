@@ -8,6 +8,7 @@
         --paper: #fff;
         --muted: #526675;
         --line: #bdd3dd;
+        --danger: #bd2937;
         --glass: #f9fdffdf;
         --safe-b: env(safe-area-inset-bottom, 0px);
         --safe-t: env(safe-area-inset-top, 0px);
@@ -19,6 +20,7 @@
         --paper: #0b1b27;
         --muted: #aac1cc;
         --line: #315162;
+        --danger: #ff929d;
         --glass: #0b1b27e8;
       }
       * {

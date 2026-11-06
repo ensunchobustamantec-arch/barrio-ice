@@ -37,7 +37,6 @@
       return;
     }
     saveCustomer();
-    const popup = window.open("", "_blank");
     $("send").disabled = true;
     $("send").textContent = "Guardando tu pedido…";
     const promo = BarrioIcePricing.planForDay(new Date().getDay(), menu);
@@ -82,23 +81,24 @@
     };
     try {
       order.id = await store.createOrder(order);
+      document.dispatchEvent(
+        new CustomEvent("barrio:order-created", { detail: { id: order.id } }),
+      );
       local.set("last", order);
       cart = [];
       document.dispatchEvent(new Event("barrio:draw-request"));
       document.dispatchEvent(new Event("barrio:cart-close-request"));
       confetti();
-      const url =
-        "https://wa.me/" +
-        String(menu.whatsapp).replace(/\D/g, "") +
-        "?text=" +
-        encodeURIComponent(orderMessage(order));
-      if (popup) popup.location = url;
-      else window.open(url, "_blank");
       history.pushState({}, "", "?pedido=" + encodeURIComponent(order.id));
       showTracking(order.id);
+      const url = new URL(
+        "https://wa.me/" + String(menu.whatsapp).replace(/\D/g, ""),
+      );
+      url.searchParams.set("text", orderMessage(order));
+      $("send").textContent = "Abriendo WhatsApp…";
+      location.assign(url.href);
     } catch (error) {
       console.error(error);
-      popup?.close();
       $("checkoutError").textContent =
         error?.code === "permission-denied"
           ? "Firebase rechazó el pedido. Publica primero las reglas de transición de Firestore."

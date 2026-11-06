@@ -72,6 +72,127 @@ const BarrioShared = window.BarrioShared;
       function sold(n) {
         return (menu.agotados[now().getDay()] || []).includes(n);
       }
+      function availableHalfFlavors() {
+        return (menu.dias[now().getDay()] || [])
+          .map(flavor)
+          .filter((item) => item && item.active !== false && !sold(item.n));
+      }
+      function renderHalfPicker() {
+        const button = $("halfLaunch"),
+          first = $("halfFlavorA"),
+          second = $("halfFlavorB"),
+          flavors = availableHalfFlavors();
+        if (!button || !first || !second) return;
+        button.classList.toggle(
+          "hide",
+          menu.mitadMitad === false || flavors.length < 2,
+        );
+        const options = flavors
+          .map((item) => '<option value="' + esc(item.n) + '">' + esc(item.n) + "</option>")
+          .join("");
+        first.innerHTML = options;
+        second.innerHTML = options;
+        if (flavors.length > 1) {
+          second.value = flavors[1].n;
+          first.value = flavors[0].n;
+        }
+        syncHalfPicker();
+      }
+      function syncHalfPicker() {
+        const first = flavor($("halfFlavorA")?.value),
+          second = flavor($("halfFlavorB")?.value),
+          size = +($("halfSize")?.value || 0),
+          addButton = $("halfAdd");
+        if (!addButton) return;
+        const same = first && second && first.n === second.n;
+        addButton.disabled = !first || !second || same;
+        addButton.textContent = "Agregar al pedido · " + fmt(plan().p[size]);
+        $("halfAgeNote").textContent =
+          first?.l || first?.adulto || second?.l || second?.adulto
+            ? "Uno de los sabores tiene licor. Al enviar el pedido confirmarás que eres mayor de 18 años."
+            : "";
+      }
+      function showHalfPicker() {
+        if (menu.mitadMitad === false || availableHalfFlavors().length < 2) return;
+        renderHalfPicker();
+        const dialog = $("halfDialog");
+        if (dialog.showModal) dialog.showModal();
+        else dialog.setAttribute("open", "");
+      }
+      function closeHalfPicker() {
+        const dialog = $("halfDialog");
+        if (dialog.close) dialog.close();
+        else dialog.removeAttribute("open");
+      }
+      function addHalfMix() {
+        const firstName = $("halfFlavorA").value,
+          secondName = $("halfFlavorB").value,
+          size = +$("halfSize").value,
+          first = flavor(firstName),
+          second = flavor(secondName);
+        if (
+          menu.mitadMitad === false ||
+          !first ||
+          !second ||
+          firstName === secondName ||
+          sold(firstName) ||
+          sold(secondName)
+        ) {
+          syncHalfPicker();
+          return;
+        }
+        const names = [firstName, secondName],
+          keyNames = [...names].sort().join("|");
+        add(
+          {
+            k: "half:" + size + ":" + keyNames,
+            n: "Granizado mitad y mitad",
+            s: sizes[size],
+            p: +plan().p[size],
+            q: 1,
+            g: true,
+            tipo: "granizado",
+            sabores: names,
+            adulto: [first, second].some((item) => !!(item.l || item.adulto)),
+            giftFlavor: firstName,
+          },
+          $("halfLaunch"),
+        );
+        closeHalfPicker();
+      }
+      function savedOrders() {
+        const records = local.get("orders", []);
+        return Array.isArray(records)
+          ? records.filter((item) => item && typeof item.id === "string").slice(0, 8)
+          : [];
+      }
+      function rememberOrder(id) {
+        id = String(id || "").slice(0, 80);
+        if (!id) return;
+        const records = savedOrders().filter((item) => item.id !== id);
+        records.unshift({ id, date: new Date().toISOString() });
+        local.set("orders", records.slice(0, 8));
+        renderOrderHistory();
+      }
+      function renderOrderHistory() {
+        const container = $("orderHistory"),
+          summary = $("orderHistorySummary"),
+          list = $("orderHistoryList"),
+          records = savedOrders();
+        if (!container || !summary || !list) return;
+        container.classList.toggle("hide", records.length === 0);
+        summary.textContent = "Mis pedidos recientes (" + records.length + ")";
+        list.innerHTML = records
+          .map(
+            (item) =>
+              '<a href="/?pedido=' +
+              encodeURIComponent(item.id) +
+              '">Pedido #' +
+              esc(item.id.slice(-6).toUpperCase()) +
+              " · Ver estado</a>",
+          )
+          .join("");
+      }
       function render() {
         let p = plan(),
           on = openNow(),
@@ -146,6 +267,8 @@ const BarrioShared = window.BarrioShared;
               })
               .join("")
           : '<p class="notice">Hoy aún no hay sabores publicados. Escríbenos y miramos qué salió del congelador.</p>';
+        renderHalfPicker();
+        renderOrderHistory();
         let first = flavor(today[0]);
         $("daily").textContent = first
           ? "Sabor del día: " + first.n
@@ -354,6 +477,8 @@ const BarrioShared = window.BarrioShared;
                   '<div class="cart-line"><div><b>' +
                   esc(x.n) +
                   (x.s ? " · " + esc(x.s) : "") +
+                  (x.sabores?.length > 1 ? " · " + esc(x.sabores.join(" / ")) : "") +
+                  (x.adulto ? " · +18" : "") +
                   "</b><small>" +
                   fmt(x.p) +
                   ' c/u</small></div><div class="qty"><button data-change="' +
@@ -495,30 +620,47 @@ const BarrioShared = window.BarrioShared;
       }
       function orderMessage(o) {
         return [
-          "🧊 *NUEVO PEDIDO – BARRIO ICE*",
+          "\u{1F9CA} *NUEVO PEDIDO – BARRIO ICE*",
           "Pedido #" + o.id.slice(-6).toUpperCase(),
-          "👤 " + o.cliente.nombre,
-          "📱 " + o.cliente.celular,
-          "🍧 " +
+          "\u{1F464} " + o.cliente.nombre,
+          "\u{1F4F1} " + o.cliente.celular,
+          "\u{1F367} " +
             o.items
-              .map((x) => x.q + "x " + x.n + (x.s ? " (" + x.s + ")" : ""))
+              .map((x) => {
+                const flavors = Array.isArray(x.sabores) ? x.sabores : [];
+                const name =
+                  flavors.length > 1
+                    ? "Granizado mitad y mitad (" + flavors.join(" / ") + ")"
+                    : x.n;
+                return (
+                  x.q +
+                  "x " +
+                  name +
+                  (x.s ? " (" + x.s + ")" : "") +
+                  (x.adulto ? " · +18" : "")
+                );
+              })
               .join(", "),
           o.entrega.tipo === "domicilio"
-            ? "📍 Domicilio: " +
+            ? "\u{1F4CD} Domicilio: " +
               o.entrega.direccion +
               (o.entrega.referencia ? " – " + o.entrega.referencia : "")
-            : "🏪 Recoge en el local",
-          "💳 Pago: " +
+            : "\u{1F3EA} Recoge en el local",
+          "\u{1F4B3} Pago: " +
             o.pago +
             (o.conCuanto ? " (paga con " + fmt(o.conCuanto) + ")" : ""),
-          o.descuento ? "🎉 Promo " + o.promo + ": −" + fmt(o.descuento) : "",
-          o.entrega.tipo === "domicilio" ? "🚚 Domicilio: se paga aparte" : "",
-          o.notas ? "📝 " + o.notas : "",
-          "💰 *TOTAL" +
+          o.descuento ? "\u{1F389} Promo " + o.promo + ": −" + fmt(o.descuento) : "",
+          o.entrega.tipo === "domicilio" ? "\u{1F69A} Domicilio: se paga aparte" : "",
+          o.notas ? "\u{1F4DD} " + o.notas : "",
+          "\u{1F4B0} *TOTAL" +
             (o.entrega.tipo === "domicilio" ? " (sin domicilio)" : "") +
             ": " +
             fmt(o.total) +
             "*",
+          "Seguimiento: " +
+            BarrioShared.SITE_URL +
+            "/?pedido=" +
+            encodeURIComponent(o.id),
         ]
           .filter(Boolean)
           .join("\n");
@@ -555,6 +697,7 @@ const BarrioShared = window.BarrioShared;
         openCart();
       }
       function showTracking(id) {
+        rememberOrder(id);
         $("storefront").classList.add("hide");
         $("tracking").classList.remove("hide");
         $("fab").classList.add("hide");
@@ -629,7 +772,16 @@ const BarrioShared = window.BarrioShared;
           if (comboButton) addCombo(+comboButton.dataset.combo, comboButton);
           if (quantityButton)
             change(quantityButton.dataset.change, quantityButton.dataset.d);
+          if (event.target.closest("#halfLaunch")) showHalfPicker();
+          if (event.target.closest("#halfAdd")) addHalfMix();
+          if (event.target.closest("#halfClose")) closeHalfPicker();
         });
+        ["halfFlavorA", "halfFlavorB", "halfSize"].forEach((id) => {
+          $(id).addEventListener("change", syncHalfPicker);
+        });
+        document.addEventListener("barrio:order-created", (event) =>
+          rememberOrder(event.detail?.id),
+        );
         $("cartTop").onclick = openCart;
         $("fab").onclick = openCart;
         $("close").onclick = closeCart;

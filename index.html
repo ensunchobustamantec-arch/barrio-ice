@@ -132,6 +132,12 @@
         </button>
       </div>
     </header>
+    <div id="orderHistory" class="order-history shell hide" aria-label="Pedidos recientes">
+      <details>
+        <summary id="orderHistorySummary">Mis pedidos</summary>
+        <div id="orderHistoryList" class="order-history-list"></div>
+      </details>
+    </div>
     <main id="storefront">
       <section class="hero shell" id="inicio">
         <div class="hero-copy">
@@ -165,6 +171,9 @@
         </div>
         <div class="week" id="week"></div>
         <div class="grid" id="flavors"></div>
+        <button id="halfLaunch" class="secondary half-launch hide" type="button">
+          Mitad y mitad · combina dos sabores
+        </button>
       </section>
       <section class="section shell">
         <div class="head">
@@ -257,6 +266,33 @@
         <p>Venta de licor solo a mayores de 18 años.</p>
       </footer>
     </main>
+    <dialog id="halfDialog" class="half-dialog" aria-labelledby="halfTitle">
+      <div class="half-card">
+        <div class="half-head">
+          <div>
+            <span class="eyebrow">Arma tu granizado</span>
+            <h2 id="halfTitle">Mitad y mitad</h2>
+          </div>
+          <button id="halfClose" class="close" type="button" aria-label="Cerrar">✕</button>
+        </div>
+        <p>Elige dos sabores disponibles y el tamaño.</p>
+        <label class="field" for="halfFlavorA">Primer sabor
+          <select id="halfFlavorA"></select>
+        </label>
+        <label class="field" for="halfFlavorB">Segundo sabor
+          <select id="halfFlavorB"></select>
+        </label>
+        <label class="field" for="halfSize">Tamaño
+          <select id="halfSize">
+            <option value="0">Pequeño</option>
+            <option value="1">Mediano</option>
+            <option value="2">Grande</option>
+          </select>
+        </label>
+        <p id="halfAgeNote" class="half-age-note" aria-live="polite"></p>
+        <button id="halfAdd" class="primary" type="button">Agregar al pedido</button>
+      </div>
+    </dialog>
     <main id="tracking" class="shell hide">
       <section class="tracker">
         <img
@@ -273,7 +309,10 @@
         </p>
         <div class="steps" id="steps"></div>
         <p id="trackingMeta"></p>
-        <a href="./" class="primary">Volver a pedir</a>
+        <div class="tracking-actions">
+          <a href="./" class="primary">Volver a pedir</a>
+          <a href="./" class="secondary">Mis pedidos</a>
+        </div>
       </section>
     </main>
     <button class="fab" id="fab">
@@ -382,6 +421,9 @@
         <button class="primary send" id="send" type="submit">
           Enviar pedido por WhatsApp ↗
         </button>
+        <p class="send-help">
+          WhatsApp abrirá el mensaje listo. Para enviarlo al negocio, toca Enviar dentro de WhatsApp.
+        </p>
       </form>
     </aside>
 

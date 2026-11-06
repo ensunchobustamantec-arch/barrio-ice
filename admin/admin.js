@@ -346,10 +346,31 @@ function beep() {
       .totals{width:min(100%,320px);margin:18px 0 0 auto}.total-row{display:flex;justify-content:space-between;gap:16px;padding:5px 0}.grand{margin-top:7px;border-top:2px solid var(--ink);padding-top:12px;font-size:21px;font-weight:900}.notice{margin-top:18px;border-radius:14px;padding:12px 15px;background:var(--mist);color:#194456}.notes{margin-top:18px;border-left:4px solid var(--ice);padding:10px 14px;background:#f6fbfd}.footer{margin-top:22px;color:var(--muted);font-size:12px;text-align:center}.actions{display:flex;justify-content:center;gap:10px;margin:20px auto 0}.actions button{min-height:46px;border:0;border-radius:12px;padding:0 20px;background:var(--ice);color:white;font:inherit;font-weight:800;cursor:pointer}.actions .close{background:#e5eef2;color:var(--ink)}
       @media(max-width:520px){body{padding:10px}.ticket{border-radius:18px}.brand{padding:18px}.content{padding:22px 18px}.details{grid-template-columns:1fr}.actions{position:sticky;bottom:8px}.actions button{flex:1}}
       @media print{@page{size:auto;margin:12mm}body{padding:0;background:#fff}.ticket{width:100%;border:1px solid var(--line);border-radius:0;box-shadow:none}.brand{-webkit-print-color-adjust:exact;print-color-adjust:exact}.actions{display:none}.content{padding:18px 22px}.item{break-inside:avoid}}
-      </style></head><body><article class="ticket"><header class="brand"><img src="/assets/brand/logo-mark-light.webp" alt=""><div><strong>BARRIO ICE</strong><small>COLD FLOW · MONTERÍA</small></div></header><main class="content"><div class="eyebrow">Comanda de preparación</div><div class="heading"><h1>Pedido recibido</h1><span class="number">#${esc(String(id).slice(-6).toUpperCase())}</span></div><section class="details"><div class="detail"><span>Cliente</span><b>${esc(order.cliente?.nombre || "")}</b></div><div class="detail"><span>Fecha</span><b>${esc(orderDate(order))}</b></div><div class="detail"><span>Celular</span><b>${esc(order.cliente?.celular || "")}</b></div><div class="detail"><span>Entrega</span><b>${order.entrega?.tipo === "domicilio" ? "Domicilio" : "Recoger en el local"}</b></div>${address}<div class="detail"><span>Pago</span><b>${payment}</b></div></section><section class="items">${rows || "<p>Sin productos</p>"}</section><section class="totals"><div class="total-row"><span>Subtotal</span><b>${esc(fmt(order.subtotal ?? order.total))}</b></div>${order.descuento ? `<div class="total-row"><span>Descuento${order.promo ? " · " + esc(order.promo) : ""}</span><b>−${esc(fmt(order.descuento))}</b></div>` : ""}<div class="total-row grand"><span>Total</span><b>${esc(fmt(order.total))}</b></div></section>${order.entrega?.tipo === "domicilio" ? '<div class="notice">El domicilio se cobra aparte.</div>' : ""}${order.notas ? `<div class="notes"><b>Nota del cliente</b><br>${esc(order.notas)}</div>` : ""}<p class="footer">Seguimiento: ${esc(trackUrl(id))}<br>BARRIO ICE · COLD FLOW · MONTERÍA</p><div class="actions"><button onclick="window.print()">Imprimir comanda</button><button class="close" onclick="window.close()">Cerrar</button></div></main></article></body></html>`;
+      </style></head><body><article class="ticket"><header class="brand"><img src="/assets/brand/logo-mark-light.webp" alt=""><div><strong>BARRIO ICE</strong><small>COLD FLOW · MONTERÍA</small></div></header><main class="content"><div class="eyebrow">Comanda de preparación</div><div class="heading"><h1>Pedido recibido</h1><span class="number">#${esc(String(id).slice(-6).toUpperCase())}</span></div><section class="details"><div class="detail"><span>Cliente</span><b>${esc(order.cliente?.nombre || "")}</b></div><div class="detail"><span>Fecha</span><b>${esc(orderDate(order))}</b></div><div class="detail"><span>Celular</span><b>${esc(order.cliente?.celular || "")}</b></div><div class="detail"><span>Entrega</span><b>${order.entrega?.tipo === "domicilio" ? "Domicilio" : "Recoger en el local"}</b></div>${address}<div class="detail"><span>Pago</span><b>${payment}</b></div></section><section class="items">${rows || "<p>Sin productos</p>"}</section><section class="totals"><div class="total-row"><span>Subtotal</span><b>${esc(fmt(order.subtotal ?? order.total))}</b></div>${order.descuento ? `<div class="total-row"><span>Descuento${order.promo ? " · " + esc(order.promo) : ""}</span><b>−${esc(fmt(order.descuento))}</b></div>` : ""}<div class="total-row grand"><span>Total</span><b>${esc(fmt(order.total))}</b></div></section>${order.entrega?.tipo === "domicilio" ? '<div class="notice">El domicilio se cobra aparte.</div>' : ""}${order.notas ? `<div class="notes"><b>Nota del cliente</b><br>${esc(order.notas)}</div>` : ""}<p class="footer">Seguimiento: ${esc(trackUrl(id))}<br>BARRIO ICE · COLD FLOW · MONTERÍA</p><p id="printFallback" class="footer" role="status"></p><div class="actions"><button id="printOrder" type="button">Imprimir comanda</button><button class="close" id="closeTicket" type="button">Cerrar</button></div></main></article></body></html>`;
     popup.document.open();
     popup.document.write(markup);
     popup.document.close();
+    popup.document.getElementById("printOrder")?.addEventListener("click", () => {
+      const fallback = popup.document.getElementById("printFallback");
+      if (typeof popup.print !== "function") {
+        if (fallback)
+          fallback.textContent =
+            "Este navegador no abrió la impresión. Usa el menú del navegador y elige Imprimir.";
+        return;
+      }
+      try {
+        popup.focus();
+        popup.print();
+      } catch (error) {
+        console.error(error);
+        if (fallback)
+          fallback.textContent =
+            "No se pudo abrir la impresión. Usa el menú del navegador y elige Imprimir.";
+      }
+    });
+    popup.document.getElementById("closeTicket")?.addEventListener("click", () =>
+      popup.close(),
+    );
   }
   const yesterday = () => {
     const date = now();
@@ -1580,8 +1601,6 @@ function beep() {
     if (!target) return;
     if (target.matches("[data-admin-tab]")) {
       adminState.tab = target.dataset.adminTab;
-      if (adminState.tab === "orders" && $("newBadge"))
-        $("newBadge").textContent = "";
       adminRender();
       return;
     }
@@ -1756,7 +1775,9 @@ function startPanel(user) {
     orders.forEach((order) => seen.add(order.id));
     if ($("newBadge"))
       $("newBadge").textContent = String(
-        orders.filter((order) => order.estado === "Nuevo").length || "",
+        orders.filter(
+          (order) => !["Entregado", "Cancelado"].includes(order.estado),
+        ).length || "",
       );
     ordersLoaded = true;
     adminRender();
