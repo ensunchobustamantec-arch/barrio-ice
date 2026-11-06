@@ -81,7 +81,7 @@ service cloud.firestore {
         d.entrega.direccion.size() <= 140 &&
         d.entrega.referencia is string &&
         d.entrega.referencia.size() <= 140 &&
-        d.pago in ['Efectivo', 'Nequi', 'Daviplata'] &&
+        d.pago in ['Efectivo', 'Nequi', 'Llaves Bre-B', 'Bancolombia', 'Daviplata'] &&
         d.conCuanto is number &&
         d.conCuanto >= 0 &&
         d.conCuanto <= 5000000 &&

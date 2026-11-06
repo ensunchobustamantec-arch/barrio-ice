@@ -724,6 +724,19 @@ small {
     gap: 18px;
   }
 
+  .today-dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .today-dashboard > .day-sales-card {
+    grid-column: 1 / -1;
+  }
+
+  .day-sales-card .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;

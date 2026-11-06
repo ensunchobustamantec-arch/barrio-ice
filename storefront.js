@@ -197,6 +197,15 @@ const BarrioShared = window.BarrioShared;
         let p = plan(),
           on = openNow(),
           day = now().getDay();
+        const payment = $("payment");
+        if (payment) {
+          const selectedPayment = payment.value;
+          const methods = ["Efectivo", ...Object.keys(menu.pagos || {})];
+          payment.innerHTML = methods
+            .map((method) => "<option>" + esc(method) + "</option>")
+            .join("");
+          if (methods.includes(selectedPayment)) payment.value = selectedPayment;
+        }
         $("heroStatus").textContent = on ? "Abierto ahora" : "Cerrado ahora";
         $("shopStatus").textContent = on
           ? "Abierto · hasta " + menu.horario.cierra
@@ -595,13 +604,14 @@ const BarrioShared = window.BarrioShared;
         );
         $("cashBox").classList.toggle("hide", m !== "Efectivo");
         $("digital").classList.toggle("hide", m === "Efectivo");
-        if (m !== "Efectivo")
+        if (m !== "Efectivo") {
+          const paymentDetails = String(menu.pagos[m] || "").trim();
           $("digital").innerHTML =
-            "Paga al número de <b>" +
+            (paymentDetails ? "Paga con " : "El negocio confirmará los datos de pago de ") +
+            "<b>" +
             esc(m) +
-            ": " +
-            esc(menu.pagos[m] || "por confirmar") +
-            "</b> y envía el comprobante por WhatsApp.";
+            (paymentDetails ? ": " + esc(paymentDetails) + "</b> y envía el comprobante por WhatsApp." : "</b> por WhatsApp.");
+        }
       }
       function restore() {
         let c = local.get("customer", {});

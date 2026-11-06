@@ -1191,8 +1191,10 @@ function beep() {
       esc(menu.whatsapp || "") +
       '"></div><div class="field"><label>Nequi</label><input id="nequiSetting" value="' +
       esc(menu.pagos?.Nequi || "") +
-      '"></div><div class="field"><label>Daviplata</label><input id="daviSetting" value="' +
-      esc(menu.pagos?.Daviplata || "") +
+      '"></div><div class="field"><label>Llaves Bre-B</label><input id="breBSetting" value="' +
+      esc(menu.pagos?.["Llaves Bre-B"] || "") +
+      '"></div><div class="field"><label>Bancolombia</label><input id="bancolombiaSetting" value="' +
+      esc(menu.pagos?.Bancolombia || "") +
       '"></div><div class="field"><label>Instagram</label><input id="instaSetting" value="' +
       esc(menu.instagram || "") +
       '"></div><div class="field"><label>Google Maps</label><input id="mapsSetting" value="' +
@@ -1223,8 +1225,10 @@ function beep() {
       menu.whatsapp = clean($("waSetting").value.replace(/[^\d+]/g, ""), 20);
       menu.pagos = Object.assign({}, menu.pagos, {
         Nequi: clean($("nequiSetting").value, 50),
-        Daviplata: clean($("daviSetting").value, 50),
+        "Llaves Bre-B": clean($("breBSetting").value, 100),
+        Bancolombia: clean($("bancolombiaSetting").value, 100),
       });
+      delete menu.pagos.Daviplata;
       menu.instagram = clean($("instaSetting").value, 200);
       menu.maps = clean($("mapsSetting").value, 300);
       menu.promoBanner = clean($("promoSetting").value, 180);
@@ -1272,7 +1276,7 @@ function beep() {
       )
       .join("");
     $("adminView").innerHTML =
-      '<div class="admin-grid"><article class="card"><h2>Estado de la tienda</h2><p class="status ' +
+      '<div class="admin-grid today-dashboard"><article class="card"><h2>Estado de la tienda</h2><p class="status ' +
       (openNow() ? "open" : "closed") +
       '">' +
       (openNow() ? "Abierta ahora" : "Cerrada ahora") +
@@ -1299,7 +1303,7 @@ function beep() {
             "</p>",
         )
         .join("") || '<p class="notice">No hay pedidos nuevos.</p>') +
-      '</article><article class="card"><h2>Ventas del día</h2><div class="metrics"><div class="metric"><b>' +
+      '</article><article class="card day-sales-card"><h2>Ventas del día</h2><div class="metrics"><div class="metric"><b>' +
       fmt(current.total) +
       '</b><span>VENTAS</span></div><div class="metric"><b>' +
       current.n +
@@ -1910,7 +1914,8 @@ function diagnosticsMarkup() {
   });
   const whatsapp = String(menu.whatsapp || "").replace(/\D/g, ""),
     nequi = String(menu.pagos?.Nequi || "").replace(/\D/g, ""),
-    daviplata = String(menu.pagos?.Daviplata || "").replace(/\D/g, ""),
+    breB = String(menu.pagos?.["Llaves Bre-B"] || "").trim(),
+    bancolombia = String(menu.pagos?.Bancolombia || "").trim(),
     lastOrder = orders.reduce(
       (latest, order) =>
         !latest || orderCreatedAt(order) > orderCreatedAt(latest)
@@ -1948,12 +1953,8 @@ function diagnosticsMarkup() {
       whatsapp ? "+" + whatsapp : "Falta un número de 12 dígitos que empiece por 57",
     ),
     diagnosticRow("nequi", "Nequi configurado", nequi.length > 0, nequi || "Sin número"),
-    diagnosticRow(
-      "daviplata",
-      "Daviplata configurado",
-      daviplata.length > 0,
-      daviplata || "Sin número",
-    ),
+    diagnosticRow("bre-b", "Llaves Bre-B configuradas", breB.length > 0, breB || "Sin llave"),
+    diagnosticRow("bancolombia", "Bancolombia configurado", bancolombia.length > 0, bancolombia || "Sin dato de pago"),
     diagnosticRow(
       "hours",
       "Horario definido para los 7 días",
