@@ -84,9 +84,7 @@ const BarrioShared = window.BarrioShared;
         $("promoText").textContent =
           p.g === 2
             ? "Hoy es 2x1: compra un granizado y te regalamos otro del mismo precio."
-            : p.g === 3
-              ? "Hoy es 3x2: compra dos granizados del mismo precio y te regalamos el tercero."
-              : "Fin de semana: precios sin promo, sabor sin discusión.";
+            : "Hoy no hay promo: precios normales, sabor sin discusión.";
         $("week").innerHTML = [1, 2, 3, 4, 5, 6, 0]
           .map((d) => {
             let q = plan(d);
@@ -342,7 +340,7 @@ const BarrioShared = window.BarrioShared;
       function nudgeText() {
         return totals().nudge ||
           (plan().g ? "La promo se aplica según los granizados elegidos." :
-            "Fin de semana sin promo: igual sabe brutal.");
+            "Hoy no hay promoción activa. Igual sabe brutal.");
       }
       function draw() {
         let r = totals(),

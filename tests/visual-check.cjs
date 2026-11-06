@@ -355,7 +355,7 @@ const server = http.createServer((request, response) => {
         });
         assert.equal(
           seo.title,
-          "Barrio Ice · Granizados en Montería | 2x1 y 3x2",
+          "Barrio Ice · Granizados en Montería | Promos 2x1",
         );
         assert.equal(seo.canonical, "https://barrio-ice.vercel.app/");
         assert.equal(seo.ogUrlCount, 1);

@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculate } = require("../pricing.js");
+const { calculate, planForDay } = require("../pricing.js");
 
 const granizado = (s = "Pequeño", p = 12000, q = 1, extra = {}) => ({
   n: "Granizado",
@@ -28,54 +28,43 @@ function verify(name, items, day, expected, menu = {}) {
   });
 }
 
-verify("Lunes 2x1 con un granizado", [granizado()], 1, {
+verify("Lunes 2x1 activo", [granizado()], 1, {
   total: 12000,
   discount: 12000,
   gifts: 1,
-});
-verify(
-  "Lunes 2x1 apagado no regala unidades",
-  [granizado()],
-  1,
-  { total: 12000, discount: 0, gifts: 0 },
-  { promos: { lunes: false } },
-);
-verify("Jueves 3x2 con tres iguales", [granizado("Pequeño", 12000, 3)], 4, {
-  total: 36000,
-  discount: 12000,
+}, { promos: { lunes: true } });
+verify("Lunes festivo sin 2x1", [granizado()], 1, {
+  total: 12000,
+  discount: 0,
+  gifts: 0,
+}, { promos: { lunes: false } });
+verify("Sábado especial con 2x1", [granizado("Pequeño", 8000)], 6, {
+  total: 8000,
+  discount: 8000,
   gifts: 1,
-});
-verify("Jueves 3x2 con dos iguales", [granizado("Pequeño", 12000, 2)], 4, {
-  total: 24000,
-  discount: 12000,
+}, { promos: { sabado: true } });
+verify("Domingo especial con 2x1", [granizado("Pequeño", 8000)], 0, {
+  total: 8000,
+  discount: 8000,
   gifts: 1,
-});
-verify(
-  "Jueves 3x2 agrupa por tamaño y precio",
-  [granizado("Mediano", 12000, 2), granizado("Grande", 15000)],
-  4,
-  { total: 39000, discount: 12000, gifts: 1 },
-);
-verify(
-  "Viernes no aplica promociones de granizados",
-  [granizado("Pequeño", 12000, 3)],
-  5,
-  { total: 36000, discount: 0, gifts: 0 },
-);
-verify(
-  "Domingo usa precio normal sin regalos",
-  [granizado("Pequeño", 8000, 2)],
-  0,
-  { total: 16000, discount: 0, gifts: 0 },
-);
+}, { promos: { domingo: true } });
+verify("Jueves no aplica promo aunque exista configuración vieja", [granizado()], 4, {
+  total: 12000,
+  discount: 0,
+  gifts: 0,
+}, { promos: { jueves: true } });
 verify("Cantidad negativa se normaliza a cero", [granizado("Pequeño", 12000, -2)], 1, {
   total: 0,
   discount: 0,
   gifts: 0,
 });
-verify(
-  "Ítem con regalo inyectado no se cobra ni acumula",
-  [granizado("Pequeño", 12000, 1, { regalo: true })],
-  1,
-  { total: 0, discount: 0, gifts: 0 },
-);
+verify("Ítem con regalo inyectado no se cobra ni acumula", [granizado("Pequeño", 12000, 1, { regalo: true })], 1, {
+  total: 0,
+  discount: 0,
+  gifts: 0,
+});
+
+test("los días seleccionados ofrecen solo 2x1", () => {
+  assert.equal(planForDay(6, { promos: { sabado: true } }).title, "2x1");
+  assert.equal(planForDay(4, { promos: { jueves: true } }).title, "Precios normales");
+});
