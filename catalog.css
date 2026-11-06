@@ -166,31 +166,46 @@
 .hero:before {
   top: 110px;
 }
-.promo-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 12px 0 15px;
-  padding: 14px 17px;
-  border: 2px solid var(--ink);
-  border-radius: 17px;
+.promo-ticker {
+  width: 100%;
+  max-width: 650px;
+  margin-top: 22px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink), transparent 80%);
+  border-radius: 12px;
   background: var(--yellow);
-  box-shadow: 4px 4px 0 var(--ink);
+  box-shadow: 0 10px 26px rgb(7 19 29 / 12%);
   color: #07131d;
 }
-.promo-banner strong {
-  font-family: "Saira Stencil One", Impact, sans-serif;
-  font-size: clamp(1.4rem, 5vw, 2rem);
+.promo-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: promo-ticker-scroll 22s linear infinite;
+  will-change: transform;
 }
-.promo-banner strong {
+.promo-ticker-track span {
+  display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.075em;
   white-space: nowrap;
 }
-.promo-banner span {
-  max-width: 450px;
-  font-size: 0.88rem;
-  font-weight: 800;
+.promo-ticker-track i {
+  color: #126084;
+  font-size: 0.9rem;
+  font-style: normal;
+}
+.promo-ticker:hover .promo-ticker-track,
+.promo-ticker:active .promo-ticker-track {
+  animation-play-state: paused;
+}
+@keyframes promo-ticker-scroll {
+  to { transform: translate3d(-50%, 0, 0); }
 }
 .half-trigger {
   width: 100%;
@@ -363,11 +378,6 @@ dialog::backdrop {
   .hero {
     min-height: 585px;
   }
-  .promo-banner {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 2px;
-  }
 }
 @media (max-width: 699px) {
   .hero {
@@ -383,6 +393,24 @@ dialog::backdrop {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .promo-ticker-track {
+    width: 100%;
+    animation: none;
+    justify-content: center;
+    will-change: auto;
+  }
+  .promo-ticker-track span {
+    display: block;
+    flex: 0 1 100%;
+    width: 100%;
+    min-height: 48px;
+    padding: 7px 12px;
+    text-align: center;
+    white-space: normal;
+  }
+  .promo-ticker-track span[aria-hidden="true"] {
+    display: none;
+  }
   *,
   *::before,
   *::after {

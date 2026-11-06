@@ -8,7 +8,6 @@
   if (!menu.precios.jueves) menu.precios.jueves = [...menu.precios.semana];
 
   function installPageExtras() {
-    const hero = document.querySelector(".hero");
     if (!document.getElementById("halfDialog")) {
       document.body.insertAdjacentHTML(
         "beforeend",
@@ -32,16 +31,6 @@
       $("cashBox")?.insertAdjacentHTML(
         "beforeend",
         '<small class="change-copy" id="cashChange" aria-live="polite"></small>',
-      );
-    }
-    if (!document.getElementById("promoBanner")) {
-      const buttons = hero.querySelector(".hero-copy .buttons");
-      buttons?.insertAdjacentHTML(
-        "afterend",
-        `<div class="promo-banner" id="promoBanner" role="status">
-          <strong id="promoBannerTitle">HOY 2X1</strong>
-          <span id="promoBannerCopy"></span>
-        </div>`,
       );
     }
   }
@@ -91,39 +80,6 @@
       return (includeProduct ? "Granizado de " : "") + names[0];
     return item.n || "Producto";
   }
-  function showPromoBanner() {
-    const p = dayPlan();
-    const title = $("promoBannerTitle"),
-      copyNode = $("promoBannerCopy"),
-      banner = $("promoBanner");
-    if (!title || !copyNode || !banner) return;
-    title.textContent = p.g === 2 ? "HOY 2X1" : "HOY SIN PROMO";
-    let message =
-      menu.promoBanner ||
-      (p.g === 2
-        ? "Elige un granizado y recibes dos del mismo tamaño y precio."
-        : p.g === 3
-          ? "Por cada dos granizados del mismo tamaño y precio, te regalamos el tercero."
-          : "Precios normales de fin de semana.");
-    const hours = menu.horario?.[now().getDay()] || menu.horario || {};
-    if (openNow()) {
-      const [hour, minute] = String(hours.cierra || hours.close || "22:00")
-          .split(":")
-          .map(Number),
-        end = new Date(now());
-      end.setHours(hour || 0, minute || 0, 0, 0);
-      const remaining = Math.max(0, Math.floor((end - now()) / 60000));
-      message +=
-        " · Cierra en " +
-        Math.floor(remaining / 60) +
-        " h " +
-        (remaining % 60) +
-        " min";
-    } else if (!menu.cerradaManual)
-      message += " · Abrimos a " + (hours.abre || hours.open || "11:00");
-    copyNode.textContent = message;
-  }
-
   function decorateCatalog() {
     ["flavors", "combos", "drinks"].forEach((id) => {
       const grid = $(id);
@@ -133,7 +89,6 @@
       delete grid.dataset.loadingKind;
       grid.setAttribute("aria-busy", "false");
     });
-    showPromoBanner();
     const todayNames = menu.dias?.[now().getDay()] || [];
     document.querySelectorAll(".flavor").forEach((card) => {
       const button = card.querySelector("[data-flavor]");
@@ -617,5 +572,4 @@
   setupMotion();
   decorateCatalog();
   refreshCartPresentation();
-  setInterval(showPromoBanner, 60000);
 })();
