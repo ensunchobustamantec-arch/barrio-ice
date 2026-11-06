@@ -651,24 +651,123 @@ small {
 @media (min-width: 900px) {
   .panel {
     padding-bottom: 0;
+    background:
+      radial-gradient(ellipse at 84% 0%, color-mix(in srgb, var(--accent), transparent 88%), transparent 32rem),
+      var(--bg);
   }
 
   .admin-top {
-    padding-inline: max(24px, calc((100vw - 1050px) / 2));
+    min-height: 82px;
+    padding-inline: max(32px, calc((100vw - 1280px) / 2));
+    box-shadow: 0 8px 28px rgb(7 39 56 / 6%);
+  }
+
+  .admin-top > img {
+    height: 48px;
+  }
+
+  .admin-title h1 {
+    font-size: 1.22rem;
+    letter-spacing: -0.025em;
+  }
+
+  #welcome.notice {
+    margin: 0;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
   }
 
   .admin-nav {
     position: sticky;
-    top: 66px;
+    top: 82px;
     bottom: auto;
-    max-width: 1050px;
-    margin: 0 auto;
-    border-top: 0;
-    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    max-width: 1280px;
+    margin: 16px auto 0;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 10px 12px;
+    box-shadow: 0 12px 32px rgb(7 39 56 / 7%);
+  }
+
+  .admin-nav .tab {
+    flex: 1 1 0;
+    max-width: 220px;
+    min-height: 50px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    transition:
+      transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+      background-color 180ms ease-out,
+      color 180ms ease-out;
+  }
+
+  .admin-nav .tab.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--accent), transparent 72%);
   }
 
   #adminView {
-    padding-bottom: 32px;
+    max-width: 1280px;
+    gap: 20px;
+    padding: 24px 26px 52px;
+  }
+
+  .admin-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    gap: 18px;
+  }
+
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .card,
+  .order {
+    border-radius: 22px;
+    box-shadow: 0 10px 30px rgb(7 39 56 / 7%);
+    transition:
+      transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 220ms ease-out;
+  }
+
+  #panel:not(.hide) .admin-top {
+    animation: panel-header-in 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  @keyframes panel-header-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -14px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover,
+    .order:hover {
+      box-shadow: 0 18px 38px rgb(7 39 56 / 12%);
+      transform: translate3d(0, -3px, 0);
+    }
+
+    .admin-nav .tab:hover:not(.active) {
+      transform: translate3d(0, -2px, 0);
+    }
   }
 }
 

@@ -94,7 +94,7 @@
     const title = copy.querySelector("h1");
     if (title) {
       title.classList.add("sr-only");
-      title.textContent = "Barrio Ice · Granizados en Montería";
+      title.textContent = "Barrio Ice";
     }
     applyBrandTheme();
     if ("MutationObserver" in window) {

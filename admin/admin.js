@@ -131,6 +131,11 @@ function activateSound() {
     audio.resume();
     localStorage.setItem("barrio-ice-admin-sound", "true");
     $("soundToggle").setAttribute("aria-pressed", "true");
+    const soundButton = $("sound");
+    if (soundButton) {
+      soundButton.textContent = "🔔 Avisos activos";
+      soundButton.setAttribute("aria-pressed", "true");
+    }
     beep();
   } catch {
     alert("El navegador no permitió activar el sonido.");
@@ -462,7 +467,11 @@ function beep() {
       list.length +
       " pedido" +
       (list.length === 1 ? "" : "s") +
-      '</strong><button class="secondary" id="deleteSelected" disabled>Eliminar seleccionados</button><button class="secondary" id="sound">Activar sonido</button><button class="primary" id="xlsx">Exportar Excel (.xlsx)</button></div><div class="orders">' +
+      '</strong><button class="secondary" id="deleteSelected" disabled>Eliminar seleccionados</button><button class="secondary" id="sound" title="Activa un aviso sonoro cada vez que llegue un pedido nuevo." aria-label="Activar avisos sonoros para pedidos nuevos" aria-pressed="' +
+      String(audio?.state === "running") +
+      '">' +
+      (audio?.state === "running" ? "🔔 Avisos activos" : "🔔 Activar avisos") +
+      '</button><button class="primary" id="xlsx" title="Descarga el historial completo, aunque no esté cargado en pantalla.">Exportar Excel completo</button><span class="saved" id="xlsxFeedback" role="status" aria-live="polite"></span></div><div class="orders">' +
       (list.length
         ? list
             .map((order) => {
@@ -804,10 +813,32 @@ function beep() {
     };
   }
 
-  function saveNotice(node, text, ok) {
+  function timedFeedback(node, text, className, duration, restoreClass = "") {
     if (!node) return;
+    if (node._feedbackTimer) window.clearTimeout(node._feedbackTimer);
     node.textContent = text;
-    node.className = ok ? "saved" : "error";
+    node.className = className;
+    node._feedbackTimer = window.setTimeout(() => {
+      if (node.textContent === text) {
+        node.textContent = node.dataset.baseText || "";
+        node.className = restoreClass;
+      }
+      node._feedbackTimer = null;
+    }, duration);
+  }
+  function saveNotice(node, text, ok) {
+    timedFeedback(node, text, ok ? "saved" : "error", ok ? 3600 : 6500, "saved");
+  }
+  function welcomeNotice(text, ok) {
+    const node = $("welcome");
+    if (node)
+      timedFeedback(
+        node,
+        text,
+        ok ? "notice" : "notice error",
+        ok ? 3600 : 6500,
+        "muted",
+      );
   }
   function syncCatalogFromControls() {
     document.querySelectorAll("[data-cat-name]").forEach((input) => {
@@ -841,20 +872,16 @@ function beep() {
     syncCatalogFromControls();
     try {
       await store.save(menu);
-      if ($("welcome")) {
-        $("welcome").textContent = "Cambios guardados correctamente.";
-        $("welcome").className = "notice";
-      }
+      welcomeNotice("Cambios guardados correctamente.", true);
       render();
       adminRender();
       saveNotice($(noteId), "Guardado correctamente.", true);
     } catch (error) {
       console.error(error);
-      if ($("welcome")) {
-        $("welcome").textContent =
-          "No se pudo guardar. Revisa la conexión e inténtalo de nuevo.";
-        $("welcome").className = "notice error";
-      }
+      welcomeNotice(
+        "No se pudo guardar. Revisa la conexión e inténtalo de nuevo.",
+        false,
+      );
       saveNotice(
         $(noteId),
         "No se pudo guardar. Revisa la conexión e inténtalo de nuevo.",
@@ -1337,264 +1364,300 @@ function beep() {
     const button = $("xlsx");
     if (button) {
       button.disabled = true;
-      button.textContent = "Preparando Excel…";
+      button.textContent = "Cargando historial…";
     }
     try {
-      if (!window.ExcelJS) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src =
-            "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";
-          script.onload = resolve;
-          script.onerror = () =>
-            reject(new Error("No se pudo cargar ExcelJS."));
-          document.head.append(script);
-        });
-      }
-      const selected = orders.filter(
-        (order) =>
-          (!adminState.from || orderDate(order) >= adminState.from) &&
-          (!adminState.to || orderDate(order) <= adminState.to),
+      if (!window.BarrioIceXlsx) throw new Error("No se pudo cargar el generador de Excel.");
+      const source = typeof store.getAllOrders === "function"
+        ? await store.getAllOrders()
+        : orders;
+      const uniqueOrders = new Map();
+      (Array.isArray(source) ? source : []).forEach((order) => {
+        if (order?.id) uniqueOrders.set(order.id, order);
+      });
+      const selected = [...uniqueOrders.values()].sort(
+        (left, right) => orderCreatedAt(left) - orderCreatedAt(right),
       );
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = "Barrio Ice";
-      workbook.created = new Date();
-      const ordersSheet = workbook.addWorksheet("Pedidos", {
-        views: [{ state: "frozen", ySplit: 1 }],
-      });
-      const detailSheet = workbook.addWorksheet("Detalle", {
-        views: [{ state: "frozen", ySplit: 1 }],
-      });
-      const summarySheet = workbook.addWorksheet("Resumen", {
-        views: [{ state: "frozen", ySplit: 5 }],
-      });
-      const headerFill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF5BC0EB" },
+      if (button) button.textContent = "Armando Excel…";
+
+      const quantityOf = (item) => Math.max(0, Number(item.q) || 0);
+      const priceOf = (item) => Math.max(0, Number(item.p) || 0);
+      const lineValue = (item) => priceOf(item) * quantityOf(item);
+      const isGranizado = (item) =>
+        item.tipo === "granizado" || item.g === true || /granizado/i.test(item.n || "");
+      const granizados = (order) => (order.items || []).filter(isGranizado);
+      const count = (value) => ({ value: Number(value) || 0, style: 5 });
+      const money = (value, bold = false) => ({ value: Number(value) || 0, style: bold ? 8 : 4 });
+      const excelDate = (value) => {
+        const [year, month, day] = String(value || "").split("-").map(Number);
+        return year && month && day
+          ? { value: Date.UTC(year, month - 1, day) / 86400000 + 25569, style: 2 }
+          : "";
       };
-      const headerFont = { bold: true, color: { argb: "FF07131D" } };
-      const headers = [
-        "N.º pedido",
-        "Fecha",
-        "Hora",
-        "Cliente",
-        "Celular",
-        "Entrega",
-        "Dirección",
-        "Referencia",
-        "Método de pago",
-        "Estado",
-        "Granizados pagados",
-        "Granizados de regalo",
-        "Subtotal",
-        "Descuento promo",
-        "Total",
-        "Notas",
-      ];
-      ordersSheet.addRow(headers);
-      const detailHeaders = [
-        "N.º pedido",
-        "Fecha",
-        "Producto",
-        "Sabor(es)",
-        "Tamaño",
-        "Cantidad",
-        "Precio unitario",
-        "Valor",
-        "¿Regalo?",
-      ];
-      detailSheet.addRow(detailHeaders);
-      const dateCell = (value) => {
-        const text = String(value || "");
-        return text ? new Date(text + "T12:00:00") : null;
+      const excelTime = (value) => {
+        const match = /^(\d{2}):(\d{2})$/.exec(String(value || ""));
+        return match
+          ? { value: (Number(match[1]) * 60 + Number(match[2])) / 1440, style: 3 }
+          : "";
       };
-      const timeCell = (order) => {
-        const date = order.creadoEn?.toDate
-          ? order.creadoEn.toDate()
-          : order.creadoEn
-            ? new Date(order.creadoEn)
+      const idOf = (order) => String(order.id || "");
+      const timeOf = (order) => {
+        const value = order.creadoEn;
+        const date = typeof value?.toDate === "function"
+          ? value.toDate()
+          : value
+            ? new Date(value)
             : null;
-        if (!date || Number.isNaN(date.getTime())) return null;
-        const parts = new Intl.DateTimeFormat("en-GB", {
-          timeZone: "America/Bogota",
-          hour: "2-digit",
-          minute: "2-digit",
-          hourCycle: "h23",
-        })
-          .format(date)
-          .split(":")
-          .map(Number);
-        return new Date(1899, 11, 30, parts[0], parts[1]);
+        return date && !Number.isNaN(date.getTime())
+          ? new Intl.DateTimeFormat("es-CO", {
+              timeZone: "America/Bogota",
+              hour: "2-digit",
+              minute: "2-digit",
+              hourCycle: "h23",
+            }).format(date)
+          : "";
       };
-      selected.forEach((order) => {
-        const lines = order.items || [];
-        const granizados = lines.filter(
-          (item) =>
-            item.g ||
-            item.tipo === "granizado" ||
-            /granizado/i.test(item.n || ""),
-        );
-        const paid = granizados
+      const validOrders = selected.filter((order) => order.estado !== "Cancelado");
+      const cancelledOrders = selected.length - validOrders.length;
+      const totalPaidGranizados = validOrders.reduce(
+        (sum, order) => sum + granizados(order)
           .filter((item) => !item.regalo)
-          .reduce((sum, item) => sum + (+item.q || 0), 0);
-        const gifts = granizados
+          .reduce((lineSum, item) => lineSum + quantityOf(item), 0),
+        0,
+      );
+      const totalGiftGranizados = validOrders.reduce(
+        (sum, order) => sum + granizados(order)
           .filter((item) => item.regalo)
-          .reduce((sum, item) => sum + (+item.q || 0), 0);
-        ordersSheet.addRow([
-          safeExcelText(
-            String(order.id || "")
-              .slice(-6)
-              .toUpperCase(),
-          ),
-          dateCell(order.fecha),
-          timeCell(order),
-          safeExcelText(order.cliente?.nombre),
-          safeExcelText(order.cliente?.celular),
+          .reduce((lineSum, item) => lineSum + quantityOf(item), 0),
+        0,
+      );
+
+      const orderRows = [[
+        "N.º pedido", "Fecha", "Hora", "Cliente", "Celular", "Entrega",
+        "Dirección", "Referencia", "Método de pago", "Estado",
+        "Granizados pagados", "Granizados de regalo", "Subtotal",
+        "Descuento promo", "Total", "Notas",
+      ]];
+      const detailRows = [[
+        "N.º pedido", "Fecha", "Producto", "Sabor(es)", "Tamaño",
+        "Cantidad", "Precio unitario", "Valor pagado", "¿Regalo?", "Solo +18", "Estado del pedido",
+      ]];
+      const flavorTotals = new Map();
+      const sizeTotals = new Map();
+      const paymentTotals = new Map();
+      const dailyTotals = new Map();
+      const stateTotals = new Map();
+      const weekdayTotals = new Map();
+      const hourTotals = new Map();
+
+      selected.forEach((order) => {
+        const lines = Array.isArray(order.items) ? order.items : [];
+        const orderGranizados = granizados(order);
+        const paid = orderGranizados.filter((item) => !item.regalo)
+          .reduce((sum, item) => sum + quantityOf(item), 0);
+        const gifts = orderGranizados.filter((item) => item.regalo)
+          .reduce((sum, item) => sum + quantityOf(item), 0);
+        orderRows.push([
+          idOf(order),
+          excelDate(orderDate(order)),
+          excelTime(timeOf(order)),
+          order.cliente?.nombre || "",
+          order.cliente?.celular || "",
           order.entrega?.tipo === "domicilio" ? "Domicilio" : "Recoger",
-          safeExcelText(order.entrega?.direccion),
-          safeExcelText(order.entrega?.referencia),
-          safeExcelText(order.pago),
-          safeExcelText(order.estado),
-          paid,
-          gifts,
-          +order.subtotal || 0,
-          +order.descuento || 0,
-          +order.total || 0,
-          safeExcelText(order.notas),
+          order.entrega?.direccion || "",
+          order.entrega?.referencia || "",
+          order.pago || "Sin método",
+          order.estado || "Sin estado",
+          count(paid),
+          count(gifts),
+          money(order.subtotal ?? order.total),
+          money(order.descuento),
+          money(order.total, true),
+          order.notas || "",
         ]);
-        lines.forEach((item) =>
-          detailSheet.addRow([
-            safeExcelText(
-              String(order.id || "")
-                .slice(-6)
-                .toUpperCase(),
-            ),
-            dateCell(order.fecha),
-            safeExcelText(item.n || "Producto"),
-            safeExcelText(BarrioIcePricing.flavorNames(item).join(" / ")),
-            safeExcelText(item.s || ""),
-            +item.q || 0,
-            +item.p || 0,
-            (+item.p || 0) * (+item.q || 0),
+
+        lines.forEach((item) => {
+          const quantity = quantityOf(item);
+          const value = lineValue(item);
+          const names = isGranizado(item)
+            ? [...new Set(
+                BarrioIcePricing.flavorNames(item)
+                  .map((name) => String(name).trim())
+                  .filter(Boolean),
+              )]
+            : [];
+          detailRows.push([
+            idOf(order),
+            excelDate(orderDate(order)),
+            item.n || "Producto",
+            names.join(" / ") || "—",
+            item.s || "—",
+            count(quantity),
+            money(priceOf(item)),
+            money(value),
             item.regalo ? "Sí" : "No",
-          ]),
-        );
-      });
-      summarySheet.addRows([
-        ["Resumen del periodo"],
-        ["Desde", adminState.from || "Todos"],
-        ["Hasta", adminState.to || "Hoy"],
-        ["Pedidos", "=COUNTA(Pedidos!A2:A" + (selected.length + 1) + ")"],
-        ["Ventas totales", "=SUM(Pedidos!O2:O" + (selected.length + 1) + ")"],
-        [
-          "Descuento por promos",
-          "=SUM(Pedidos!N2:N" + (selected.length + 1) + ")",
-        ],
-        [],
-        ["Ventas por día", "Total"],
-        ["Fecha", "Ventas"],
-      ]);
-      const dates = [
-        ...new Set(selected.map((order) => orderDate(order))),
-      ].sort();
-      dates.forEach((date, index) => {
-        const row = 10 + index;
-        summarySheet.addRow([
-          dateCell(date),
-          "=SUMIF(Pedidos!B:B,A" + row + ",Pedidos!O:O)",
-        ]);
-      });
-      const paymentStart = summarySheet.rowCount + 2;
-      summarySheet.addRow(["Ventas por método de pago", "Total"]);
-      [...new Set(selected.map((order) => order.pago || "Sin método"))].forEach(
-        (method, index) => {
-          const row = paymentStart + 1 + index;
-          summarySheet.addRow([
-            safeExcelText(method),
-            "=SUMIF(Pedidos!I:I,A" + row + ",Pedidos!O:O)",
+            item.adulto ? "Sí" : "No",
+            order.estado || "Sin estado",
           ]);
-        },
-      );
-      const flavorStart = summarySheet.rowCount + 2;
-      summarySheet.addRow(["Ventas por sabor", "Valor"]);
-      const flavorNames = [
-        ...new Set(
-          selected.flatMap((order) =>
-            (order.items || []).flatMap((item) =>
-              BarrioIcePricing.flavorNames(item),
-            ),
-          ),
-        ),
-      ];
-      flavorNames.forEach((name, index) => {
-        const row = flavorStart + 1 + index;
-        summarySheet.addRow([
-          safeExcelText(name),
-          "=SUMIF(Detalle!D:D,A" + row + ",Detalle!H:H)",
-        ]);
-      });
-      const sizeStart = summarySheet.rowCount + 2;
-      summarySheet.addRow(["Ventas por tamaño", "Valor"]);
-      sizes.forEach((name, index) => {
-        const row = sizeStart + 1 + index;
-        summarySheet.addRow([
-          name,
-          "=SUMIF(Detalle!E:E,A" + row + ",Detalle!H:H)",
-        ]);
-      });
-      [ordersSheet, detailSheet, summarySheet].forEach((sheet) => {
-        sheet.getRow(1).eachCell((cell) => {
-          cell.fill = headerFill;
-          cell.font = headerFont;
-        });
-        sheet.autoFilter = {
-          from: "A1",
-          to: sheet.getRow(1).getCell(sheet.getRow(1).cellCount).address,
-        };
-        sheet.columns.forEach((column) => {
-          let max = 10;
-          column.eachCell?.({ includeEmpty: false }, (cell) => {
-            max = Math.max(max, String(cell.value ?? "").length);
+          if (order.estado === "Cancelado" || !isGranizado(item)) return;
+
+          const allocation = names.length ? 1 / names.length : 1;
+          names.forEach((name) => {
+            const current = flavorTotals.get(name) || { paid: 0, gifts: 0, value: 0 };
+            if (item.regalo) current.gifts += quantity * allocation;
+            else {
+              current.paid += quantity * allocation;
+              current.value += value * allocation;
+            }
+            flavorTotals.set(name, current);
           });
-          column.width = Math.min(34, Math.max(12, max + 2));
+          const size = item.s || "Sin tamaño";
+          const currentSize = sizeTotals.get(size) || { paid: 0, gifts: 0, value: 0 };
+          if (item.regalo) currentSize.gifts += quantity;
+          else {
+            currentSize.paid += quantity;
+            currentSize.value += value;
+          }
+          sizeTotals.set(size, currentSize);
         });
+
+        const status = order.estado || "Sin estado";
+        const statusTotal = stateTotals.get(status) || { count: 0, value: 0 };
+        statusTotal.count += 1;
+        statusTotal.value += Number(order.total) || 0;
+        stateTotals.set(status, statusTotal);
+
+        if (order.estado === "Cancelado") return;
+        const payment = order.pago || "Sin método";
+        const paymentTotal = paymentTotals.get(payment) || { count: 0, value: 0 };
+        paymentTotal.count += 1;
+        paymentTotal.value += Number(order.total) || 0;
+        paymentTotals.set(payment, paymentTotal);
+
+        const date = orderDate(order);
+        if (date) {
+          const daily = dailyTotals.get(date) || { count: 0, value: 0 };
+          daily.count += 1;
+          daily.value += Number(order.total) || 0;
+          dailyTotals.set(date, daily);
+          const [year, month, day] = date.split("-").map(Number);
+          if (year && month && day) {
+            const weekday = new Intl.DateTimeFormat("es-CO", {
+              timeZone: "America/Bogota",
+              weekday: "long",
+            }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+            const dayTotal = weekdayTotals.get(weekday) || { count: 0, value: 0 };
+            dayTotal.count += 1;
+            dayTotal.value += Number(order.total) || 0;
+            weekdayTotals.set(weekday, dayTotal);
+          }
+        }
+        const time = timeOf(order);
+        if (time) {
+          const hour = time.slice(0, 2) + ":00";
+          const hourTotal = hourTotals.get(hour) || { count: 0, value: 0 };
+          hourTotal.count += 1;
+          hourTotal.value += Number(order.total) || 0;
+          hourTotals.set(hour, hourTotal);
+        }
       });
-      ["M", "N", "O"].forEach((letter) => {
-        ordersSheet.getColumn(letter).numFmt = '"$"#,##0';
+
+      const summaryRows = [];
+      const section = (title) => summaryRows.push([{ value: title, style: 7 }]);
+      const header = (labels) => summaryRows.push(labels.map((value) => ({ value, style: 1 })));
+      summaryRows.push([{ value: "RESUMEN DEL HISTORIAL", style: 7 }]);
+      summaryRows.push(["Periodo", "Todos los pedidos registrados"]);
+      summaryRows.push(["Pedidos registrados", count(selected.length)]);
+      summaryRows.push(["Pedidos no cancelados", count(validOrders.length)]);
+      summaryRows.push(["Pedidos cancelados", count(cancelledOrders)]);
+      summaryRows.push(["Ventas cobradas", money(validOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0), true)]);
+      summaryRows.push(["Descuentos promocionales", money(validOrders.reduce((sum, order) => sum + (Number(order.descuento) || 0), 0))]);
+      summaryRows.push(["Granizados pagados", count(totalPaidGranizados)]);
+      summaryRows.push(["Granizados de regalo", count(totalGiftGranizados)]);
+      summaryRows.push(["Domicilios", "Se cobran aparte; no están incluidos en el total del pedido."]);
+      summaryRows.push(["Generado", new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" }).format(new Date())]);
+
+      section("Pedidos por estado");
+      header(["Estado", "Pedidos", "Total de pedidos"]);
+      [...stateTotals.entries()].sort(([a], [b]) => a.localeCompare(b, "es")).forEach(([name, value]) => {
+        summaryRows.push([name, count(value.count), money(value.value)]);
       });
-      ["G", "H"].forEach((letter) => {
-        detailSheet.getColumn(letter).numFmt = '"$"#,##0';
+
+      section("Ventas por fecha");
+      header(["Fecha", "Pedidos", "Ventas cobradas"]);
+      [...dailyTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).forEach(([date, value]) => {
+        summaryRows.push([excelDate(date), count(value.count), money(value.value)]);
       });
-      ordersSheet.getColumn("B").numFmt = "dd/mm/yyyy";
-      ordersSheet.getColumn("C").numFmt = "h:mm AM/PM";
-      detailSheet.getColumn("B").numFmt = "dd/mm/yyyy";
-      summarySheet.getColumn(1).width = 32;
-      summarySheet.getColumn(2).width = 20;
-      const buffer = await workbook.xlsx.writeBuffer();
-      const url = URL.createObjectURL(
-        new Blob([buffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        }),
-      );
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "barrio-ice-pedidos-" + dateKey() + ".xlsx";
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1200);
+
+      section("Ventas por método de pago");
+      header(["Método", "Pedidos", "Ventas cobradas"]);
+      [...paymentTotals.entries()].sort(([a], [b]) => a.localeCompare(b, "es")).forEach(([name, value]) => {
+        summaryRows.push([name, count(value.count), money(value.value)]);
+      });
+
+      section("Granizados por sabor");
+      header(["Sabor", "Porciones pagadas", "Porciones de regalo", "Venta atribuida"]);
+      [...flavorTotals.entries()].sort(([a], [b]) => a.localeCompare(b, "es")).forEach(([name, value]) => {
+        summaryRows.push([name, count(value.paid), count(value.gifts), money(value.value)]);
+      });
+
+      section("Granizados por tamaño");
+      header(["Tamaño", "Unidades pagadas", "Unidades de regalo", "Venta atribuida"]);
+      [...sizeTotals.entries()].sort(([a], [b]) => a.localeCompare(b, "es")).forEach(([name, value]) => {
+        summaryRows.push([name, count(value.paid), count(value.gifts), money(value.value)]);
+      });
+
+      section("Pedidos por día de la semana");
+      header(["Día", "Pedidos", "Ventas cobradas"]);
+      [...weekdayTotals.entries()].sort(([a], [b]) => a.localeCompare(b, "es")).forEach(([name, value]) => {
+        summaryRows.push([name, count(value.count), money(value.value)]);
+      });
+
+      section("Pedidos por hora");
+      header(["Hora", "Pedidos", "Ventas cobradas"]);
+      [...hourTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).forEach(([name, value]) => {
+        summaryRows.push([name, count(value.count), money(value.value)]);
+      });
+
+      window.BarrioIceXlsx.download("barrio-ice-pedidos-completo-" + dateKey() + ".xlsx", [
+        {
+          name: "Pedidos",
+          rows: orderRows,
+          widths: [22, 14, 12, 24, 16, 14, 36, 32, 18, 17, 16, 17, 16, 17, 16, 36],
+          headerRow: true,
+          freezeRows: 1,
+          filter: true,
+        },
+        {
+          name: "Detalle",
+          rows: detailRows,
+          widths: [22, 14, 24, 34, 14, 12, 17, 17, 12, 12, 20],
+          headerRow: true,
+          freezeRows: 1,
+          filter: true,
+        },
+        {
+          name: "Resumen",
+          rows: summaryRows,
+          widths: [36, 24, 24, 24],
+          freezeRows: 1,
+        },
+      ]);
+      saveNotice($("xlsxFeedback"), selected.length + " pedidos exportados.", true);
     } catch (error) {
       console.error(error);
-      alert(
-        "No se pudo generar el Excel. Revisa tu conexión e inténtalo de nuevo.",
+      saveNotice(
+        $("xlsxFeedback"),
+        "No se pudo exportar. Revisa la conexión e inténtalo de nuevo.",
+        false,
       );
     } finally {
       if (button) {
         button.disabled = false;
-        button.textContent = "Exportar Excel (.xlsx)";
+        button.textContent = "Exportar Excel completo";
       }
     }
   }
-
   function adminClick(event) {
     const target = event.target.closest("button, select, input");
     if (!target) return;
@@ -1751,7 +1814,10 @@ function showLogin(error = "") {
 function showPanel(user) {
   $("login").classList.add("hide");
   $("panel").classList.remove("hide");
-  $("welcome").textContent = user?.email || "Conectado";
+  const welcome = $("welcome");
+  welcome.dataset.baseText = user?.email || "Conectado";
+  welcome.textContent = welcome.dataset.baseText;
+  welcome.className = "muted";
   admin = true;
   adminRender();
 }
@@ -1962,6 +2028,7 @@ function makeLocalTestStore() {
   store = {
     ready: true,
     time: () => new Date(),
+    getAllOrders: async () => [...orders],
     save: async (value) => {
       menu = BarrioShared.mergeMenu(value);
       localStorage.setItem("barrio-ice-visual-menu", JSON.stringify(menu));
@@ -2072,6 +2139,25 @@ async function initializeFirebase() {
     login: (email, password) =>
       authSdk.signInWithEmailAndPassword(auth, email, password),
     logout: () => authSdk.signOut(auth),
+    async getAllOrders() {
+      const result = [];
+      let cursor = null;
+      while (true) {
+        const constraints = [dbSdk.orderBy("creadoEn", "desc"), dbSdk.limit(300)];
+        if (cursor) constraints.push(dbSdk.startAfter(cursor));
+        const snapshot = await dbSdk.getDocs(
+          dbSdk.query(dbSdk.collection(db, "pedidos"), ...constraints),
+        );
+        result.push(
+          ...snapshot.docs.map((document) => ({
+            ...document.data(),
+            id: document.id,
+          })),
+        );
+        if (snapshot.size < 300) return result;
+        cursor = snapshot.docs[snapshot.docs.length - 1];
+      }
+    },
     save: (value) => dbSdk.setDoc(dbSdk.doc(db, "tienda", "menu"), value),
     update: async (id, value, order) => {
       const batch = dbSdk.writeBatch(db);
