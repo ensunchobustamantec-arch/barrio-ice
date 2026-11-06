@@ -17,7 +17,7 @@
       : day === 4
         ? thursdayPrices
         : weekendPrices;
-    const active = menu.promos?.[promoKey] === true && promoKey !== "jueves";
+    const active = menu.promos?.[promoKey] === true;
 
     if (active) {
       return { title: "2x1", name: "Promo 2x1", buy: 1, receive: 2, prices, active: true };

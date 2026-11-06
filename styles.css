@@ -250,21 +250,6 @@
         background: var(--glass);
         color: var(--ink);
       }
-      .ticker {
-        overflow: hidden;
-        white-space: nowrap;
-        background: var(--ink);
-        color: var(--ice2);
-        border-block: 3px solid var(--yellow);
-        transform: rotate(-1.3deg);
-      }
-      .ticker span {
-        display: inline-block;
-        padding: 9px 0;
-        font-family: "Saira Stencil One";
-        font-size: 1.1rem;
-        animation: marq 25s linear infinite;
-      }
       .section {
         padding-top: 54px;
       }

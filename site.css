@@ -8,19 +8,6 @@
 .faq {
   scroll-margin-top: calc(78px + var(--safe-t));
 }
-.ticker {
-  transform: rotate(-1.3deg);
-  transform-origin: center;
-}
-.ticker span {
-  animation: marq 22s linear infinite;
-  will-change: transform;
-}
-.ticker.is-paused span,
-.ticker.is-offscreen span,
-.document-hidden .ticker span {
-  animation-play-state: paused;
-}
 .hero.motion-paused .hero-stage *,
 .document-hidden .hero-stage * {
   animation-play-state: paused !important;
@@ -275,9 +262,6 @@
     background: var(--flavor);
     color: #07131d;
     border-color: var(--ink);
-  }
-  .ticker:hover span {
-    animation-play-state: paused;
   }
 }
 .flavor.is-pressed {

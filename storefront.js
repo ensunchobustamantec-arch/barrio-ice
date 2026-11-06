@@ -619,50 +619,63 @@ const BarrioShared = window.BarrioShared;
         });
       }
       function orderMessage(o) {
+        const itemLines = (o.items || []).map((item) => {
+          const flavors = Array.isArray(item.sabores) ? item.sabores : [];
+          let name = item.n || "Producto";
+          if (item.tipo === "granizado" && flavors.length === 1)
+            name = "Granizado de " + flavors[0];
+          if (flavors.length > 1)
+            name = "Granizado mitad y mitad (" + flavors.join(" / ") + ")";
+          const quantity = Math.max(1, +item.q || 1);
+          const amount = item.regalo
+            ? "\u{1F381} cortesía"
+            : fmt((+item.p || 0) * quantity);
+          return (
+            "• " +
+            quantity +
+            " × " +
+            name +
+            (item.s ? " · " + item.s : "") +
+            " · " +
+            amount +
+            (item.adulto ? " · +18" : "")
+          );
+        });
         return [
-          "\u{1F9CA} *NUEVO PEDIDO – BARRIO ICE*",
+          "\u{1F9CA} *PEDIDO NUEVO · BARRIO ICE*",
           "Pedido #" + o.id.slice(-6).toUpperCase(),
-          "\u{1F464} " + o.cliente.nombre,
-          "\u{1F4F1} " + o.cliente.celular,
-          "\u{1F367} " +
-            o.items
-              .map((x) => {
-                const flavors = Array.isArray(x.sabores) ? x.sabores : [];
-                const name =
-                  flavors.length > 1
-                    ? "Granizado mitad y mitad (" + flavors.join(" / ") + ")"
-                    : x.n;
-                return (
-                  x.q +
-                  "x " +
-                  name +
-                  (x.s ? " (" + x.s + ")" : "") +
-                  (x.adulto ? " · +18" : "")
-                );
-              })
-              .join(", "),
+          "",
+          "\u{1F464} *Cliente:* " + o.cliente.nombre,
+          "\u{1F4F1} *Celular:* " + o.cliente.celular,
+          "",
+          "\u{1F367} *PRODUCTOS*",
+          ...itemLines,
+          "",
           o.entrega.tipo === "domicilio"
-            ? "\u{1F4CD} Domicilio: " +
+            ? "\u{1F4CD} *Domicilio:* " +
               o.entrega.direccion +
               (o.entrega.referencia ? " – " + o.entrega.referencia : "")
-            : "\u{1F3EA} Recoge en el local",
-          "\u{1F4B3} Pago: " +
+            : "\u{1F3EA} *Entrega:* Recoger en el local",
+          o.entrega.tipo === "domicilio"
+            ? "\u{1F69A} El domicilio se cobra aparte"
+            : null,
+          "\u{1F4B3} *Pago:* " +
             o.pago +
             (o.conCuanto ? " (paga con " + fmt(o.conCuanto) + ")" : ""),
-          o.descuento ? "\u{1F389} Promo " + o.promo + ": −" + fmt(o.descuento) : "",
-          o.entrega.tipo === "domicilio" ? "\u{1F69A} Domicilio: se paga aparte" : "",
-          o.notas ? "\u{1F4DD} " + o.notas : "",
-          "\u{1F4B0} *TOTAL" +
-            (o.entrega.tipo === "domicilio" ? " (sin domicilio)" : "") +
-            ": " +
+          o.descuento
+            ? "\u{1F389} *Descuento " + o.promo + ":* −" + fmt(o.descuento)
+            : null,
+          o.notas ? "\u{1F4DD} *Nota:* " + o.notas : null,
+          "\u{1F4B0} *TOTAL: " +
             fmt(o.total) +
+            (o.entrega.tipo === "domicilio" ? " (domicilio aparte)" : "") +
             "*",
-          "Seguimiento: " +
+          "\u{1F517} Seguimiento: " +
             BarrioShared.SITE_URL +
             "/?pedido=" +
             encodeURIComponent(o.id),
         ]
-          .filter(Boolean)
+          .filter((line) => line !== null && line !== undefined)
           .join("\n");
       }
       function confetti() {

@@ -1094,7 +1094,6 @@ function beep() {
       document.querySelectorAll("[data-promo-day]").forEach((input) => {
         menu.promos[input.dataset.promoDay] = input.checked;
       });
-      menu.promos.jueves = false;
       menu.mitadMitad = $("halfEnabled").checked;
       document.querySelectorAll("[data-drink-name]").forEach((input) => {
         const item = menu.bebidas[+input.dataset.drinkName];

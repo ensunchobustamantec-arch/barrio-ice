@@ -166,12 +166,6 @@
 .hero:before {
   top: 110px;
 }
-.ticker {
-  transform: none;
-}
-.ticker span {
-  animation: none;
-}
 .promo-banner {
   display: flex;
   align-items: center;
