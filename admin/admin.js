@@ -318,36 +318,39 @@ function beep() {
   function printOrder(id) {
     const order = orders.find((item) => item.id === id);
     if (!order) return;
-    const popup = window.open("", "_blank", "width=380,height=640");
+    const popup = window.open("", "_blank", "width=760,height=900");
     if (!popup) return;
-    const rows = (order.items || [])
-      .map(
-        (item) =>
-          '<div class="line"><span>' +
-          esc(orderLineText(item)) +
-          "</span></div>",
-      )
-      .join("");
-    popup.document.write(
-      '<!doctype html><html lang="es"><meta charset="utf-8"><title>Comanda ' +
-        esc(id) +
-        "</title><style>@page{size:58mm auto;margin:3mm}body{width:52mm;font:12px/1.35 Arial,sans-serif;color:#111}h1,h2,p{margin:4px 0;text-align:center}.line{padding:5px 0;border-bottom:1px dashed #aaa}.sum{padding:8px 0;border-top:1px solid #222;font-weight:bold}button{width:100%;min-height:40px;margin-top:10px}@media print{button{display:none}}</style><h1>BARRIO ICE</h1><h2>Comanda</h2><p>#" +
-        esc(String(id).slice(-6).toUpperCase()) +
-        "</p><p>" +
-        esc(order.cliente?.nombre || "") +
-        " · " +
-        esc(orderDate(order)) +
-        "</p>" +
-        rows +
-        '<div class="sum">Total: ' +
-        esc(fmt(order.total)) +
-        "<br>Domicilio: se paga aparte</div><p>Entrega: " +
-        esc(order.entrega?.tipo || "recoger") +
-        '</p><button onclick="print()">Imprimir</button></html>',
-    );
+    const rows = (order.items || []).map((item) => {
+      const details = [item.s, ...(Array.isArray(item.sabores) ? item.sabores : [])]
+        .filter(Boolean)
+        .map(esc)
+        .join(" · ");
+      const amount = item.regalo
+        ? "CORTESÍA"
+        : esc(fmt((+item.p || 0) * (+item.q || 0)));
+      return `<div class="item"><div><strong>${+item.q || 1} × ${esc(orderLineText(item))}</strong><small>${details}${item.adulto ? " · +18" : ""}${item.regalo ? " · REGALO" : ""}</small></div><b>${amount}</b></div>`;
+    }).join("");
+    const address = order.entrega?.tipo === "domicilio"
+      ? `<div class="detail"><span>Dirección</span><b>${esc(order.entrega?.direccion || "")}${order.entrega?.referencia ? " · " + esc(order.entrega.referencia) : ""}</b></div>`
+      : "";
+    const payment = [order.pago, order.conCuanto ? "Paga con " + fmt(order.conCuanto) : ""]
+      .filter(Boolean).map(esc).join(" · ");
+    const markup = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comanda ${esc(id)}</title><style>
+      :root{color-scheme:light;--ink:#07131d;--ice:#087eae;--mist:#eaf7fc;--line:#d6e7ed;--muted:#56717d}
+      *{box-sizing:border-box}body{margin:0;padding:28px;background:#edf4f7;color:var(--ink);font:15px/1.45 Inter,Arial,sans-serif}
+      .ticket{width:min(100%,680px);margin:0 auto;overflow:hidden;border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:0 18px 55px #07131d22}
+      .brand{display:flex;align-items:center;gap:16px;padding:24px 28px;background:var(--ink);color:#fff}.brand img{width:64px;height:64px;object-fit:contain}.brand strong{display:block;font-size:21px;letter-spacing:.12em}.brand small{color:#9bcde0;letter-spacing:.16em}
+      .content{padding:26px 30px}.eyebrow{color:var(--ice);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:5px 0 20px}.heading h1{margin:0;font-size:clamp(26px,6vw,38px);line-height:1}.number{border-radius:999px;padding:8px 12px;background:var(--mist);font-weight:800;white-space:nowrap}
+      .details{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;margin:0 0 20px}.detail{display:grid;gap:3px;border-top:1px solid var(--line);padding:10px 0;min-width:0}.detail span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.detail b{overflow-wrap:anywhere}
+      .items{border-top:2px solid var(--ink)}.item{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.item strong{display:block}.item small{display:block;margin-top:4px;color:var(--muted)}.item>b{text-align:right;white-space:nowrap}
+      .totals{width:min(100%,320px);margin:18px 0 0 auto}.total-row{display:flex;justify-content:space-between;gap:16px;padding:5px 0}.grand{margin-top:7px;border-top:2px solid var(--ink);padding-top:12px;font-size:21px;font-weight:900}.notice{margin-top:18px;border-radius:14px;padding:12px 15px;background:var(--mist);color:#194456}.notes{margin-top:18px;border-left:4px solid var(--ice);padding:10px 14px;background:#f6fbfd}.footer{margin-top:22px;color:var(--muted);font-size:12px;text-align:center}.actions{display:flex;justify-content:center;gap:10px;margin:20px auto 0}.actions button{min-height:46px;border:0;border-radius:12px;padding:0 20px;background:var(--ice);color:white;font:inherit;font-weight:800;cursor:pointer}.actions .close{background:#e5eef2;color:var(--ink)}
+      @media(max-width:520px){body{padding:10px}.ticket{border-radius:18px}.brand{padding:18px}.content{padding:22px 18px}.details{grid-template-columns:1fr}.actions{position:sticky;bottom:8px}.actions button{flex:1}}
+      @media print{@page{size:auto;margin:12mm}body{padding:0;background:#fff}.ticket{width:100%;border:1px solid var(--line);border-radius:0;box-shadow:none}.brand{-webkit-print-color-adjust:exact;print-color-adjust:exact}.actions{display:none}.content{padding:18px 22px}.item{break-inside:avoid}}
+      </style></head><body><article class="ticket"><header class="brand"><img src="/assets/brand/logo-mark-light.webp" alt=""><div><strong>BARRIO ICE</strong><small>COLD FLOW · MONTERÍA</small></div></header><main class="content"><div class="eyebrow">Comanda de preparación</div><div class="heading"><h1>Pedido recibido</h1><span class="number">#${esc(String(id).slice(-6).toUpperCase())}</span></div><section class="details"><div class="detail"><span>Cliente</span><b>${esc(order.cliente?.nombre || "")}</b></div><div class="detail"><span>Fecha</span><b>${esc(orderDate(order))}</b></div><div class="detail"><span>Celular</span><b>${esc(order.cliente?.celular || "")}</b></div><div class="detail"><span>Entrega</span><b>${order.entrega?.tipo === "domicilio" ? "Domicilio" : "Recoger en el local"}</b></div>${address}<div class="detail"><span>Pago</span><b>${payment}</b></div></section><section class="items">${rows || "<p>Sin productos</p>"}</section><section class="totals"><div class="total-row"><span>Subtotal</span><b>${esc(fmt(order.subtotal ?? order.total))}</b></div>${order.descuento ? `<div class="total-row"><span>Descuento${order.promo ? " · " + esc(order.promo) : ""}</span><b>−${esc(fmt(order.descuento))}</b></div>` : ""}<div class="total-row grand"><span>Total</span><b>${esc(fmt(order.total))}</b></div></section>${order.entrega?.tipo === "domicilio" ? '<div class="notice">El domicilio se cobra aparte.</div>' : ""}${order.notas ? `<div class="notes"><b>Nota del cliente</b><br>${esc(order.notas)}</div>` : ""}<p class="footer">Seguimiento: ${esc(trackUrl(id))}<br>BARRIO ICE · COLD FLOW · MONTERÍA</p><div class="actions"><button onclick="window.print()">Imprimir comanda</button><button class="close" onclick="window.close()">Cerrar</button></div></main></article></body></html>`;
+    popup.document.open();
+    popup.document.write(markup);
     popup.document.close();
   }
-
   const yesterday = () => {
     const date = now();
     date.setDate(date.getDate() - 1);
@@ -611,11 +614,11 @@ function beep() {
       entries
         .map(
           ([name, value]) =>
-            '<div class="bar"><span>' +
+            '<div class="bar-row"><span class="bar-label">' +
             esc(name) +
-            '</span><i style="width:' +
+            '</span><div class="bar-track"><i style="width:' +
             Math.max(3, (value / max) * 100) +
-            '%"></i><b>' +
+            '%"></i></div><b class="bar-value">' +
             (money ? fmt(value) : value) +
             "</b></div>",
         )
@@ -2191,16 +2194,48 @@ if ("serviceWorker" in navigator) {
 $("updateNow").addEventListener("click", () =>
   updateRegistration?.waiting?.postMessage("SKIP_WAITING"),
 );
+const installBar = $("installBar");
+const installButton = $("installNow");
+const installHelp = $("installHelp");
+const iosDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
+const installedApp =
+  window.matchMedia("(display-mode: standalone)").matches ||
+  window.navigator.standalone === true;
+if (!installedApp && (iosDevice || window.matchMedia("(max-width: 900px)").matches))
+  installBar.classList.remove("hide");
+if (iosDevice && !installedApp) {
+  installButton.textContent = "Ver pasos";
+  installHelp.textContent = "En Safari, usa Compartir y luego Añadir a pantalla de inicio.";
+}
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
+  if (installedApp) return;
   deferredInstall = event;
-  $("installBar").classList.remove("hide");
+  installButton.textContent = "Instalar app";
+  installHelp.textContent = "Abre el instalador del panel en este navegador.";
+  installBar.classList.remove("hide");
 });
-$("installNow").addEventListener("click", async () => {
-  if (!deferredInstall) return;
-  await deferredInstall.prompt();
+installButton.addEventListener("click", async () => {
+  if (!deferredInstall) {
+    installHelp.textContent = iosDevice
+      ? "En Safari: Compartir → Añadir a pantalla de inicio → Añadir."
+      : "En Chrome: abre el menú ⋮ y elige Instalar aplicación o Añadir a pantalla principal.";
+    return;
+  }
+  const prompt = deferredInstall;
   deferredInstall = null;
-  $("installBar").classList.add("hide");
+  try {
+    await prompt.prompt();
+    const choice = await prompt.userChoice;
+    if (choice.outcome === "accepted") installBar.classList.add("hide");
+    else {
+      installButton.textContent = "Ver pasos";
+      installHelp.textContent = "Puedes instalarla desde el menú del navegador cuando quieras.";
+    }
+  } catch (error) {
+    console.error(error);
+    installButton.textContent = "Ver pasos";
+    installHelp.textContent = "Abre el menú del navegador y selecciona Instalar aplicación.";
+  }
 });
-if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !window.navigator.standalone)
-  $("installBar").classList.remove("hide");
+window.addEventListener("appinstalled", () => installBar.classList.add("hide"));

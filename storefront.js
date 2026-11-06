@@ -21,7 +21,7 @@ const BarrioShared = window.BarrioShared;
           "sábado",
         ],
         sizes = ["Pequeño", "Mediano", "Grande"],
-        states = ["Nuevo", "Preparando", "En camino", "Entregado", "Cancelado"];
+        states = ["Nuevo", "Preparando", "Listo", "En camino", "Entregado", "Cancelado"];
       const local = {
         get(k, f) {
           try {
@@ -572,27 +572,29 @@ const BarrioShared = window.BarrioShared;
                 "No encontramos ese pedido. Si lo hiciste antes de esta actualización, escríbenos por WhatsApp.";
               return;
             }
-            let state = o.estado || "Nuevo";
-            let type = o.tipo === "domicilio" ? "Domicilio" : "Recoger";
+            const state = o.estado || "Nuevo";
+            const delivery = o.tipo === "domicilio";
+            const type = delivery ? "Domicilio" : "Recoger";
             $("trackingCopy").textContent =
               "Pedido #" + id.slice(-6).toUpperCase() + " · " + state + " · " + type;
-            $("steps").innerHTML = states
-              .slice(0, 4)
-              .map(
-                (s, i) =>
-                  '<div class="step ' +
-                  (states.indexOf(state) >= i && state !== "Cancelado"
-                    ? "active"
-                    : "") +
-                  '"><i>' +
-                  (states.indexOf(state) >= i && state !== "Cancelado"
-                    ? "✓"
-                    : i + 1) +
-                  "</i><span>" +
-                  s +
-                  "</span></div>",
-              )
-              .join("");
+            const flow = states.slice(0, 5);
+            const currentStep = flow.indexOf(state);
+            $("steps").innerHTML =
+              state === "Cancelado"
+                ? '<p class="tracking-cancelled">Este pedido fue cancelado. Comunícate con Barrio Ice si necesitas ayuda.</p>'
+                : flow
+                    .map(
+                      (step, index) =>
+                        '<div class="step ' +
+                        (currentStep >= index ? "active " : "") +
+                        (currentStep === index ? "current" : "") +
+                        '"><i>' +
+                        (currentStep > index ? "✓" : index + 1) +
+                        "</i><span>" +
+                        step +
+                        "</span></div>",
+                    )
+                    .join("");
             $("trackingMeta").textContent = o.nombreCorto
               ? "A nombre de " +
                 o.nombreCorto
