@@ -124,7 +124,7 @@
       precios: Object.assign({}, DEFAULTS.precios, source.precios || {}),
       dias: Object.assign({}, DEFAULTS.dias, source.dias || {}),
       agotados: source.agotados || {},
-      promos: Object.assign({}, DEFAULTS.promos, source.promos || {}, { jueves: false }),
+      promos: Object.assign({}, DEFAULTS.promos, source.promos || {}),
     });
 
     if (!menu.precios.jueves) menu.precios.jueves = [...menu.precios.semana];

@@ -467,7 +467,7 @@
             );
             return;
           }
-          if (target.matches(".ticker, .skeleton-grid")) {
+          if (target.matches(".skeleton-grid")) {
             target.classList.toggle("is-offscreen", !entry.isIntersecting);
             return;
           }
@@ -551,11 +551,9 @@
   }
 
   function setupMotion() {
-    const hero = document.querySelector(".hero"),
-      ticker = document.querySelector(".ticker");
+    const hero = document.querySelector(".hero");
     if (hero && !reducedMotion()) hero.classList.add("hero-enter");
     hero && revealObserver?.observe(hero);
-    ticker && revealObserver?.observe(ticker);
     decorateRevealTargets();
     document.addEventListener(
       "pointerdown",
@@ -588,21 +586,6 @@
       ),
     );
 
-    let tickerResumeTimer = 0;
-    ticker?.addEventListener("pointerdown", (event) => {
-      if (event.pointerType !== "touch") return;
-      ticker.classList.add("is-paused");
-      clearTimeout(tickerResumeTimer);
-    });
-    ["pointerup", "pointercancel", "pointerleave"].forEach((type) =>
-      ticker?.addEventListener(type, () => {
-        clearTimeout(tickerResumeTimer);
-        tickerResumeTimer = setTimeout(
-          () => ticker.classList.remove("is-paused"),
-          700,
-        );
-      }),
-    );
     document.addEventListener("visibilitychange", () =>
       document.documentElement.classList.toggle(
         "document-hidden",

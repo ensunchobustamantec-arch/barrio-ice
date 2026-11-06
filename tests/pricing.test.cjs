@@ -48,10 +48,10 @@ verify("Domingo especial con 2x1", [granizado("Pequeño", 8000)], 0, {
   discount: 8000,
   gifts: 1,
 }, { promos: { domingo: true } });
-verify("Jueves no aplica promo aunque exista configuración vieja", [granizado()], 4, {
+verify("Jueves aplica 2x1 cuando está seleccionado", [granizado()], 4, {
   total: 12000,
-  discount: 0,
-  gifts: 0,
+  discount: 12000,
+  gifts: 1,
 }, { promos: { jueves: true } });
 verify("Cantidad negativa se normaliza a cero", [granizado("Pequeño", 12000, -2)], 1, {
   total: 0,
@@ -66,5 +66,5 @@ verify("Ítem con regalo inyectado no se cobra ni acumula", [granizado("Pequeño
 
 test("los días seleccionados ofrecen solo 2x1", () => {
   assert.equal(planForDay(6, { promos: { sabado: true } }).title, "2x1");
-  assert.equal(planForDay(4, { promos: { jueves: true } }).title, "Precios normales");
+  assert.equal(planForDay(4, { promos: { jueves: true } }).title, "2x1");
 });

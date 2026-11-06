@@ -54,7 +54,7 @@ const drink = (name, price, q = 1) => ({ n: name, s: "", sabores: [], p: price, 
         { name: "lunes grande y mediano", day: 1, items: [granizado("Grande", 18000), granizado("Mediano", 15000, "Limón")] },
         { name: "lunes 2 medianos", day: 1, items: [granizado("Mediano", 15000, "Mora", 2)] },
         { name: "lunes pequeño y gaseosa", day: 1, items: [granizado("Pequeño", 12000), drink("Gaseosa", 3000)] },
-        { name: "jueves ignora 2x1 legado", day: 4, promos: { jueves: true }, items: [granizado("Mediano", 15000, "Mora", 2)] },
+        { name: "jueves con 2x1 seleccionado", day: 4, promos: { jueves: true }, items: [granizado("Mediano", 15000, "Mora", 2)] },
         { name: "martes desactivado", day: 2, promos: { martes: false }, items: [granizado("Pequeño", 12000)] },
         { name: "sábado especial 2x1", day: 6, promos: { sabado: true }, items: [granizado("Pequeño", 8000, "Mora", 2)] },
         { name: "domingo especial 2x1", day: 0, promos: { domingo: true }, items: [granizado("Pequeño", 8000)] },
@@ -69,7 +69,7 @@ const drink = (name, price, q = 1) => ({ n: name, s: "", sabores: [], p: price, 
     assert.deepEqual([byName["lunes 2 medianos"].received, byName["lunes 2 medianos"].total], [4, 30000]);
     // La regla comercial de 2x1 sí aplica al granizado aunque el carrito también tenga una bebida.
     assert.deepEqual([byName["lunes pequeño y gaseosa"].received, byName["lunes pequeño y gaseosa"].total], [2, 15000]);
-    assert.deepEqual([byName["jueves ignora 2x1 legado"].gifts, byName["jueves ignora 2x1 legado"].total], [0, 30000]);
+    assert.deepEqual([byName["jueves con 2x1 seleccionado"].gifts, byName["jueves con 2x1 seleccionado"].total], [1, 30000]);
     assert.deepEqual([byName["martes desactivado"].gifts, byName["martes desactivado"].total], [0, 12000]);
     assert.deepEqual([byName["sábado especial 2x1"].received, byName["sábado especial 2x1"].total], [4, 16000]);
     assert.deepEqual([byName["domingo especial 2x1"].received, byName["domingo especial 2x1"].total], [2, 8000]);

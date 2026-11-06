@@ -33,11 +33,6 @@
 .flavor .sizes .size.is-added {
   color: #07131d;
 }
-@media (hover: hover) and (pointer: fine) {
-  .ticker:hover span {
-    animation-play-state: paused;
-  }
-}
 @media (min-width: 700px) {
   .hero-mark-scene {
     width: clamp(270px, 31vw, 370px);
@@ -85,7 +80,6 @@
   .hero-ice-shard,
   .hero-mark-glint,
   .hero-snowflake,
-  .ticker span,
   .flying,
   .confetti,
   .feature::before {

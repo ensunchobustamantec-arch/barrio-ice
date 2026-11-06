@@ -606,6 +606,10 @@ small {
   font-size: 0.75rem;
 }
 
+.badge:empty {
+  display: none;
+}
+
 .admin-content-enter {
   animation: content-enter 240ms ease-out both;
 }

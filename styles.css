@@ -8,6 +8,7 @@
         --paper: #fff;
         --muted: #526675;
         --line: #bdd3dd;
+        --danger: #bd2937;
         --glass: #f9fdffdf;
         --safe-b: env(safe-area-inset-bottom, 0px);
         --safe-t: env(safe-area-inset-top, 0px);
@@ -19,6 +20,7 @@
         --paper: #0b1b27;
         --muted: #aac1cc;
         --line: #315162;
+        --danger: #ff929d;
         --glass: #0b1b27e8;
       }
       * {
@@ -247,21 +249,6 @@
       .secondary {
         background: var(--glass);
         color: var(--ink);
-      }
-      .ticker {
-        overflow: hidden;
-        white-space: nowrap;
-        background: var(--ink);
-        color: var(--ice2);
-        border-block: 3px solid var(--yellow);
-        transform: rotate(-1.3deg);
-      }
-      .ticker span {
-        display: inline-block;
-        padding: 9px 0;
-        font-family: "Saira Stencil One";
-        font-size: 1.1rem;
-        animation: marq 25s linear infinite;
       }
       .section {
         padding-top: 54px;

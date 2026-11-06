@@ -166,12 +166,6 @@
 .hero:before {
   top: 110px;
 }
-.ticker {
-  transform: none;
-}
-.ticker span {
-  animation: none;
-}
 .promo-banner {
   display: flex;
   align-items: center;
@@ -447,6 +441,129 @@ dialog::backdrop {
 .actions {
   flex: 0 0 auto;
   gap: 6px;
+}
+.order-history {
+  position: relative;
+  z-index: 3;
+  margin-top: 8px;
+}
+.order-history details {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.order-history summary {
+  min-height: 44px;
+  padding: 11px 14px;
+  color: var(--ink);
+  font-weight: 850;
+  cursor: pointer;
+}
+.order-history-list {
+  display: grid;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+.order-history-list a {
+  display: block;
+  min-height: 44px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ice), transparent 88%);
+  color: var(--ink);
+  font-weight: 750;
+  text-decoration: none;
+}
+.half-launch {
+  display: block;
+  min-height: 48px;
+  margin: 16px auto 0;
+  border-color: var(--ice);
+  color: var(--ink);
+  font-weight: 850;
+}
+.half-dialog {
+  width: min(92vw, 460px);
+  max-height: calc(100dvh - 28px);
+  overflow: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 24px 80px #0006;
+}
+.half-dialog::backdrop {
+  background: #00111ab8;
+  backdrop-filter: blur(3px);
+}
+.half-card {
+  display: grid;
+  gap: 10px;
+  padding: clamp(18px, 5vw, 28px);
+}
+.half-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.half-head h2 {
+  margin: 4px 0 0;
+  font-size: clamp(1.7rem, 7vw, 2.3rem);
+}
+.half-card > p {
+  margin: 2px 0 8px;
+  color: var(--muted);
+}
+.half-card .field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-weight: 800;
+}
+.half-card select {
+  width: 100%;
+  min-height: 48px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+.half-card .half-age-note {
+  min-height: 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+.half-card .half-age-note:empty {
+  display: none;
+}
+.half-card #halfAdd {
+  width: 100%;
+}
+.half-card #halfAdd:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.tracking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.tracking-actions > * {
+  min-height: 44px;
+}
+.send-help {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  text-align: center;
 }
 .carttop {
   flex: 0 0 auto;
