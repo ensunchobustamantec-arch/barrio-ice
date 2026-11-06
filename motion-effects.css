@@ -1,0 +1,182 @@
+.sizes .size:not(.on):hover:not(:disabled) {
+  background: var(--paper);
+  color: var(--ink);
+}
+.sizes .size:not(.on):hover:not(:disabled) span {
+  color: var(--muted);
+}
+.feature {
+  isolation: isolate;
+  box-shadow:
+    inset 0 0 0 1px #c6efff45,
+    0 14px 36px #5bc0eb22;
+}
+.feature::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -30% -15%;
+  background: linear-gradient(
+    110deg,
+    transparent 28%,
+    #ffffff28 47%,
+    #c6efff38 51%,
+    transparent 72%
+  );
+  opacity: 0.2;
+  pointer-events: none;
+  animation: feature-frost 5s var(--ease-in-out) infinite;
+}
+.feature > * {
+  z-index: 1;
+}
+.flavor .sizes .size.is-added {
+  color: #07131d;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ticker:hover span {
+    animation-play-state: paused;
+  }
+}
+@media (min-width: 700px) {
+  .hero-mark-scene {
+    width: clamp(270px, 31vw, 370px);
+    height: clamp(245px, 30vh, 320px);
+    margin-top: 0;
+  }
+  .hero-logo {
+    height: clamp(220px, 31vw, 275px);
+    max-width: 90%;
+  }
+}
+@media (min-width: 901px) {
+  .hero-mark-scene {
+    width: min(100%, 430px);
+    height: clamp(300px, 38vw, 440px);
+    margin: 0 auto;
+  }
+  .hero-logo {
+    height: clamp(300px, 30vw, 390px);
+    max-width: 100%;
+  }
+}
+@media (max-width: 699px) {
+  .hero-mark-scene {
+    width: clamp(190px, 55vw, 250px);
+    height: clamp(176px, 48vw, 225px);
+    margin-top: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+  .hero-logo,
+  .hero-mark-scene::before,
+  .hero-mark-scene::after,
+  .hero-ice-shard,
+  .hero-mark-glint,
+  .hero-snowflake,
+  .ticker span,
+  .flying,
+  .confetti,
+  .feature::before {
+    animation: none !important;
+  }
+  .hero-snowflake {
+    opacity: 0.22;
+  }
+  .feature::before {
+    opacity: 0.24;
+  }
+  .reveal-pending {
+    opacity: 1;
+    transform: none;
+  }
+  .hero-copy > *,
+  .hero-mark-scene {
+    opacity: 1;
+    transform: none;
+  }
+  .hero-mark-scene {
+    animation: none !important;
+  }
+  .hero-ice-shard,
+  .hero-mark-scene::before {
+    will-change: auto;
+  }
+  .hero-logo {
+    will-change: auto;
+  }
+}
+
+/* Final brand sizing: transparent assets keep their aspect ratio in both themes. */
+.brand img {
+  display: block;
+  flex: 0 0 auto;
+  width: auto;
+  height: 40px;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+.hero-stage.hero-mark-scene {
+  width: min(86vw, 380px);
+  height: auto;
+  margin: 0 auto;
+}
+.hero-stage.hero-mark-scene .hero-logo-wrap {
+  width: 100%;
+  aspect-ratio: 625 / 970;
+}
+@media (min-width: 700px) {
+  .brand img {
+    height: 52px;
+  }
+}
+@media (min-width: 901px) {
+  .hero {
+    grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+    grid-template-areas: "status mark" "copy mark";
+  }
+  .hero-stage.hero-mark-scene {
+    width: min(36vw, 420px);
+    height: auto;
+    margin: 0 auto;
+  }
+}
+@media (max-width: 699px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "status" "mark" "copy";
+    padding-top: max(18px, var(--safe-t));
+    text-align: center;
+  }
+  .hero-stage.hero-mark-scene {
+    width: min(86vw, 380px);
+    height: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-stage,
+  .hero-stage *,
+  .hero-mark-scene::before,
+  .hero-mark-scene::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero-stage .hero-logo {
+    will-change: auto;
+  }
+}

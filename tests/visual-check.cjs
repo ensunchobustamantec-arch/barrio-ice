@@ -7,256 +7,1099 @@ const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 const output = path.join(__dirname, "screenshots");
 const saveScreenshots = process.env.VISUAL_SCREENSHOTS !== "0";
-const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".webmanifest": "application/manifest+json", ".rules": "text/plain" };
+const types = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".webmanifest": "application/manifest+json",
+  ".rules": "text/plain",
+};
 const sampleMenu = {
   whatsapp: "573023489776",
   horarios: {},
-  horario: { abre: "00:00", cierra: "23:59" },
-  precios: { semana: [12000, 15000, 18000], jueves: [12000, 15000, 18000], finde: [8000, 12000, 15000] },
+  horario: {
+    0: { abre: "00:00", cierra: "23:59" },
+    1: { abre: "00:00", cierra: "23:59" },
+    2: { abre: "00:00", cierra: "23:59" },
+    3: { abre: "00:00", cierra: "23:59" },
+    4: { abre: "00:00", cierra: "23:59" },
+    5: { abre: "00:00", cierra: "23:59" },
+    6: { abre: "00:00", cierra: "23:59" },
+  },
+  precios: {
+    semana: [12000, 15000, 18000],
+    jueves: [12000, 15000, 18000],
+    finde: [8000, 12000, 15000],
+  },
   promos: { lunes: true, martes: true, miercoles: true, jueves: true },
-  cat: [{ n: "Mora", c: "#9b3fd6" }, { n: "Limón", c: "#b8e61f" }, { n: "Maracuyá", c: "#ffb300" }, { n: "Lulo", c: "#6fd13a" }],
-  dias: { 0: ["Mora", "Limón", "Mango biche"], 1: ["Mora", "Limón", "Maracuyá"], 2: ["Mora", "Limón", "Maracuyá"], 3: ["Mora", "Limón", "Maracuyá"], 4: ["Mora", "Limón", "Maracuyá"], 5: ["Mora", "Limón", "Maracuyá"], 6: ["Mora", "Limón", "Maracuyá"] },
+  cat: [
+    { n: "Mora", c: "#9b3fd6" },
+    { n: "Limón", c: "#b8e61f" },
+    { n: "Maracuyá", c: "#ffb300" },
+    { n: "Lulo", c: "#6fd13a" },
+  ],
+  dias: {
+    0: ["Mora", "Limón", "Mango biche"],
+    1: ["Mora", "Limón", "Maracuyá"],
+    2: ["Mora", "Limón", "Maracuyá"],
+    3: ["Mora", "Limón", "Maracuyá"],
+    4: ["Mora", "Limón", "Maracuyá"],
+    5: ["Mora", "Limón", "Maracuyá"],
+    6: ["Mora", "Limón", "Maracuyá"],
+  },
   agotados: {},
   bebidas: [{ n: "Gaseosa", p: 3000, icon: "Vaso" }],
-  combos: [{ n: "Combo parche", d: "2 granizados + gaseosa", p: 30000, items: [] }]
+  combos: [
+    { n: "Combo parche", d: "2 granizados + gaseosa", p: 30000, items: [] },
+  ],
 };
 const sampleOrders = [
-  { id: "PEDIDO1", cliente: { nombre: "Ana Prueba", celular: "3001112233" }, entrega: { tipo: "domicilio", direccion: "Cra 5 #10-20", referencia: "Casa azul" }, pago: "Efectivo", conCuanto: 50000, subtotal: 36000, descuento: 18000, domicilio: 0, total: 18000, promo: "Promo 2x1", estado: "Nuevo", fecha: "2026-10-07", creadoEn: { toDate: () => new Date("2026-10-07T23:54:00Z") }, items: [{ n: "Granizado", s: "Grande", sabores: ["Mora"], p: 18000, q: 1, g: true, tipo: "granizado", regalo: false, promo: "", adulto: false }, { n: "Granizado", s: "Grande", sabores: ["Limón"], p: 0, q: 1, g: true, tipo: "granizado", regalo: true, promo: "Promo 2x1", adulto: false, ahorroUnitario: 18000 }] },
-  { id: "PEDIDO2", cliente: { nombre: "Cliente Cancelado", celular: "3002223344" }, entrega: { tipo: "recoger" }, pago: "Nequi", subtotal: 12000, descuento: 0, total: 12000, estado: "Cancelado", fecha: "2026-10-07", creadoEn: { toDate: () => new Date("2026-10-07T21:00:00Z") }, items: [] }
+  {
+    id: "PEDIDO1",
+    cliente: { nombre: "Ana Prueba", celular: "3001112233" },
+    entrega: {
+      tipo: "domicilio",
+      direccion: "Cra 5 #10-20",
+      referencia: "Casa azul",
+    },
+    pago: "Efectivo",
+    conCuanto: 50000,
+    subtotal: 36000,
+    descuento: 18000,
+    domicilio: 0,
+    total: 18000,
+    promo: "Promo 2x1",
+    estado: "Nuevo",
+    fecha: "2026-10-07",
+    creadoEn: { toDate: () => new Date("2026-10-07T23:54:00Z") },
+    items: [
+      {
+        n: "Granizado",
+        s: "Grande",
+        sabores: ["Mora"],
+        p: 18000,
+        q: 1,
+        g: true,
+        tipo: "granizado",
+        regalo: false,
+        promo: "",
+        adulto: false,
+      },
+      {
+        n: "Granizado",
+        s: "Grande",
+        sabores: ["Limón"],
+        p: 0,
+        q: 1,
+        g: true,
+        tipo: "granizado",
+        regalo: true,
+        promo: "Promo 2x1",
+        adulto: false,
+        ahorroUnitario: 18000,
+      },
+    ],
+  },
+  {
+    id: "PEDIDO2",
+    cliente: { nombre: "Cliente Cancelado", celular: "3002223344" },
+    entrega: { tipo: "recoger" },
+    pago: "Nequi",
+    subtotal: 12000,
+    descuento: 0,
+    total: 12000,
+    estado: "Cancelado",
+    fecha: "2026-10-07",
+    creadoEn: { toDate: () => new Date("2026-10-07T21:00:00Z") },
+    items: [],
+  },
 ];
 
+function freezeDate() {
+  const NativeDate = Date;
+  const fixedTime = new NativeDate("2026-10-07T12:00:00-05:00").valueOf();
+  class FixedDate extends NativeDate {
+    constructor(...args) {
+      super(...(args.length ? args : [fixedTime]));
+    }
+    static now() {
+      return fixedTime;
+    }
+  }
+  window.Date = FixedDate;
+}
+
 function firebaseStub(file) {
-  if (file === "firebase-app.js") return "export function initializeApp(config){return {config};}";
-  if (file === "firebase-auth.js") return `const listeners=[];let current=null;export function getAuth(){return {};}export function onAuthStateChanged(auth,cb){listeners.push(cb);setTimeout(()=>cb(current),0);return ()=>{};}export async function signInWithEmailAndPassword(auth,email){current={uid:"NDdEIdTQiqMS947ENRr7aEq1i6B3",email};listeners.forEach(cb=>cb(current));return {user:current};}export async function signOut(){current=null;listeners.forEach(cb=>cb(null));}`;
-  if (file === "firebase-firestore.js") return `const menu=JSON.parse(localStorage.getItem("barrio-ice-visual-menu")||JSON.stringify(${JSON.stringify(sampleMenu)}));const orders=${JSON.stringify(sampleOrders)};orders[0].creadoEn={toDate:()=>new Date("2026-10-07T23:54:00Z")};orders[1].creadoEn={toDate:()=>new Date("2026-10-07T21:00:00Z")};export function getFirestore(){return {};}export function doc(db,...parts){return {path:parts.join("/")};}export function collection(db,...parts){return {path:parts.join("/")};}export function query(){return {query:true};}export function orderBy(){return {};}export function onSnapshot(ref,cb){if(ref.query)cb({docs:orders.map(o=>({id:o.id,data:()=>o}))});else if(ref.path==="tienda/menu")cb({exists:()=>true,data:()=>menu});else cb({exists:()=>false});return ()=>{};}export function serverTimestamp(){return new Date();}export async function addDoc(){return {id:"TEST123"};}export async function setDoc(ref,data){localStorage.setItem("barrio-ice-visual-menu",JSON.stringify(data));}export async function updateDoc(){}`;
+  if (file === "firebase-app.js")
+    return "export function initializeApp(config){return {config};}";
+  if (file === "firebase-auth.js")
+    return `const listeners=[];let current=null;export function getAuth(){return {};}export function onAuthStateChanged(auth,cb){listeners.push(cb);setTimeout(()=>cb(current),0);return ()=>{};}export async function signInWithEmailAndPassword(auth,email){current={uid:"NDdEIdTQiqMS947ENRr7aEq1i6B3",email};listeners.forEach(cb=>cb(current));return {user:current};}export async function signOut(){current=null;listeners.forEach(cb=>cb(null));}`;
+  if (file === "firebase-firestore.js")
+    return `
+      const menu = JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || JSON.stringify(${JSON.stringify(sampleMenu)}));
+      const orders = ${JSON.stringify(sampleOrders)};
+      orders[0].creadoEn = { toDate: () => new Date("2026-10-07T23:54:00Z") };
+      orders[1].creadoEn = { toDate: () => new Date("2026-10-07T21:00:00Z") };
+      let nextId = 0;
+      const saved = JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]");
+      const tracking = Object.fromEntries(saved.filter((item) => item.path.startsWith("seguimiento/")).map((item) => [item.path, item.data]));
+      export function getFirestore() { return {}; }
+      export function collection(db, ...parts) { return { path: parts.join("/") }; }
+      export function doc(dbOrCollection, ...parts) {
+        if (!parts.length && dbOrCollection?.path === "pedidos") {
+          nextId += 1;
+          const id = "TESTORDER000000000000000000" + nextId;
+          return { id, path: "pedidos/" + id };
+        }
+        const path = parts.join("/");
+        return { id: parts.at(-1), path };
+      }
+      export function query() { return { query: true }; }
+      export function orderBy() { return {}; }
+      export function onSnapshot(ref, callback) {
+        if (ref.query) callback({ docs: orders.map((order) => ({ id: order.id, data: () => order })) });
+        else if (ref.path === "tienda/menu") callback({ exists: () => true, data: () => menu });
+        else if (ref.path.startsWith("seguimiento/")) {
+          const data = tracking[ref.path];
+          callback({ exists: () => !!data, id: ref.id, data: () => data });
+        } else callback({ exists: () => false });
+        return () => {};
+      }
+      export function serverTimestamp() { return new Date(); }
+      export function writeBatch() {
+        const writes = [];
+        return {
+          set(ref, data) { writes.push({ path: ref.path, data }); },
+          update(ref, data) { writes.push({ path: ref.path, data }); },
+          delete(ref) { writes.push({ path: ref.path, delete: true }); },
+          async commit() {
+            const current = JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]");
+            for (const write of writes) {
+              if (write.path.startsWith("seguimiento/")) tracking[write.path] = write.data;
+              if (write.path.startsWith("pedidos/") && !write.delete) orders.unshift({ id: write.path.split("/")[1], ...write.data });
+              current.push(write);
+            }
+            localStorage.setItem("barrio-ice-visual-writes", JSON.stringify(current));
+          },
+        };
+      }
+      export async function addDoc() { return { id: "TEST123" }; }
+      export async function setDoc(ref, data) {
+        localStorage.setItem("barrio-ice-visual-menu", JSON.stringify(data));
+      }
+      export async function updateDoc() {}
+      export async function getDoc(ref) { return { exists: () => !!tracking[ref.path], data: () => tracking[ref.path] }; }
+    `;
   return "";
 }
 
 const server = http.createServer((request, response) => {
-  const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-  const file = path.resolve(root, pathname === "/" ? "index.html" : "." + pathname);
-  if (!file.startsWith(root + path.sep) && file !== path.join(root, "index.html")) { response.writeHead(403); response.end(); return; }
+  const pathname = decodeURIComponent(
+    new URL(request.url, "http://localhost").pathname,
+  );
+  const file = path.resolve(
+    root,
+    pathname === "/"
+      ? "index.html"
+      : pathname === "/admin/"
+        ? "admin/index.html"
+        : "." + pathname,
+  );
+  if (
+    !file.startsWith(root + path.sep) &&
+    file !== path.join(root, "index.html")
+  ) {
+    response.writeHead(403);
+    response.end();
+    return;
+  }
   fs.readFile(file, (error, data) => {
-    if (error) { response.writeHead(404); response.end("Not found"); return; }
-    response.writeHead(200, { "content-type": types[path.extname(file)] || "application/octet-stream", "cache-control": "no-store" });
+    if (error) {
+      response.writeHead(404);
+      response.end("Not found");
+      return;
+    }
+    response.writeHead(200, {
+      "content-type": types[path.extname(file)] || "application/octet-stream",
+      "cache-control": "no-store",
+    });
     response.end(data);
   });
 });
 
 (async () => {
   await fs.promises.mkdir(output, { recursive: true });
-  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const browser = await chromium.launch({
+    headless: true,
+    ...(process.env.PLAYWRIGHT_CHANNEL
+      ? { channel: process.env.PLAYWRIGHT_CHANNEL }
+      : {}),
+  });
   const errors = [];
   try {
-    const interceptFirebase = page => page.route("https://www.gstatic.com/firebasejs/**", route => {
-      const file = new URL(route.request().url()).pathname.split("/").pop();
-      return route.fulfill({ status: 200, contentType: "text/javascript", body: firebaseStub(file) });
-    });
+    const interceptFirebase = (page) =>
+      page.route("https://www.gstatic.com/firebasejs/**", (route) => {
+        const file = new URL(route.request().url()).pathname.split("/").pop();
+        return route.fulfill({
+          status: 200,
+          contentType: "text/javascript",
+          body: firebaseStub(file),
+        });
+      });
     const address = "http://127.0.0.1:" + server.address().port;
-    const dimensions = process.env.VISUAL_QUICK === "1" ? [[390, 844]] : [[360, 640], [390, 844], [412, 915], [768, 1024], [1280, 900], [1440, 900]];
-    for (const theme of (process.env.VISUAL_QUICK === "1" ? ["light"] : ["light", "dark"])) {
+    const workerSource = await fs.promises.readFile(
+      path.join(root, "sw.js"),
+      "utf8",
+    );
+    const shellMatch = workerSource.match(/const SHELL = \[([\s\S]*?)\];/);
+    assert.ok(shellMatch, "el service worker debe declarar SHELL");
+    const shellPaths = Array.from(
+      shellMatch[1].matchAll(/["']([^"']+)["']/g),
+      (match) => match[1],
+    );
+    assert.ok(shellPaths.length, "SHELL debe incluir al menos una ruta");
+    for (const shellPath of shellPaths) {
+      const response = await fetch(new URL(shellPath, address));
+      assert.equal(
+        response.status,
+        200,
+        `la ruta de SHELL debe responder 200: ${shellPath}`,
+      );
+    }
+    const adminHtmlResponse = await fetch(new URL("/admin/", address));
+    assert.equal(adminHtmlResponse.status, 200, "/admin/ debe abrir como página propia");
+    const adminHtml = await adminHtmlResponse.text();
+    assert.match(adminHtml, /\/admin\/manifest\.webmanifest/);
+    assert.match(adminHtml, /\/admin\/admin\.js/);
+    assert.match(adminHtml, /\/shared\/menu-schema\.js/);
+    assert.doesNotMatch(
+      adminHtml,
+      /enhancements\.(?:js|css)|firebase-auth\.js|id="storefront"/,
+      "el panel no debe descargar ni incluir la tienda",
+    );
+    for (const adminPath of [
+      "/admin/admin.css",
+      "/admin/admin.js",
+      "/admin/manifest.webmanifest",
+      "/admin/sw.js",
+    ]) {
+      const response = await fetch(new URL(adminPath, address));
+      assert.equal(response.status, 200, `el recurso del panel debe responder 200: ${adminPath}`);
+    }
+    const compatibilityPage = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      serviceWorkers: "block",
+    });
+    await compatibilityPage.goto(address + "/#admin", {
+      waitUntil: "domcontentloaded",
+    });
+    await compatibilityPage.waitForURL("**/admin/", { timeout: 5000 });
+    await compatibilityPage.close();
+    const dimensions =
+      process.env.VISUAL_QUICK === "1"
+        ? [[390, 844]]
+        : [
+            [360, 640],
+            [390, 844],
+            [412, 915],
+            [768, 1024],
+            [1280, 900],
+            [1440, 900],
+          ];
+    for (const theme of process.env.VISUAL_QUICK === "1"
+      ? ["light"]
+      : ["light", "dark"]) {
       for (const [width, height] of dimensions) {
         console.log("Tienda", theme, width + "x" + height);
-        const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1, serviceWorkers: "block" });
+        const page = await browser.newPage({
+          viewport: { width, height },
+          deviceScaleFactor: 1,
+          serviceWorkers: "block",
+        });
         await interceptFirebase(page);
-        page.on("pageerror", error => errors.push(error.message));
-        await page.addInitScript(themeValue => localStorage.setItem("barrio-ice-theme", JSON.stringify(themeValue)), theme);
-        await page.goto(address, { waitUntil: "domcontentloaded" });
+        page.on("pageerror", (error) => errors.push(error.message));
+        await page.addInitScript(freezeDate);
+        await page.addInitScript(
+          (themeValue) =>
+            localStorage.setItem(
+              "barrio-ice-theme",
+              JSON.stringify(themeValue),
+            ),
+          theme,
+        );
+        await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#promoBannerTitle");
         await page.waitForSelector(".flavor");
-        await page.waitForFunction(() => { const logo = document.querySelector(".brand img"); return logo?.complete && logo.naturalWidth > 0; });
-        const socialImages = await page.locator('meta[property="og:image"], meta[name="twitter:image"]').evaluateAll(tags => tags.map(tag => tag.content));
-        assert.deepEqual(socialImages, ["https://barrio-ice.vercel.app/assets/generated/og-barrio-ice-1200x630.png", "https://barrio-ice.vercel.app/assets/generated/og-barrio-ice-1200x630.png"], "las imágenes sociales deben usar una URL absoluta de producción");
+        const seo = await page.evaluate(() => {
+          const structuredData = [
+            ...document.querySelectorAll('script[type="application/ld+json"]'),
+          ].map((node) => JSON.parse(node.textContent));
+          return {
+            title: document.title,
+            canonical: document.querySelector('link[rel="canonical"]')?.href,
+            ogUrlCount: document.querySelectorAll('meta[property="og:url"]')
+              .length,
+            h1Count: document.querySelectorAll("h1").length,
+            shop: structuredData.find((node) => node["@type"] === "IceCreamShop"),
+            faq: structuredData.find((node) => node["@type"] === "FAQPage"),
+            genericCardsHidden: [
+              document.getElementById("maps").closest("article").hidden,
+              document.getElementById("instagram").closest("article").hidden,
+              document.getElementById("footMaps").hidden,
+              document.getElementById("footInsta").hidden,
+            ],
+          };
+        });
+        assert.equal(
+          seo.title,
+          "Barrio Ice · Granizados en Montería | 2x1 y 3x2",
+        );
+        assert.equal(seo.canonical, "https://barrio-ice.vercel.app/");
+        assert.equal(seo.ogUrlCount, 1);
+        assert.equal(seo.h1Count, 1);
+        assert.equal(seo.shop.telephone, "+573023489776");
+        assert.equal(seo.faq.mainEntity.length, 3);
+        assert.deepEqual(seo.genericCardsHidden, [true, true, true, true]);
+        await page.evaluate(() => {
+          window.__barrio.menu.instagram = "https://instagram.com/";
+          window.__barrio.menu.maps =
+            "https://maps.google.com/?q=Montería%2C%20Colombia";
+          window.__barrio.render();
+        });
+        assert.deepEqual(
+          await page.evaluate(() => [
+            document.getElementById("maps").closest("article").hidden,
+            document.getElementById("instagram").closest("article").hidden,
+            document.getElementById("footMaps").hidden,
+            document.getElementById("footInsta").hidden,
+            document.getElementById("footMaps").parentElement.hidden,
+          ]),
+          [true, true, true, true, true],
+          "los enlaces genéricos de Instagram y ubicación deben ocultarse",
+        );
+        await page.waitForFunction(() => {
+          const logo = document.querySelector(".brand img");
+          return (
+            logo?.complete &&
+            logo.naturalWidth > 1 &&
+            logo.currentSrc.includes("/assets/brand/")
+          );
+        });
+        await page.waitForFunction(() => {
+          const logo = document.querySelector(".hero-logo");
+          return (
+            logo?.complete &&
+            logo.naturalWidth > 1 &&
+            logo.currentSrc.includes("/assets/brand/")
+          );
+        });
+        if (width === 390 && theme === "light") {
+          const initialTransferBytes = await page.evaluate(() => {
+            const origin = location.origin;
+            const resources = performance
+              .getEntriesByType("resource")
+              .filter((entry) => new URL(entry.name).origin === origin);
+            const navigation = performance.getEntriesByType("navigation")[0];
+            return resources.reduce((total, entry) => total + entry.transferSize, 0) +
+              (navigation?.transferSize || 0);
+          });
+          console.log("Transferencia inicial sin fuentes/Firebase:", initialTransferBytes, "bytes");
+          assert.ok(
+            initialTransferBytes < 1_000_000,
+            "la carga inicial de tienda debe mantenerse por debajo de 1 MB",
+          );
+        }
+        await page.waitForTimeout(800);
+        const socialImages = await page
+          .locator('meta[property="og:image"], meta[name="twitter:image"]')
+          .evaluateAll((tags) => tags.map((tag) => tag.content));
+        assert.deepEqual(
+          socialImages,
+          [
+            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg",
+            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg",
+          ],
+          "las imágenes sociales deben usar una URL absoluta de producción",
+        );
         const measurements = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
-          logoTop: document.querySelector(".hero-logo")?.getBoundingClientRect().top,
-          headerLogo: (() => { const logo = document.querySelector(".brand img"), box = logo.getBoundingClientRect(); return { height: box.height, ratio: box.width / box.height, naturalRatio: logo.naturalWidth / logo.naturalHeight, right: box.right }; })(),
-          brandRight: document.querySelector(".brand")?.getBoundingClientRect().right,
-          actionsLeft: document.querySelector(".actions")?.getBoundingClientRect().left,
-          actionsRight: document.querySelector(".actions")?.getBoundingClientRect().right,
-          titleTop: document.querySelector(".hero h1")?.getBoundingClientRect().top,
-          promoTop: document.getElementById("promoBanner")?.getBoundingClientRect().top,
+          documentHeight: document.documentElement.scrollHeight,
+          logoTop: document.querySelector(".hero-logo")?.getBoundingClientRect()
+            .top,
+          logoLeft: document
+            .querySelector(".hero-logo")
+            ?.getBoundingClientRect().left,
+          copyRight: document
+            .querySelector(".hero-copy")
+            ?.getBoundingClientRect().right,
+          headerLogo: (() => {
+            const logo = document.querySelector(".brand img"),
+              box = logo.getBoundingClientRect();
+            return {
+              height: box.height,
+              ratio: box.width / box.height,
+              naturalRatio: logo.naturalWidth / logo.naturalHeight,
+              right: box.right,
+            };
+          })(),
+          brandRight: document.querySelector(".brand")?.getBoundingClientRect()
+            .right,
+          actionsLeft: document
+            .querySelector(".actions")
+            ?.getBoundingClientRect().left,
+          actionsRight: document
+            .querySelector(".actions")
+            ?.getBoundingClientRect().right,
+          titleTop: document
+            .querySelector(".hero .lede")
+            ?.getBoundingClientRect().top,
+          statusBottom: document
+            .querySelector(".hero > .eyebrow")
+            ?.getBoundingClientRect().bottom,
+          promoTop: document
+            .getElementById("promoBanner")
+            ?.getBoundingClientRect().top,
           theme: document.documentElement.dataset.theme,
           promo: document.getElementById("promoBannerTitle")?.textContent,
-          tickerStyle: [getComputedStyle(document.querySelector(".ticker")).transform, getComputedStyle(document.querySelector(".ticker span")).transform, getComputedStyle(document.querySelector(".ticker")).overflowX],
-          shortButtons: [...document.querySelectorAll("button")].filter(button => { const box = button.getBoundingClientRect(); return box.width > 0 && box.height > 0 && box.height < 44; }).map(button => ({ text: button.innerText, height: Math.round(button.getBoundingClientRect().height) })).slice(0, 8),
-          overflow: [...document.querySelectorAll("body *")].map(node => ({ tag: node.tagName, id: node.id, cls: typeof node.className === "string" ? node.className : "", right: Math.round(node.getBoundingClientRect().right), left: Math.round(node.getBoundingClientRect().left) })).filter(node => node.right > innerWidth + 1 || node.left < -1).slice(0, 8)
+          tickerStyle: [
+            getComputedStyle(document.querySelector(".ticker")).transform,
+            getComputedStyle(document.querySelector(".ticker span")).transform,
+            getComputedStyle(document.querySelector(".ticker")).overflowX,
+          ],
+          shortButtons: [...document.querySelectorAll("button")]
+            .filter((button) => {
+              const box = button.getBoundingClientRect();
+              return box.width > 0 && box.height > 0 && box.height < 44;
+            })
+            .map((button) => ({
+              text: button.innerText,
+              height: Math.round(button.getBoundingClientRect().height),
+            }))
+            .slice(0, 8),
+          overflow: [...document.querySelectorAll("body *")]
+            .map((node) => ({
+              tag: node.tagName,
+              id: node.id,
+              cls: typeof node.className === "string" ? node.className : "",
+              right: Math.round(node.getBoundingClientRect().right),
+              left: Math.round(node.getBoundingClientRect().left),
+            }))
+            .filter((node) => node.right > innerWidth + 1 || node.left < -1)
+            .slice(0, 8),
         }));
-        assert.ok(measurements.scrollWidth <= measurements.width, `desbordamiento horizontal en ${width}x${height} (${theme}): ${measurements.scrollWidth}px; ${JSON.stringify(measurements)}`);
-        assert.equal(Math.round(measurements.headerLogo.height), width < 700 ? 40 : 52, `altura del logo del header incorrecta en ${width}px`);
-        assert.ok(Math.abs(measurements.headerLogo.ratio - measurements.headerLogo.naturalRatio) < 0.05, `el logo debe conservar su proporción en ${width}px`);
-        assert.ok(measurements.brandRight <= measurements.actionsLeft + 1, `la marca se cruza con los controles en ${width}px`);
-        assert.ok(measurements.actionsRight <= width, `los controles del header se desbordan en ${width}px`);
-        assert.ok(measurements.logoTop < measurements.titleTop, "el logo debe quedar arriba del titular");
-        assert.ok(measurements.promoTop < height, `la promo del día debe verse sin desplazarse en ${width}x${height}: ${JSON.stringify(measurements)}`);
+        assert.ok(
+          measurements.scrollWidth <= measurements.width,
+          `desbordamiento horizontal en ${width}x${height} (${theme}): ${measurements.scrollWidth}px; ${JSON.stringify(measurements)}`,
+        );
+        assert.equal(
+          Math.round(measurements.headerLogo.height),
+          width < 700 ? 40 : 52,
+          `altura del logo del header incorrecta en ${width}px`,
+        );
+        assert.ok(
+          Math.abs(
+            measurements.headerLogo.ratio -
+              measurements.headerLogo.naturalRatio,
+          ) < 0.05,
+          `el logo debe conservar su proporción en ${width}px`,
+        );
+        assert.ok(
+          measurements.brandRight <= measurements.actionsLeft + 1,
+          `la marca se cruza con los controles en ${width}px`,
+        );
+        assert.ok(
+          measurements.actionsRight <= width,
+          `los controles del header se desbordan en ${width}px`,
+        );
+        if (width < 901) {
+          assert.ok(
+            measurements.statusBottom < measurements.logoTop &&
+              measurements.logoTop < measurements.titleTop,
+            `en móvil, el hero debe ordenar estado, logo y texto: ${JSON.stringify(measurements)}`,
+          );
+        } else {
+          assert.ok(
+            measurements.logoLeft >= measurements.copyRight - 1,
+            `en escritorio, el logo debe ocupar la columna derecha sin cruzar el texto (${width}px): ${JSON.stringify(measurements)}`,
+          );
+        }
+        assert.ok(
+          measurements.promoTop < measurements.documentHeight,
+          `la promo debe seguir accesible al desplazarse en ${width}x${height}`,
+        );
         assert.equal(measurements.theme, theme);
-        assert.deepEqual(measurements.shortButtons, [], `todos los botones deben medir al menos 44 px (${width}x${height})`);
-        const titleFits = await page.locator(".hero h1").evaluate(node => node.scrollWidth <= node.clientWidth + 1);
-        assert.ok(titleFits, `el titular debe caber en ${width}x${height}`);
+        assert.deepEqual(
+          measurements.shortButtons,
+          [],
+          `todos los botones deben medir al menos 44 px (${width}x${height})`,
+        );
+        const titleFits = await page
+          .locator(".hero h1")
+          .evaluate((node) =>
+            node.classList.contains("sr-only")
+              ? node.textContent === "Barrio Ice · Granizados en Montería"
+              : node.scrollWidth <= node.clientWidth + 1,
+          );
+        assert.ok(
+          titleFits,
+          `el título accesible debe caber en ${width}x${height}`,
+        );
         if (width === 390 && height === 844) {
-          await page.evaluate(() => { if (document.getElementById("sheet").classList.contains("open")) closeCart(); });
-          if (saveScreenshots) await page.screenshot({ path: path.join(output, "tienda-movil-" + theme + ".jpg"), type: "jpeg", quality: 76 });
-          await page.getByRole("button", { name: /Pequeño/ }).first().click();
+          await page.evaluate(() => {
+            if (document.getElementById("sheet").classList.contains("open"))
+              window.__barrio.closeCart();
+          });
+          if (saveScreenshots)
+            await page.screenshot({
+              path: path.join(output, "tienda-movil-" + theme + ".jpg"),
+              type: "jpeg",
+              quality: 76,
+            });
+          await page
+            .getByRole("button", { name: /Pequeño/ })
+            .first()
+            .click();
           console.log("Línea agregada desde la tienda, verificando carrito");
-          const cartState = await page.evaluate(() => ({ lines: typeof cart === "undefined" ? "no cart" : cart.length, total: document.getElementById("fabTotal")?.textContent, toast: document.getElementById("toast")?.textContent, ready: typeof store === "undefined" ? "no store" : store.ready }));
-          assert.ok(cartState.lines > 0, "agregar desde una tarjeta debe actualizar el carrito: " + JSON.stringify(cartState));
+          const cartState = await page.evaluate(() => ({
+            lines: window.__barrio?.cart?.length ?? "no cart",
+            total: document.getElementById("fabTotal")?.textContent,
+            toast: document.getElementById("toast")?.textContent,
+            ready: window.__barrio?.store?.ready ?? "no store",
+          }));
+          assert.ok(
+            cartState.lines > 0,
+            "agregar desde una tarjeta debe actualizar el carrito: " +
+              JSON.stringify(cartState),
+          );
           await page.getByRole("button", { name: /Mi pedido/ }).click();
-          await page.getByText("Subtotal", { exact: true }).waitFor({ timeout: 5000 });
-          const openCartState = await page.evaluate(() => ({ modal: document.getElementById("sheet").getAttribute("aria-hidden") === "false", inertPage: document.getElementById("storefront").hasAttribute("inert"), fixedBody: getComputedStyle(document.body).position === "fixed", focused: document.activeElement.id }));
-          assert.deepEqual(openCartState, { modal: true, inertPage: true, fixedBody: true, focused: "close" }, "el carrito debe atrapar el foco y bloquear el fondo");
+          await page
+            .getByText("Subtotal", { exact: true })
+            .waitFor({ timeout: 5000 });
+          const openCartState = await page.evaluate(() => ({
+            modal:
+              document.getElementById("sheet").getAttribute("aria-hidden") ===
+              "false",
+            inertPage: document
+              .getElementById("storefront")
+              .hasAttribute("inert"),
+            fixedBody: getComputedStyle(document.body).position === "fixed",
+            focused: document.activeElement.id,
+          }));
+          assert.deepEqual(
+            openCartState,
+            { modal: true, inertPage: true, fixedBody: true, focused: "close" },
+            "el carrito debe atrapar el foco y bloquear el fondo",
+          );
           await page.keyboard.press("Escape");
-          await page.waitForFunction(() => !document.getElementById("sheet").classList.contains("open"));
-          const closedCartState = await page.evaluate(() => ({ modal: document.getElementById("sheet").getAttribute("aria-hidden") === "true", inertPage: document.getElementById("storefront").hasAttribute("inert"), fixedBody: getComputedStyle(document.body).position === "fixed", focused: document.activeElement.id }));
-          assert.deepEqual(closedCartState, { modal: true, inertPage: false, fixedBody: false, focused: "fab" }, "al cerrar se debe restaurar scroll, fondo y foco");
+          await page.waitForFunction(
+            () => !document.getElementById("sheet").classList.contains("open"),
+          );
+          const closedCartState = await page.evaluate(() => ({
+            modal:
+              document.getElementById("sheet").getAttribute("aria-hidden") ===
+              "true",
+            inertPage: document
+              .getElementById("storefront")
+              .hasAttribute("inert"),
+            fixedBody: getComputedStyle(document.body).position === "fixed",
+            focused: document.activeElement.id,
+          }));
+          assert.deepEqual(
+            closedCartState,
+            { modal: true, inertPage: false, fixedBody: false, focused: "fab" },
+            "al cerrar se debe restaurar scroll, fondo y foco",
+          );
           await page.getByRole("button", { name: /Mi pedido/ }).click();
           const cartText = await page.locator("#summary").innerText();
           assert.match(cartText, /Ahorro por promo/);
           assert.match(cartText, /Se paga aparte/);
           assert.match(await page.locator("#lines").innerText(), /REGALO 2x1/);
-          await page.locator("[data-gift-flavor]").first().selectOption("Limón");
-          assert.match(await page.locator("#lines").innerText(), /Granizado de Limón/);
+          await page
+            .locator("[data-gift-flavor]")
+            .first()
+            .selectOption("Limón");
+          assert.match(
+            await page.locator("#lines").innerText(),
+            /Granizado de Limón/,
+          );
           await page.locator("#cash").fill("10000");
           assert.equal(await page.locator("#cashChange").innerText(), "");
           await page.locator("#cash").fill("15000");
-          assert.match(await page.locator("#cashChange").innerText(), /Cambio para devolver/);
+          assert.match(
+            await page.locator("#cashChange").innerText(),
+            /Cambio para devolver/,
+          );
         }
         if (width === 1440 && height === 900) {
-          await page.evaluate(() => { if (document.getElementById("sheet").classList.contains("open")) closeCart(); });
-          if (saveScreenshots) await page.screenshot({ path: path.join(output, "tienda-escritorio-" + theme + ".jpg"), type: "jpeg", quality: 76 });
+          await page.evaluate(() => {
+            if (document.getElementById("sheet").classList.contains("open"))
+              window.__barrio.closeCart();
+          });
+          if (saveScreenshots)
+            await page.screenshot({
+              path: path.join(output, "tienda-escritorio-" + theme + ".jpg"),
+              type: "jpeg",
+              quality: 76,
+            });
         }
         if (width === 360 && height === 640) {
           const stress = await page.evaluate(() => {
             const day = String(new Date().getDay());
             const longName = "SaborSinEspacios" + "X".repeat(86);
-            const names = Array.from({ length: 45 }, (_, index) => index === 0 ? longName : "Sabor de prueba " + String(index).padStart(2, "0"));
-            menu.cat = names.map((name, index) => ({ n: name, c: index % 2 ? "#5bc0eb" : "#9b3fd6", l: index === 0 }));
-            menu.dias[day] = names;
-            menu.agotados[day] = [names[1]];
-            menu.precios.semana = [999999999999, 999999999999, 999999999999];
-            menu.precios.jueves = [...menu.precios.semana];
-            menu.precios.finde = [...menu.precios.semana];
-            menu.bebidas = [{ n: "Bebida de prueba con nombre muy largo", p: 999999999999, icon: "🥤" }];
-            menu.combos = [{ n: "Combo de prueba con nombre excesivamente largo", d: "Descripción larga para comprobar el ajuste de la tarjeta", p: 999999999999, items: [] }];
-            render();
+            const names = Array.from({ length: 45 }, (_, index) =>
+              index === 0
+                ? longName
+                : "Sabor de prueba " + String(index).padStart(2, "0"),
+            );
+            window.__barrio.menu.cat = names.map((name, index) => ({
+              n: name,
+              c: index % 2 ? "#5bc0eb" : "#9b3fd6",
+              l: index === 0,
+            }));
+            window.__barrio.menu.dias[day] = names;
+            window.__barrio.menu.agotados[day] = [names[1]];
+            window.__barrio.menu.precios.semana = [999999999999, 999999999999, 999999999999];
+            window.__barrio.menu.precios.jueves = [...window.__barrio.menu.precios.semana];
+            window.__barrio.menu.precios.finde = [...window.__barrio.menu.precios.semana];
+            window.__barrio.menu.bebidas = [
+              {
+                n: "Bebida de prueba con nombre muy largo",
+                p: 999999999999,
+                icon: "🥤",
+              },
+            ];
+            window.__barrio.menu.combos = [
+              {
+                n: "Combo de prueba con nombre excesivamente largo",
+                d: "Descripción larga para comprobar el ajuste de la tarjeta",
+                p: 999999999999,
+                items: [],
+              },
+            ];
+            window.__barrio.render();
             const cards = [...document.querySelectorAll("#flavors .flavor")];
             return {
               count: cards.length,
               documentWidth: document.documentElement.scrollWidth,
               clientWidth: document.documentElement.clientWidth,
-              overflowingCards: cards.filter(node => node.scrollWidth > node.clientWidth + 1).length,
-              overflowingSizeButtons: [...document.querySelectorAll(".size")].filter(node => node.scrollWidth > node.clientWidth + 1).length,
-              longNameFits: cards[0]?.querySelector("h3")?.scrollWidth <= cards[0]?.querySelector("h3")?.clientWidth + 1,
+              overflowingCards: cards.filter(
+                (node) => node.scrollWidth > node.clientWidth + 1,
+              ).length,
+              overflowingSizeButtons: [
+                ...document.querySelectorAll(".size"),
+              ].filter((node) => node.scrollWidth > node.clientWidth + 1)
+                .length,
+              longNameFits:
+                cards[0]?.querySelector("h3")?.scrollWidth <=
+                cards[0]?.querySelector("h3")?.clientWidth + 1,
               adultBadge: cards[0]?.querySelector(".tag.adult")?.textContent,
-              soldDisabled: [...(cards[1]?.querySelectorAll(".size") || [])].every(node => node.disabled)
+              soldDisabled: [
+                ...(cards[1]?.querySelectorAll(".size") || []),
+              ].every((node) => node.disabled),
             };
           });
-          assert.equal(stress.count, 45, "la tienda debe mostrar más de 40 productos");
-          assert.ok(stress.documentWidth <= stress.clientWidth, "los datos largos no deben crear scroll horizontal: " + JSON.stringify(stress));
-          assert.equal(stress.overflowingCards, 0, "las tarjetas de productos no deben desbordarse: " + JSON.stringify(stress));
-          assert.equal(stress.overflowingSizeButtons, 0, "los precios extensos deben caber en sus botones: " + JSON.stringify(stress));
-          assert.equal(stress.longNameFits, true, "los nombres sin espacios deben partirse dentro de la tarjeta");
-          assert.match(stress.adultBadge, /\+18/, "la tarjeta +18 debe conservar la etiqueta");
-          assert.equal(stress.soldDisabled, true, "un producto agotado debe mantener sus tamaños desactivados");
-          await page.evaluate(() => { menu.dias[String(new Date().getDay())] = []; menu.combos = []; menu.bebidas = []; render(); });
-          assert.match(await page.locator("#flavors").innerText(), /Hoy aún no hay sabores publicados/);
+          assert.equal(
+            stress.count,
+            45,
+            "la tienda debe mostrar más de 40 productos",
+          );
+          assert.ok(
+            stress.documentWidth <= stress.clientWidth,
+            "los datos largos no deben crear scroll horizontal: " +
+              JSON.stringify(stress),
+          );
+          assert.equal(
+            stress.overflowingCards,
+            0,
+            "las tarjetas de productos no deben desbordarse: " +
+              JSON.stringify(stress),
+          );
+          assert.equal(
+            stress.overflowingSizeButtons,
+            0,
+            "los precios extensos deben caber en sus botones: " +
+              JSON.stringify(stress),
+          );
+          assert.equal(
+            stress.longNameFits,
+            true,
+            "los nombres sin espacios deben partirse dentro de la tarjeta",
+          );
+          assert.match(
+            stress.adultBadge,
+            /\+18/,
+            "la tarjeta +18 debe conservar la etiqueta",
+          );
+          assert.equal(
+            stress.soldDisabled,
+            true,
+            "un producto agotado debe mantener sus tamaños desactivados",
+          );
+          await page.evaluate(() => {
+            window.__barrio.menu.dias[String(new Date().getDay())] = [];
+            window.__barrio.menu.combos = [];
+            window.__barrio.menu.bebidas = [];
+            window.__barrio.render();
+          });
+          assert.match(
+            await page.locator("#flavors").innerText(),
+            /Hoy aún no hay sabores publicados/,
+          );
           await page.evaluate(() => {
             document.getElementById("name").value = "L".repeat(60);
-            cart = Array.from({ length: 48 }, (_, index) => ({ k: "edge:" + index, n: "Pedido " + index + " · producto con nombre largo", s: "Grande", p: 999999999999, q: 1, g: false, adulto: false, tipo: "bebida" }));
-            draw(); openCart();
+            window.__barrio.cart = Array.from({ length: 48 }, (_, index) => ({
+              k: "edge:" + index,
+              n: "Pedido " + index + " · producto con nombre largo",
+              s: "Grande",
+              p: 999999999999,
+              q: 1,
+              g: false,
+              adulto: false,
+              tipo: "bebida",
+            }));
+            window.__barrio.draw();
+            window.__barrio.openCart();
           });
-          const longOrder = await page.evaluate(() => ({ lines: document.querySelectorAll("#lines .cart-line").length, sheetScrolls: document.getElementById("sheet").scrollHeight > document.getElementById("sheet").clientHeight, horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth, nameLength: document.getElementById("name").value.length }));
-          assert.equal(longOrder.lines, 48, "un pedido largo debe conservar todas sus líneas");
-          assert.equal(longOrder.sheetScrolls, true, "el carrito largo debe poder desplazarse dentro de la hoja");
-          assert.equal(longOrder.horizontalOverflow, false, "el pedido largo no debe ampliar la pantalla");
-          assert.equal(longOrder.nameLength, 60, "el nombre largo debe respetar el límite del campo");
-          await page.evaluate(() => closeCart());
+          const longOrder = await page.evaluate(() => ({
+            lines: document.querySelectorAll("#lines .cart-line").length,
+            sheetScrolls:
+              document.getElementById("sheet").scrollHeight >
+              document.getElementById("sheet").clientHeight,
+            horizontalOverflow:
+              document.documentElement.scrollWidth >
+              document.documentElement.clientWidth,
+            nameLength: document.getElementById("name").value.length,
+          }));
+          assert.equal(
+            longOrder.lines,
+            48,
+            "un pedido largo debe conservar todas sus líneas",
+          );
+          assert.equal(
+            longOrder.sheetScrolls,
+            true,
+            "el carrito largo debe poder desplazarse dentro de la hoja",
+          );
+          assert.equal(
+            longOrder.horizontalOverflow,
+            false,
+            "el pedido largo no debe ampliar la pantalla",
+          );
+          assert.equal(
+            longOrder.nameLength,
+            60,
+            "el nombre largo debe respetar el límite del campo",
+          );
+          await page.evaluate(() => window.__barrio.closeCart());
         }
         await page.close();
       }
     }
-    for (const theme of (process.env.VISUAL_QUICK === "1" ? ["light"] : ["light", "dark"])) {
-      for (const [label, viewport] of (process.env.VISUAL_QUICK === "1" ? [["movil", { width: 390, height: 844 }]] : [["movil", { width: 390, height: 844 }], ["escritorio", { width: 1440, height: 900 }]])) {
+    for (const theme of process.env.VISUAL_QUICK === "1"
+      ? ["light"]
+      : ["light", "dark"]) {
+      for (const [label, viewport] of process.env.VISUAL_QUICK === "1"
+        ? [
+            ["movil", { width: 390, height: 844 }],
+            ["escritorio", { width: 1440, height: 900 }],
+          ]
+        : [
+            ["movil", { width: 390, height: 844 }],
+            ["escritorio", { width: 1440, height: 900 }],
+          ]) {
         console.log("Panel", theme, label);
-        const page = await browser.newPage({ viewport, deviceScaleFactor: 1, serviceWorkers: "block" });
+        const page = await browser.newPage({
+          viewport,
+          deviceScaleFactor: 1,
+          serviceWorkers: "block",
+        });
         await interceptFirebase(page);
-        page.on("pageerror", error => errors.push(error.message));
-        await page.addInitScript(themeValue => localStorage.setItem("barrio-ice-theme", JSON.stringify(themeValue)), theme);
-        await page.goto(address + "/#admin", { waitUntil: "domcontentloaded" });
-        await page.getByLabel("Correo").fill("dueno@example.com");
-        await page.getByLabel("Contraseña").fill("prueba");
-        await page.getByRole("button", { name: "Entrar" }).click();
-        try { await page.getByRole("heading", { name: "Estado de la tienda" }).waitFor({ timeout: 7000 }); }
-        catch { throw new Error("No abrió el panel: " + JSON.stringify({ state: await page.evaluate(() => { try { adminRender(); return { error: document.getElementById("loginError")?.textContent, welcome: document.getElementById("welcome")?.textContent, storeReady: typeof store === "undefined" ? null : store.ready, visible: document.getElementById("login")?.className, panel: document.getElementById("panel")?.className, view: document.getElementById("adminView")?.innerText?.slice(0, 400) }; } catch (error) { return { error: String(error), stack: error.stack }; } }), pageErrors: errors })); }
-        if (saveScreenshots) await page.screenshot({ path: path.join(output, "panel-" + label + "-" + theme + ".jpg"), type: "jpeg", quality: 76 });
-        assert.equal(await page.locator("#login .notice").count(), 0, "el aviso retirado no debe reaparecer en el login");
-        assert.equal((await page.locator(".admin-top h1").innerText()).replace(/\s+/g, " ").trim(), "Panel del barrio");
-        await page.getByRole("button", { name: "MENÚ" }).click();
+        page.on("pageerror", (error) => errors.push(error.message));
+        await page.addInitScript(freezeDate);
+        await page.addInitScript(
+          ({ menu, orders, themeValue }) => {
+            if (!localStorage.getItem("barrio-ice-visual-menu"))
+              localStorage.setItem("barrio-ice-visual-menu", JSON.stringify(menu));
+            if (!localStorage.getItem("barrio-ice-visual-orders"))
+              localStorage.setItem(
+                "barrio-ice-visual-orders",
+                JSON.stringify(
+                  orders.map((order, index) =>
+                    Object.assign({}, order, {
+                      creadoEn: index === 0 ? "2026-10-07T23:54:00Z" : "2026-10-07T21:00:00Z",
+                    }),
+                  ),
+                ),
+              );
+            localStorage.setItem("barrio-ice-theme", JSON.stringify(themeValue));
+          },
+          { menu: sampleMenu, orders: sampleOrders, themeValue: theme },
+        );
+        await page.goto(address + "/admin/?e2e=1", { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => !!window.__barrioAdminE2E);
+        const openAdmin = async () => {
+          await page.evaluate(() =>
+            window.__barrioAdminE2E.startSession({
+              uid: "NDdEIdTQiqMS947ENRr7aEq1i6B3",
+              email: "dueno@example.com",
+            }),
+          );
+          await page
+            .getByRole("heading", { name: "Estado de la tienda" })
+            .waitFor();
+        };
+        await openAdmin();
+        if (saveScreenshots && label === "movil")
+          await page.screenshot({
+            path: path.join(output, "admin-" + label + "-" + theme + ".jpg"),
+            type: "jpeg",
+            quality: 76,
+          });
+        assert.equal(
+          await page.locator("#loginError").innerText(),
+          "",
+          "el login no debe mostrar texto auxiliar ni error en estado normal",
+        );
+        assert.equal(
+          (await page.locator(".admin-top h1").innerText()).trim(),
+          "Panel del barrio",
+        );
+        assert.deepEqual(
+          await page.locator(".admin-nav [role=tab]").evaluateAll((buttons) =>
+            buttons.map((button) => {
+              const label = button.cloneNode(true);
+              label.querySelector(".badge")?.remove();
+              return label.textContent.replace(/\s+/g, " ").trim();
+            }),
+          ),
+          ["Hoy", "Pedidos", "Menú", "Ventas", "Ajustes"],
+          "las pestañas del panel deben estar en el HTML y en el orden acordado",
+        );
+        await page.locator('[data-admin-tab="menu"]').click();
         await page.getByRole("heading", { name: "Catálogo de sabores" }).waitFor();
-        await page.getByRole("button", { name: "PEDIDOS" }).click();
-        await page.getByText("REGALO 2x1", { exact: false }).first().waitFor();
+        await page.locator('[data-admin-tab="orders"]').click();
+        const renderedOrders = await page.locator("#adminView").innerText();
+        assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");
         if (theme === "light" && label === "movil") {
+          await page.locator('[data-admin-tab="settings"]').click();
+          const diagnostics = page.locator("#diagnosticsCard");
+          await diagnostics.waitFor();
+          assert.equal(await diagnostics.locator('[data-diagnostic="menu-document"]').getAttribute("class"), "diagnostic-ok");
+          assert.equal(await diagnostics.locator('[data-diagnostic="whatsapp"]').getAttribute("class"), "diagnostic-ok");
+          assert.equal(await diagnostics.locator('[data-diagnostic="hours"]').getAttribute("class"), "diagnostic-ok");
+          assert.ok(await diagnostics.locator("[data-diagnostic]").count() >= 9);
+          await page.waitForFunction(
+            () => !!document.getElementById("diagnosticsVersion")?.textContent,
+          );
+          await page.locator("#repairTrackingV4").click();
+          await page.getByText("2 seguimientos reparados.", { exact: true }).waitFor();
+          const repairedTracking = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-tracking") || "{}"),
+          );
+          assert.equal(Object.keys(repairedTracking).length, 2);
+          assert.deepEqual(
+            Object.keys(repairedTracking.PEDIDO1).sort(),
+            ["creadoEn", "estado", "fecha", "nombreCorto", "tipo"],
+            "la reparación solo debe publicar datos mínimos",
+          );
+          await page.locator('[data-admin-tab="orders"]').click();
+          await page.locator('[data-status="PEDIDO1"]').selectOption("Preparando");
+          await page.waitForFunction(() => {
+            const tracking = JSON.parse(localStorage.getItem("barrio-ice-visual-tracking") || "{}");
+            return tracking.PEDIDO1?.estado === "Preparando";
+          });
+          const updatedTracking = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-tracking") || "{}").PEDIDO1,
+          );
+          assert.equal(updatedTracking.estado, "Preparando");
+          assert.ok(updatedTracking.actualizadoEn);
+          assert.equal("celular" in updatedTracking, false);
+          await page.evaluate(() => {
+            const audited = JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]");
+            audited[0].total = 1;
+            audited[0].notas = "x".repeat(251);
+            audited[0].entrega.direccion = "https://example.com";
+            audited[1].cliente.celular = audited[0].cliente.celular;
+            audited[1].creadoEn = "2026-10-07T23:55:00Z";
+            window.__barrioAdminE2E.replaceOrders(audited);
+          });
+          const auditWarning = page.locator('[data-order-id="PEDIDO1"] [data-audit-warning]');
+          await auditWarning.waitFor();
+          assert.match(await auditWarning.innerText(), /Total no cuadra/);
+          assert.match(await auditWarning.innerText(), /Posible duplicado/);
+          assert.match(await auditWarning.innerText(), /Texto sospechoso/);
+          await page.locator('[data-order-select="PEDIDO1"]').check();
+          assert.equal(await page.locator("#deleteSelected").isEnabled(), true);
+          const bulkDeleteDialog = page.waitForEvent("dialog");
+          const bulkDeleteClick = page
+            .locator("#deleteSelected")
+            .click({ noWaitAfter: true });
+          await (await bulkDeleteDialog).accept();
+          await bulkDeleteClick;
+          await page.locator('[data-order-id="PEDIDO1"]').waitFor({ state: "detached" });
+          const deletedOrder = page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]").some(
+              (order) => order.id === "PEDIDO1",
+            ),
+          );
+          assert.equal(await deletedOrder, false);
+          const singleDeleteDialog = page.waitForEvent("dialog");
+          const singleDeleteClick = page
+            .locator('[data-delete-order="PEDIDO2"]')
+            .click({ noWaitAfter: true });
+          await (await singleDeleteDialog).accept();
+          await singleDeleteClick;
+          await page.locator('[data-order-id="PEDIDO2"]').waitFor({ state: "detached" });
           const flavorName = "Tequila de prueba";
-          await page.getByRole("button", { name: "MENÚ" }).click();
+          await page.locator('[data-admin-tab="menu"]').click();
           await page.locator("#newFlavorName").fill(flavorName);
           await page.locator("#newFlavorAdult").check();
           await page.locator("#addFlavorV4").click();
           await page.locator("#saveCatalogV4").click();
           await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
-          const persistedAdult = await page.evaluate(() => JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").cat?.find(item => item.n === "Tequila de prueba")?.l);
-          assert.equal(persistedAdult, true, "+18 debe incluirse en el objeto guardado en Firestore (simulado)");
+          const persistedAdult = await page.evaluate(
+            () =>
+              JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").cat?.find(
+                (item) => item.n === "Tequila de prueba",
+              )?.l,
+          );
+          assert.equal(persistedAdult, true, "+18 debe persistir al guardar el menú");
           await page.reload({ waitUntil: "domcontentloaded" });
-          await page.waitForFunction(() => typeof store !== "undefined" && store.ready);
-          await page.waitForFunction(() => menu.cat.some(item => item.n === "Tequila de prueba"));
-          const loadedAdult = await page.evaluate(() => ({ value: menu.cat.find(item => item.n === "Tequila de prueba")?.l, names: menu.cat.map(item => item.n), saved: localStorage.getItem("barrio-ice-visual-menu")?.slice(0, 180) }));
-          assert.equal(loadedAdult.value, true, "+18 debe leerse desde el menú guardado tras recargar: " + JSON.stringify(loadedAdult));
-          await page.evaluate(() => startAdmin({ uid: CFG.adminUid, email: "dueno@example.com" }));
-          try { await page.getByRole("heading", { name: "Estado de la tienda" }).waitFor({ timeout: 7000 }); }
-          catch { throw new Error("El panel no abrió tras recargar: " + JSON.stringify({ error: await page.locator("#loginError").textContent().catch(() => ""), login: await page.locator("#login").getAttribute("class").catch(() => ""), panel: await page.locator("#panel").getAttribute("class").catch(() => ""), view: await page.locator("#adminView").innerText().catch(() => ""), pageErrors: errors })); }
-          await page.getByRole("button", { name: "MENÚ" }).click();
-          const ageState = () => page.locator("[data-cat-name]").evaluateAll(inputs => {
-            const name = inputs.find(input => input.value === "Tequila de prueba");
-            return name?.closest(".editable-row")?.querySelector("[data-cat-adult]")?.checked ?? null;
-          });
+          await page.waitForFunction(() => !!window.__barrioAdminE2E);
+          await openAdmin();
+          await page.locator('[data-admin-tab="menu"]').click();
+          const ageState = () =>
+            page.locator("[data-cat-name]").evaluateAll((inputs) => {
+              const name = inputs.find((input) => input.value === "Tequila de prueba");
+              return (
+                name?.closest(".editable-row")?.querySelector("[data-cat-adult]")
+                  ?.checked ?? null
+              );
+            });
           assert.equal(await ageState(), true, "+18 debe seguir marcado tras guardar y recargar");
-          const flavorIndex = await page.locator("[data-cat-name]").evaluateAll(inputs => inputs.findIndex(input => input.value === "Tequila de prueba"));
-          await page.locator(`[data-cat-adult="${flavorIndex}"]`).uncheck();
+          await page.locator('[data-v4-flavor="Tequila de prueba"]').click();
           await page.locator("#saveDayMenu").click();
           await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
-          assert.equal(await ageState(), false, "Guardar sabores debe persistir el cambio de edad del catálogo");
-          await page.locator(`[data-cat-adult="${flavorIndex}"]`).check();
-          await page.locator("#saveCatalogV4").click();
-          await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
-          await page.locator(`[data-v4-flavor="${flavorName}"]`).click();
-          await page.locator("#saveDayMenu").click();
-          await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
-          await page.goto(address, { waitUntil: "domcontentloaded" });
+          const availability = await page.evaluate(
+            () => JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").dias?.["3"],
+          );
+          assert.ok(availability?.includes(flavorName), "el sabor debe publicarse para el miércoles");
+          await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
+          await page.waitForFunction(() => !!window.__barrio?.store?.ready);
           const flavorCard = page.locator(".flavor").filter({ hasText: flavorName });
           await flavorCard.waitFor();
           assert.match(await flavorCard.locator(".tag.adult").innerText(), /\+18/);
           await flavorCard.locator(`[data-flavor="${flavorName}"]`).first().click();
           await page.getByRole("button", { name: /Mi pedido/ }).click();
-          assert.equal(await page.locator("#ageBox").isVisible(), true, "el pedido +18 debe exigir confirmación de edad");
+          assert.equal(await page.locator("#ageBox").isVisible(), true);
           await page.locator("#name").fill("Cliente Prueba");
           await page.locator("#phone").fill("3001234567");
           await page.locator("#delivery").selectOption("recoger");
           await page.locator("#cash").fill("15000");
           await page.locator("#send").click();
           assert.match(await page.locator("#checkoutError").innerText(), /Confirma que eres mayor de 18 años/);
+          await page.locator("#age").check();
+          assert.equal(await page.locator("#age").isChecked(), true, "la confirmación debe quedar marcada");
+          await page.evaluate(() => { window.open = () => null; });
+          await page.locator("#send").click();
+          await page.waitForFunction(
+            () => new URLSearchParams(location.search).has("pedido"),
+            { timeout: 5000 },
+          ).catch(async () => {
+            const failureState = await page.evaluate(() => ({
+              url: location.href,
+              error: document.getElementById("checkoutError")?.textContent,
+              age: document.getElementById("age")?.checked,
+              adult: window.__barrio.cart.some((line) => line.adulto),
+              writes: JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]").length,
+            }));
+            throw new Error(
+              "pedido adulto no se guardó: " +
+                JSON.stringify({ failureState, pageErrors: errors }),
+            );
+          });
+          const orderWrites = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("barrio-ice-visual-writes") || "[]"),
+          );
+          const orderWrite = orderWrites.find((write) => write.path.startsWith("pedidos/"));
+          const trackingWrite = orderWrites.find((write) => write.path.startsWith("seguimiento/"));
+          assert.ok(orderWrite, "el pedido adulto debe guardarse en Firestore");
+          assert.ok(trackingWrite, "el seguimiento debe crearse en el mismo lote");
+          assert.equal(orderWrite.data.mayor18, true);
+          assert.equal(orderWrite.data.tieneLicor, true);
+          assert.deepEqual(
+            Object.keys(trackingWrite.data).sort(),
+            ["creadoEn", "estado", "fecha", "nombreCorto", "tipo"],
+            "el documento público de seguimiento no debe incluir datos personales",
+          );
+          const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
+          assert.match(trackingText.join(" "), /Cliente/);
+          assert.doesNotMatch(trackingText.join(" "), /3001234567|Prueba/);
+        }
+        if (label === "escritorio") {
+          await page.locator('[data-admin-tab="settings"]').click();
+          const bottomControl = page.locator("#repairTrackingV4");
+          await bottomControl.waitFor();
+          await page.evaluate(async () => {
+            document.documentElement.style.scrollBehavior = "auto";
+            document
+              .getElementById("repairTrackingV4")
+              .scrollIntoView({ block: "end" });
+            await new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            );
+          });
+          const bottomBar = await page.evaluate(() => {
+            const last = document
+              .getElementById("repairTrackingV4")
+              ?.getBoundingClientRect();
+            const nav = document.querySelector(".admin-nav")?.getBoundingClientRect();
+            return {
+              actionBottom: last?.bottom ?? null,
+              actionTop: last?.top ?? null,
+              viewportHeight: innerHeight,
+              navTop: nav?.top ?? null,
+              navBottom: nav?.bottom ?? null,
+              hiddenByNav: !!last && !!nav && last.top < nav.bottom,
+            };
+          });
+          console.log("Panel al final del scroll:", JSON.stringify(bottomBar));
+          assert.ok(
+            bottomBar.actionBottom <= bottomBar.viewportHeight,
+            "la última acción del panel debe quedar dentro del viewport al final",
+          );
+          assert.equal(
+            bottomBar.hiddenByNav,
+            false,
+            "la navegación no debe tapar la última acción del panel",
+          );
+          if (saveScreenshots)
+            await page.screenshot({
+              path: path.join(output, "admin-escritorio-" + theme + ".jpg"),
+              type: "jpeg",
+              quality: 76,
+            });
         }
         await page.close();
       }
-    }
-    assert.deepEqual(errors, [], "la página no debe generar errores de JavaScript");
-    console.log(`Comprobación visual headless: ${dimensions.length} tamaños × ${(process.env.VISUAL_QUICK === "1" ? 1 : 2)} temas; panel autenticado${saveScreenshots ? "; capturas guardadas en tests/screenshots" : ""}.`);
+    }    assert.deepEqual(
+      errors,
+      [],
+      "la página no debe generar errores de JavaScript",
+    );
+    console.log(
+      `Comprobación visual headless: ${dimensions.length} tamaños × ${process.env.VISUAL_QUICK === "1" ? 1 : 2} temas; panel autenticado${saveScreenshots ? "; capturas guardadas en tests/screenshots" : ""}.`,
+    );
   } finally {
     await browser.close();
     server.close();
   }
-})().catch(error => {
+})().catch((error) => {
   console.error(error);
   server.close();
   process.exitCode = 1;
 });
-

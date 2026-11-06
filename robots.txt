@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://barrio-ice.vercel.app/sitemap.xml

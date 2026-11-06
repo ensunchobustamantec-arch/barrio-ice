@@ -2,11 +2,15 @@
   "name": "barrio-ice-tests",
   "private": true,
   "scripts": {
-    "test": "npm run test:promotions && npm run test:visual",
+    "test": "npm run test:pricing && npm run test:promotions && npm run test:visual",
+    "test:pricing": "node pricing.test.cjs",
     "test:promotions": "node promotions.browser.cjs",
-    "test:visual": "node visual-check.cjs"
+    "test:visual": "node visual-check.cjs",
+    "test:rules": "firebase emulators:exec --config ../firebase.json --project barrio-ice --only firestore \"node rules.test.mjs\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "3.0.3",
+    "firebase": "10.12.2",
     "playwright": "1.62.1"
   }
 }
