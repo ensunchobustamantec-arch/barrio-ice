@@ -97,8 +97,7 @@
       copyNode = $("promoBannerCopy"),
       banner = $("promoBanner");
     if (!title || !copyNode || !banner) return;
-    title.textContent =
-      p.g === 2 ? "HOY 2X1" : p.g === 3 ? "HOY 3X2" : "HOY SIN PROMO";
+    title.textContent = p.g === 2 ? "HOY 2X1" : "HOY SIN PROMO";
     let message =
       menu.promoBanner ||
       (p.g === 2
@@ -334,7 +333,7 @@
       result.nudge ||
       (dayPlan().g
         ? "La promo se aplica sola según el tamaño y precio."
-        : "Fin de semana sin promo: precios normales.");
+        : "Hoy no hay promo: precios normales.");
     animateCurrency($("total"), result.total);
     $("ageBox").classList.toggle("hide", !cart.some((item) => item.adulto));
     paymentChanged();
