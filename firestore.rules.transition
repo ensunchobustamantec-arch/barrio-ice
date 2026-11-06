@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null &&
+        request.auth.uid == 'NDdEIdTQiqMS947ENRr7aEq1i6B3';
+    }
+
+    match /tienda/menu {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // PII privada: nombre completo, celular y dirección solo para el dueño.
+    match /pedidos/{pedidoId} {
+      allow create: if validNewOrder(pedidoId);
+      allow get, list, update, delete: if isOwner();
+    }
+
+    // Seguimiento público: solo estado y datos mínimos, solo lectura por ID.
+    match /seguimiento/{pedidoId} {
+      allow get: if true;
+      allow create: if isOwner() || validNewTracking(pedidoId);
+      allow update: if isOwner() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado', 'actualizadoEn'
+        ]);
+      allow delete: if isOwner();
+    }
+
+    function validNewTracking(id) {
+      let d = request.resource.data;
+      let p = getAfter(/databases/$(database)/documents/pedidos/$(id)).data;
+      return d.keys().hasOnly([
+          'estado', 'tipo', 'fecha', 'creadoEn', 'nombreCorto'
+        ]) &&
+        d.keys().hasAll([
+          'estado', 'tipo', 'fecha', 'creadoEn', 'nombreCorto'
+        ]) &&
+        existsAfter(/databases/$(database)/documents/pedidos/$(id)) &&
+        d.estado == 'Nuevo' &&
+        d.tipo == p.entrega.tipo &&
+        d.fecha == p.fecha &&
+        d.creadoEn == request.time &&
+        d.creadoEn == p.creadoEn &&
+        d.nombreCorto is string &&
+        d.nombreCorto.size() >= 1 &&
+        d.nombreCorto.size() <= 20;
+    }
+
+    function validNewOrder(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'items', 'cliente', 'entrega', 'pago', 'conCuanto', 'notas',
+          'subtotal', 'descuento', 'domicilio', 'total', 'promo',
+          'promoBuy', 'promoReceive', 'mayor18', 'tieneLicor',
+          'estado', 'fecha', 'creadoEn'
+        ]) &&
+        d.keys().hasAll([
+          'items', 'cliente', 'entrega', 'pago', 'subtotal', 'descuento',
+          'domicilio', 'total', 'promo',
+          'estado', 'fecha', 'creadoEn'
+        ]) &&
+        d.items is list &&
+        d.items.size() > 0 &&
+        d.items.size() <= 60 &&
+        d.cliente is map &&
+        d.cliente.keys().hasOnly(['nombre', 'celular']) &&
+        d.cliente.nombre is string &&
+        d.cliente.nombre.size() >= 1 &&
+        d.cliente.nombre.size() <= 60 &&
+        d.cliente.celular is string &&
+        d.cliente.celular.matches('^[0-9+() -]{10,18}$') &&
+        d.entrega is map &&
+        d.entrega.keys().hasOnly(['tipo', 'direccion', 'referencia']) &&
+        d.entrega.tipo in ['domicilio', 'recoger'] &&
+        d.entrega.direccion is string &&
+        d.entrega.direccion.size() <= 140 &&
+        d.entrega.referencia is string &&
+        d.entrega.referencia.size() <= 140 &&
+        d.pago in ['Efectivo', 'Nequi', 'Daviplata'] &&
+        d.conCuanto is number &&
+        d.conCuanto >= 0 &&
+        d.conCuanto <= 5000000 &&
+        d.notas is string &&
+        d.notas.size() <= 300 &&
+        d.subtotal is number &&
+        d.subtotal >= 0 &&
+        d.subtotal <= 2000000 &&
+        d.descuento is number &&
+        d.descuento >= 0 &&
+        d.descuento * 2 <= d.subtotal &&
+        d.total is number &&
+        d.total >= 0 &&
+        d.total <= 2000000 &&
+        d.subtotal == d.total + d.descuento &&
+        d.domicilio == 0 &&
+        d.promo is string &&
+        d.promo.size() <= 80 &&
+        (!d.keys().hasAny(['promoBuy']) ||
+          (d.promoBuy is int && d.promoBuy >= 0 && d.promoBuy <= 3)) &&
+        (!d.keys().hasAny(['promoReceive']) ||
+          (d.promoReceive is int && d.promoReceive >= 0 && d.promoReceive <= 3)) &&
+        d.mayor18 is bool &&
+        d.tieneLicor is bool &&
+        (!d.tieneLicor || d.mayor18 == true) &&
+        d.estado == 'Nuevo' &&
+        d.fecha is string &&
+        d.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        d.creadoEn is timestamp;
+    }
+  }
+}
