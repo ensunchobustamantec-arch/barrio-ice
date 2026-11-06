@@ -100,7 +100,13 @@
       console.error(error);
       popup?.close();
       $("checkoutError").textContent =
-        "No se pudo guardar el pedido. Revisa tu conexión e inténtalo de nuevo.";
+        error?.code === "permission-denied"
+          ? "Firebase rechazó el pedido. Publica primero las reglas de transición de Firestore."
+          : error?.code === "unavailable" || error?.code === "network-request-failed"
+            ? "No hay conexión con Firebase. Revisa internet e inténtalo de nuevo."
+            : "No se pudo guardar el pedido (" +
+              String(error?.code || "error de Firebase") +
+              "). Revisa la conexión y las reglas de Firestore.";
     } finally {
       $("send").disabled = false;
       $("send").textContent = "Enviar pedido por WhatsApp";
