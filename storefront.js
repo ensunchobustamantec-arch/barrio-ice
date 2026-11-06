@@ -50,7 +50,10 @@ const BarrioShared = window.BarrioShared;
         };
       }
       function openNow() {
-        if (menu.cerradaManual) return false;
+        const manualState =
+          menu.aperturaManual || (menu.cerradaManual ? "cerrada" : "horario");
+        if (manualState === "abierta") return true;
+        if (manualState === "cerrada") return false;
         const n = now(),
           day = n.getDay(),
           hours = menu.horario?.[day] || menu.horario?.[days[day]] || menu.horario || {};

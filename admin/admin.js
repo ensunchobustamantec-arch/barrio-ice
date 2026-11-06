@@ -59,8 +59,15 @@ function dayPlan(day = now().getDay()) {
     p: result.prices,
   });
 }
+function manualStoreState() {
+  if (menu.aperturaManual === "abierta" || menu.aperturaManual === "cerrada")
+    return menu.aperturaManual;
+  return menu.cerradaManual ? "cerrada" : "horario";
+}
 function openNow() {
-  if (menu.cerradaManual) return false;
+  const manualState = manualStoreState();
+  if (manualState === "abierta") return true;
+  if (manualState === "cerrada") return false;
   const date = now();
   const hours =
     menu.horario?.[date.getDay()] ||
@@ -1096,6 +1103,7 @@ function beep() {
   }
 
   function settingsView() {
+    const storeMode = manualStoreState();
     const schedule = [1, 2, 3, 4, 5, 6, 0]
       .map((day) => {
         const hours =
@@ -1121,9 +1129,13 @@ function beep() {
     $("adminView").innerHTML =
       '<div class="admin-grid"><article class="card"><h2>Horario por día</h2><p>El cambio de horario se aplica con la hora de Colombia.</p><div class="table-like">' +
       schedule +
-      '</div><label class="switch"><span>Tienda cerrada manualmente</span><input type="checkbox" id="manualClosed" ' +
-      (menu.cerradaManual ? "checked" : "") +
-      '></label></article><article class="card"><h2>Contacto y pagos</h2><div class="field"><label>WhatsApp</label><input id="waSetting" value="' +
+      '</div><div class="field"><label for="storeMode">Estado de apertura</label><select id="storeMode"><option value="horario" ' +
+      (storeMode === "horario" ? "selected" : "") +
+      '>Seguir el horario</option><option value="abierta" ' +
+      (storeMode === "abierta" ? "selected" : "") +
+      '>Abrir manualmente</option><option value="cerrada" ' +
+      (storeMode === "cerrada" ? "selected" : "") +
+      '>Cerrar manualmente</option></select></div></article><article class="card"><h2>Contacto y pagos</h2><div class="field"><label>WhatsApp</label><input id="waSetting" value="' +
       esc(menu.whatsapp || "") +
       '"></div><div class="field"><label>Nequi</label><input id="nequiSetting" value="' +
       esc(menu.pagos?.Nequi || "") +
@@ -1154,7 +1166,8 @@ function beep() {
         };
       });
       menu.horario = hours;
-      menu.cerradaManual = $("manualClosed").checked;
+      menu.aperturaManual = $("storeMode").value;
+      menu.cerradaManual = menu.aperturaManual === "cerrada";
       menu.whatsapp = clean($("waSetting").value.replace(/[^\d+]/g, ""), 20);
       menu.pagos = Object.assign({}, menu.pagos, {
         Nequi: clean($("nequiSetting").value, 50),
@@ -1212,7 +1225,7 @@ function beep() {
       '">' +
       (openNow() ? "Abierta ahora" : "Cerrada ahora") +
       '</p><button class="primary send" id="storeSwitch">' +
-      (menu.cerradaManual ? "Abrir tienda" : "Cerrar tienda") +
+      (openNow() ? "Cerrar tienda" : "Abrir tienda") +
       "</button><p>" +
       esc(menu.closedMessage) +
       '</p></article><article class="card"><h2>Sabores de hoy · ' +
@@ -1245,7 +1258,9 @@ function beep() {
       $("storeSwitch")?.parentElement.querySelector("p:last-child");
     if (statusCopy) {
       const hours = menu.horario?.[day] || menu.horario || {};
-      statusCopy.textContent = openNow()
+      statusCopy.textContent = manualStoreState() === "abierta"
+        ? "Abierta manualmente, aunque esté fuera del horario."
+        : openNow()
         ? "Horario de hoy: " +
           (hours.abre || hours.open || "11:00") +
           " a " +
@@ -1253,7 +1268,8 @@ function beep() {
         : menu.closedMessage;
     }
     $("storeSwitch").onclick = async () => {
-      menu.cerradaManual = !menu.cerradaManual;
+      menu.aperturaManual = openNow() ? "cerrada" : "abierta";
+      menu.cerradaManual = menu.aperturaManual === "cerrada";
       await saveMenu("todaySaved");
     };
     $("editTodayFlavors").onclick = () => {
