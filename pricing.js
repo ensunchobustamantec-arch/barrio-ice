@@ -4,22 +4,25 @@
   if (root) root.BarrioIcePricing = api;
 })(typeof globalThis === "undefined" ? this : globalThis, function () {
   const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const PROMO_KEYS = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
 
   function planForDay(day, menu = {}) {
     const weekdayPrices = menu.precios?.semana || [12000, 15000, 18000];
     const thursdayPrices = menu.precios?.jueves || weekdayPrices;
     const weekendPrices = menu.precios?.finde || [8000, 12000, 15000];
     const name = DAY_NAMES[day] || "domingo";
-    const promoKey = name === "miércoles" ? "miercoles" : name;
-    const active = menu.promos?.[promoKey] !== false;
+    const promoKey = PROMO_KEYS[day] || "domingo";
+    const prices = day >= 1 && day <= 3
+      ? weekdayPrices
+      : day === 4
+        ? thursdayPrices
+        : weekendPrices;
+    const active = menu.promos?.[promoKey] === true && promoKey !== "jueves";
 
-    if (day >= 1 && day <= 3) {
-      return { title: "2x1", name: "Promo 2x1", buy: 1, receive: 2, prices: weekdayPrices, active };
+    if (active) {
+      return { title: "2x1", name: "Promo 2x1", buy: 1, receive: 2, prices, active: true };
     }
-    if (day === 4) {
-      return { title: "3x2", name: "Promo 3x2", buy: 2, receive: 3, prices: thursdayPrices, active };
-    }
-    return { title: "Precios normales", name: "Precios normales", buy: 0, receive: 0, prices: weekendPrices, active: false };
+    return { title: "Precios normales", name: "Precios normales", buy: 0, receive: 0, prices, active: false };
   }
 
   function flavorNames(item) {

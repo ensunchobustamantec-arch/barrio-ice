@@ -994,11 +994,12 @@ function beep() {
       '</select></div><button class="secondary" id="copyDay">Copiar</button><button class="secondary" id="repeatYesterday">Repetir ayer</button></div><div class="save"><button class="primary" id="saveDayMenu">Guardar sabores</button><span class="saved" id="menuSaved"></span></div></article><article class="card"><h2>Precios</h2>' +
       prices +
       '<h2 style="margin-top:15px">Promociones</h2>' +
-      ["lunes", "martes", "miercoles", "jueves"]
+      ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
         .map(
-          (day, index) =>
+          (day) =>
             '<label class="switch"><span>' +
-            ["Lunes 2x1", "Martes 2x1", "Miércoles 2x1", "Jueves 3x2"][index] +
+            days[(["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"].indexOf(day) + 1) % 7] +
+            " 2x1" +
             '</span><input type="checkbox" data-promo-day="' +
             day +
             '" ' +
@@ -1069,6 +1070,7 @@ function beep() {
       document.querySelectorAll("[data-promo-day]").forEach((input) => {
         menu.promos[input.dataset.promoDay] = input.checked;
       });
+      menu.promos.jueves = false;
       menu.mitadMitad = $("halfEnabled").checked;
       document.querySelectorAll("[data-drink-name]").forEach((input) => {
         const item = menu.bebidas[+input.dataset.drinkName];

@@ -58,7 +58,15 @@
       0: ["Mora", "Limón", "Mango biche", "Coco"],
     },
     agotados: {},
-    promos: { lunes: true, martes: true, miercoles: true, jueves: true },
+    promos: {
+      lunes: true,
+      martes: true,
+      miercoles: true,
+      jueves: false,
+      viernes: false,
+      sabado: false,
+      domingo: false,
+    },
     mitadMitad: true,
     promoBanner: "",
     closedMessage:
@@ -116,7 +124,7 @@
       precios: Object.assign({}, DEFAULTS.precios, source.precios || {}),
       dias: Object.assign({}, DEFAULTS.dias, source.dias || {}),
       agotados: source.agotados || {},
-      promos: Object.assign({}, DEFAULTS.promos, source.promos || {}),
+      promos: Object.assign({}, DEFAULTS.promos, source.promos || {}, { jueves: false }),
     });
 
     if (!menu.precios.jueves) menu.precios.jueves = [...menu.precios.semana];

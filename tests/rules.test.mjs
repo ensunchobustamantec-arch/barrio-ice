@@ -19,7 +19,8 @@ import {
 } from "firebase/firestore";
 
 const OWNER_UID = "NDdEIdTQiqMS947ENRr7aEq1i6B3";
-const rules = await readFile(new URL("../firestore.rules", import.meta.url), "utf8");
+const rulesFile = process.env.FIRESTORE_RULES_FILE || "firestore.rules";
+const rules = await readFile(new URL(`../${rulesFile}`, import.meta.url), "utf8");
 const environment = await initializeTestEnvironment({
   projectId: "barrio-ice",
   firestore: { rules },
