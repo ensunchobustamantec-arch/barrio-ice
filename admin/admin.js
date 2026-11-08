@@ -12,6 +12,11 @@ const {
 } = BarrioShared;
 const $ = (id) => document.getElementById(id);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const firestoreId = () => {
+  if (self.crypto?.randomUUID) return self.crypto.randomUUID().replace(/-/g, "");
+  return (Date.now().toString(36) + Math.random().toString(36).slice(2) +
+    Math.random().toString(36).slice(2)).slice(0, 32);
+};
 const days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 const dayNames = days;
 const weekdayKeys = days;
@@ -2365,7 +2370,7 @@ async function initializeFirebase() {
     createLocalSale: (id, value) =>
       dbSdk.setDoc(dbSdk.doc(db, "ventas_local", id), value),
     async voidLocalSale(id, reason, uid) {
-      const auditId = crypto.randomUUID().replace(/-/g, "");
+      const auditId = firestoreId();
       const batch = dbSdk.writeBatch(db);
       batch.update(dbSdk.doc(db, "ventas_local", id), {
         anulada: true,
