@@ -4,7 +4,7 @@
   // Editables sin tocar la coreografía.
   const PHRASES = ["Congelando el barrio…", "Sirviendo el frío…", "Hoy está sonando duro."];
   const STORAGE_KEY = "barrio-ice-intro-v4";
-  const MINIMUM = 5800;
+  const MINIMUM = 7000;
   const MAXIMUM = 10000;
   const query = new URLSearchParams(location.search);
   const intro = document.getElementById("barrioIntro");
