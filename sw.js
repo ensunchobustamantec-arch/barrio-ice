@@ -16,6 +16,7 @@ const SHELL = [
   "/intro.js",
   "/frozen-ui.js",
   "/assets/brand/logo-dark.webp",
+  "/assets/brand/logo-dark-mobile.webp",
   "/intro.css",
   "/pricing.js",
   "/shared/menu-schema.js",

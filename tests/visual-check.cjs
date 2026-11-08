@@ -311,6 +311,8 @@ const server = http.createServer((request, response) => {
             [412, 915],
             [768, 1024],
             [1280, 900],
+            [1366, 768],
+            [1920, 1080],
             [1440, 900],
           ];
     for (const theme of process.env.VISUAL_QUICK === "1"
@@ -898,7 +900,7 @@ const server = http.createServer((request, response) => {
               return label.textContent.replace(/\s+/g, " ").trim();
             }),
           ),
-          ["Hoy", "Pedidos", "Menú", "Ventas", "Ajustes"],
+          ["Hoy", "Pedidos", "Menú", "Mostrador", "Ventas", "Ajustes"],
           "las pestañas del panel deben estar en el HTML y en el orden acordado",
         );
         if (theme === "light" && label === "movil") {

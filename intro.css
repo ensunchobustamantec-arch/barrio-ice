@@ -1,4 +1,8 @@
 .barrio-intro{display:none}
+.entry-impact{position:absolute;inset:25% 0;border:2px solid #c6efff;border-radius:50%;opacity:0;pointer-events:none}.entry-glint{position:absolute;inset:10% auto 10% 20%;width:22%;background:linear-gradient(90deg,transparent,#eaffff88,transparent);opacity:0;pointer-events:none}.frozen-body{transform-box:fill-box;transform-origin:bottom}.entry-choices .entry-links{opacity:1;transform:none}.frozen-cup[data-size="Pequeño"] svg{scale:.85}.frozen-cup[data-size="Grande"] svg{scale:1.08}
+.frozen-cup.is-paused svg,.frozen-cup.is-paused .frozen-spark{animation-play-state:paused}
+@media(hover:hover){.flavor:hover .frozen-cup{transform:rotate(-5deg)}.entry-links a:hover{transform:translateY(-4px)}}
+.cup>.frozen-cup{width:100%;height:100%;display:block}
 .frozen-cup{display:inline-block;width:100px;height:136px;perspective:700px;flex-shrink:0}.frozen-cup svg{width:100%;height:100%;overflow:visible;animation:frozen-float 4s ease-in-out infinite;transform-style:preserve-3d}.frozen-body,.frozen-dome{fill:var(--flavor,#5bc0eb)}.frozen-dome{fill:var(--flavor,#5bc0eb);fill:color-mix(in srgb,var(--flavor,#5bc0eb),white 38%)}.frozen-spark{animation:frozen-glint 3s ease-in-out infinite}.cart-line>.frozen-cup{width:36px;height:49px}.entry-drink{position:absolute;right:0;bottom:0;opacity:0;pointer-events:none}.entry-drink .frozen-cup{width:64px;height:87px}.entry-ready .entry-drink{opacity:1}
 @keyframes frozen-float{50%{transform:translateY(-5px) rotateY(8deg)}}@keyframes frozen-glint{50%{opacity:.3;transform:translateY(-2px)}}
 @media(prefers-reduced-motion:reduce){.frozen-cup svg,.frozen-spark{animation:none}}
