@@ -36,6 +36,8 @@ let menuDocumentExists = false;
 let audio = null;
 let unsubscribeOrders = null;
 let unsubscribeMenu = null;
+let unsubscribeLocalSales = null;
+let localSales = [];
 let ordersLoaded = false;
 let deferredInstall = null;
 let session = { user: null, role: null, staff: null };
@@ -735,15 +737,16 @@ function beep() {
   }
   function statsView() {
     const dates = periodDates(adminState.statsPeriod);
-    const current = aggregate(
-      orders.filter((order) => between(order, dates.from, dates.to)),
+    const combined = orders.concat(localSales);
+    const current = BarrioStats.aggregate(
+      combined.filter((order) => between(order, dates.from, dates.to)), { dateKey: dateKey() },
     );
-    const previous = aggregate(
-      orders.filter(
+    const previous = BarrioStats.aggregate(
+      combined.filter(
         (order) =>
           dates.previousFrom &&
           between(order, dates.previousFrom, dates.previousTo),
-      ),
+      ), { dateKey: dateKey() },
     );
     const periodButtons = [
       ["today", "Hoy"],
@@ -1264,7 +1267,9 @@ function beep() {
     const todayOrders = orders.filter(
       (order) => orderDate(order) === dateKey(),
     );
-    const current = aggregate(todayOrders);
+    const current = BarrioStats.aggregate(todayOrders.concat(localSales.filter(
+      (sale) => orderDate(sale) === dateKey(),
+    )), { dateKey: dateKey() });
     const flavors = names
       .map(
         (name) =>
@@ -1870,6 +1875,7 @@ function showPanel(user, role = "owner", staff = null) {
 function startPanel(user, role = "owner", staff = null) {
   unsubscribeOrders?.();
   unsubscribeMenu?.();
+  unsubscribeLocalSales?.();
   clearTimeout(employeeIdleTimer);
   ordersLoaded = false;
   orders = [];
@@ -1896,6 +1902,15 @@ function startPanel(user, role = "owner", staff = null) {
     adminRender();
   }, showConnectionError);
   else unsubscribeOrders = null;
+  if (role === "owner") unsubscribeLocalSales = store.watchLocalSales(
+    { uid: user.uid, all: true },
+    (nextSales) => {
+      localSales = nextSales || [];
+      if (adminState.tab === "today" || adminState.tab === "stats") adminRender();
+    },
+    showConnectionError,
+  );
+  else unsubscribeLocalSales = null;
   unsubscribeMenu = store.watchMenu((data) => {
     menu = BarrioShared.mergeMenu(data || DEFAULTS);
     adminRender();
@@ -2047,8 +2062,10 @@ function stopPanel() {
   window.BarrioPos?.stop?.();
   unsubscribeOrders?.();
   unsubscribeMenu?.();
-  unsubscribeOrders = unsubscribeMenu = null;
+  unsubscribeLocalSales?.();
+  unsubscribeOrders = unsubscribeMenu = unsubscribeLocalSales = null;
   orders = [];
+  localSales = [];
   seen.clear();
   clearTimeout(employeeIdleTimer);
   session = { user: null, role: null, staff: null };

@@ -9,6 +9,7 @@ const SHELL = [
   "/admin/theme-init.js",
   "/admin/admin.js",
   "/admin/pos.js",
+  "/admin/stats-core.js",
   "/admin/xlsx-export.js",
   "/admin/manifest.webmanifest",
   "/pricing.js",

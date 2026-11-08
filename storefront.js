@@ -197,6 +197,15 @@ const BarrioShared = window.BarrioShared;
         let p = plan(),
           on = openNow(),
           day = now().getDay();
+        const payment = $("payment");
+        if (payment) {
+          const selectedPayment = payment.value;
+          const methods = ["Efectivo", ...Object.keys(menu.pagos || {})];
+          payment.innerHTML = methods
+            .map((method) => "<option>" + esc(method) + "</option>")
+            .join("");
+          if (methods.includes(selectedPayment)) payment.value = selectedPayment;
+        }
         $("heroStatus").textContent = on ? "Abierto ahora" : "Cerrado ahora";
         $("shopStatus").textContent = on
           ? "Abierto · hasta " + menu.horario.cierra
@@ -491,12 +500,30 @@ const BarrioShared = window.BarrioShared;
               )
               .join("")
           : '<p class="notice">El pedido está más vacío que la nevera un domingo.</p>';
+        if (r.giftLines.length) {
+          $("lines").insertAdjacentHTML("beforeend", r.giftLines.map((line) =>
+            '<div class="cart-line"><div><b>Granizado de ' + esc(line.sabores.join(" / ")) +
+            '</b><small>' + esc(line.s) + ' · REGALO 2x1' +
+            (line.adulto ? ' · +18' : '') + '</small></div><b>×' + line.q + '</b></div>'
+          ).join(""));
+          $("lines").insertAdjacentHTML("beforeend", cart.filter((item) => item.g).map((item) => {
+            const options = (menu.dias[now().getDay()] || []).filter((name) => {
+              const candidate = flavor(name);
+              return candidate && candidate.active !== false && !sold(name) &&
+                Boolean(candidate.l || candidate.adulto) === Boolean(item.adulto);
+            });
+            return '<label class="field">Sabor del regalo · ' + esc(item.n) +
+              '<select data-gift-flavor="' + esc(item.k) + '">' +
+              options.map((name) => '<option' + (name === item.giftFlavor ? ' selected' : '') +
+                '>' + esc(name) + '</option>').join("") + '</select></label>';
+          }).join(""));
+        }
         $("summary").innerHTML = cart.length
           ? "<div><span>Subtotal</span><b>" +
             fmt(r.sub) +
             "</b></div>" +
             (r.discount
-              ? '<div class="discount"><span>Promo ' +
+              ? '<div class="discount"><span>Ahorro por promo ' +
                 plan().title +
                 "</span><b>−" +
                 fmt(r.discount) +
@@ -510,10 +537,16 @@ const BarrioShared = window.BarrioShared;
         $("total").textContent = fmt(r.total);
         $("ageBox").classList.toggle("hide", !cart.some((x) => x.adulto));
         paymentChanged();
+        updateCashChange();
         markPicked();
         document.dispatchEvent(new Event("barrio:draw"));
       }
       document.addEventListener("barrio:draw-request", draw);
+      function updateCashChange() {
+        const change = Number($("cash").value) - totals().total;
+        $("cashChange").textContent = $("payment").value === "Efectivo" && change >= 0 &&
+          $("cash").value ? "Cambio para devolver: " + fmt(change) : "";
+      }
       function markPicked() {
         $$(".size").forEach((b) => {
           let q = cart
@@ -595,13 +628,14 @@ const BarrioShared = window.BarrioShared;
         );
         $("cashBox").classList.toggle("hide", m !== "Efectivo");
         $("digital").classList.toggle("hide", m === "Efectivo");
-        if (m !== "Efectivo")
+        if (m !== "Efectivo") {
+          const paymentDetails = String(menu.pagos[m] || "").trim();
           $("digital").innerHTML =
-            "Paga al número de <b>" +
+            (paymentDetails ? "Paga con " : "El negocio confirmará los datos de pago de ") +
+            "<b>" +
             esc(m) +
-            ": " +
-            esc(menu.pagos[m] || "por confirmar") +
-            "</b> y envía el comprobante por WhatsApp.";
+            (paymentDetails ? ": " + esc(paymentDetails) + "</b> y envía el comprobante por WhatsApp." : "</b> por WhatsApp.");
+        }
       }
       function restore() {
         let c = local.get("customer", {});
@@ -774,6 +808,19 @@ const BarrioShared = window.BarrioShared;
         }
       }
       function events() {
+        $("cash").addEventListener("input", updateCashChange);
+        document.addEventListener("change", (event) => {
+          const key = event.target.dataset?.giftFlavor;
+          if (!key) return;
+          const item = cart.find((line) => line.k === key);
+          const candidate = flavor(event.target.value);
+          if (item && candidate && candidate.active !== false && !sold(candidate.n) &&
+              (menu.dias[now().getDay()] || []).includes(candidate.n) &&
+              Boolean(candidate.l || candidate.adulto) === Boolean(item.adulto)) {
+            item.giftFlavor = candidate.n;
+            draw();
+          }
+        });
         document.addEventListener("click", (event) => {
           const flavorButton = event.target.closest("[data-flavor]"),
             drinkButton = event.target.closest("[data-drink]"),
