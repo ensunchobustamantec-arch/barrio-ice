@@ -12,6 +12,11 @@ const {
 } = BarrioShared;
 const $ = (id) => document.getElementById(id);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const firestoreId = () => {
+  if (self.crypto?.randomUUID) return self.crypto.randomUUID().replace(/-/g, "");
+  return (Date.now().toString(36) + Math.random().toString(36).slice(2) +
+    Math.random().toString(36).slice(2)).slice(0, 32);
+};
 const days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 const dayNames = days;
 const weekdayKeys = days;
@@ -229,14 +234,25 @@ function beep() {
       encodeURIComponent(orderWhatsapp(order, status))
     );
   }
-  function setOrderStatus(id, status) {
-    if (store?.ready) {
-      const order = orders.find((item) => item.id === id);
-      return store.update(
+  async function setOrderStatus(id, status) {
+    if (!store?.ready) return;
+    const order = orders.find((item) => item.id === id);
+    const feedback = $("orderStatusFeedback");
+    if (feedback) feedback.textContent = "Guardando estado…";
+    try {
+      const result = await store.update(
         id,
         { estado: status, actualizadoEn: store.time() },
         order,
       );
+      if (feedback)
+        feedback.textContent = result?.tracking === false
+          ? "Pedido actualizado; el seguimiento público no pudo actualizarse."
+          : "Estado guardado.";
+    } catch (error) {
+      console.error(error);
+      if (feedback)
+        feedback.textContent = "No se pudo guardar el estado. Revisa las reglas de Firebase.";
     }
   }
   function orderAudit(order) {
@@ -476,7 +492,7 @@ function beep() {
       String(audio?.state === "running") +
       '">' +
       (audio?.state === "running" ? "🔔 Avisos activos" : "🔔 Activar avisos") +
-      '</button><button class="primary" id="xlsx" title="Descarga el historial completo, aunque no esté cargado en pantalla.">Exportar Excel completo</button><span class="saved" id="xlsxFeedback" role="status" aria-live="polite"></span></div><div class="orders">' +
+      '</button><button class="primary" id="xlsx" title="Descarga el historial completo, aunque no esté cargado en pantalla.">Exportar Excel completo</button><span class="saved" id="xlsxFeedback" role="status" aria-live="polite"></span><span class="saved" id="orderStatusFeedback" role="status" aria-live="polite"></span></div><div class="orders">' +
       (list.length
         ? list
             .map((order) => {
@@ -2265,21 +2281,25 @@ async function initializeFirebase() {
     },
     save: (value) => dbSdk.setDoc(dbSdk.doc(db, "tienda", "menu"), value),
     update: async (id, value, order) => {
-      const batch = dbSdk.writeBatch(db);
-      batch.update(dbSdk.doc(db, "pedidos", id), value);
+      await dbSdk.updateDoc(dbSdk.doc(db, "pedidos", id), value);
       const trackingRef = dbSdk.doc(db, "seguimiento", id);
-      const tracking = await dbSdk.getDoc(trackingRef);
-      batch.set(
-        trackingRef,
-        tracking.exists()
-          ? { estado: value.estado, actualizadoEn: value.actualizadoEn }
-          : Object.assign(
-              publicTracking(order || orders.find((item) => item.id === id) || {}, value.estado),
-              { actualizadoEn: value.actualizadoEn },
-            ),
-        { merge: true },
-      );
-      await batch.commit();
+      try {
+        const tracking = await dbSdk.getDoc(trackingRef);
+        await dbSdk.setDoc(
+          trackingRef,
+          tracking.exists()
+            ? { estado: value.estado, actualizadoEn: value.actualizadoEn }
+            : Object.assign(
+                publicTracking(order || orders.find((item) => item.id === id) || {}, value.estado),
+                { actualizadoEn: value.actualizadoEn },
+              ),
+          { merge: true },
+        );
+        return { tracking: true };
+      } catch (error) {
+        console.warn("El pedido se actualizó, pero no su seguimiento público.", error);
+        return { tracking: false };
+      }
     },
     async deleteOrder(id) {
       const batch = dbSdk.writeBatch(db);
@@ -2350,7 +2370,7 @@ async function initializeFirebase() {
     createLocalSale: (id, value) =>
       dbSdk.setDoc(dbSdk.doc(db, "ventas_local", id), value),
     async voidLocalSale(id, reason, uid) {
-      const auditId = crypto.randomUUID().replace(/-/g, "");
+      const auditId = firestoreId();
       const batch = dbSdk.writeBatch(db);
       batch.update(dbSdk.doc(db, "ventas_local", id), {
         anulada: true,

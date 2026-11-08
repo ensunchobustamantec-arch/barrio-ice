@@ -123,7 +123,9 @@
       if (button.hasAttribute("data-pos-close")) return closeCash(ctx);
       if (button.hasAttribute("data-pos-staff")) return saveStaff(ctx);
     };
-    view.onchange = () => {
+    view.onchange = (event) => {
+      const field = event.target;
+      if (!field.matches("#posPromo, #posPayment, #posAdjustment, #posAdjustmentReason")) return;
       state.promo = !!document.getElementById("posPromo")?.checked;
       state.payment = document.getElementById("posPayment")?.value || state.payment;
       state.adjustment = Math.max(0, Math.round(Number(document.getElementById("posAdjustment")?.value) || 0));
@@ -154,7 +156,7 @@
     state.saving = false; render(ctx);
   }
   async function undo(ctx) { const reason = "Anulación inmediata"; try { await ctx.store.voidLocalSale(state.lastSale, reason, ctx.user.uid); state.notice = "Venta anulada."; state.lastSale = null; } catch { state.notice = "No fue posible anular esta venta."; } render(ctx); }
-  async function voidSale(ctx, saleId) { const reason = window.prompt("Motivo de anulación (mínimo 5 caracteres):", ""); if (!reason || reason.trim().length < 5) return; try { await ctx.store.voidLocalSale(saleId, ctx.clean(reason, 160), ctx.user.uid); state.notice = "Venta anulada."; } catch { state.notice = "No fue posible anular la venta."; } render(ctx); }
+  async function voidSale(ctx, saleId) { const reason = window.prompt("Motivo de anulación (mínimo 5 caracteres):", ""); if (!reason || reason.trim().length < 5) { state.notice = "Escribe un motivo de al menos 5 caracteres para anular."; return render(ctx); } try { await ctx.store.voidLocalSale(saleId, ctx.clean(reason, 160), ctx.user.uid); state.notice = "Venta anulada."; } catch (error) { console.error(error); state.notice = "No fue posible anular la venta. Revisa las reglas de Firebase."; } render(ctx); }
   async function closeCash(ctx) { const counted = Math.max(0, Math.round(Number(document.getElementById("posCounted")?.value) || 0)); const notes = ctx.clean(document.getElementById("posClosingNotes")?.value, 300); const expected = state.sales.filter((sale) => !sale.anulada && sale.fecha === ctx.dateKey() && sale.empleadoUid === ctx.user.uid && sale.metodoPago === "Efectivo").reduce((sum, sale) => sum + (Number(sale.total) || 0), 0); try { await ctx.store.createClosing(id(), { fecha: ctx.dateKey(), creadoEn: ctx.store.time(), empleadoUid: ctx.user.uid, empleadoNombre: ctx.staff?.nombre || ctx.user.email || "Empleado", efectivoEsperado: expected, efectivoContado: counted, diferencia: counted - expected, notas }); state.notice = "✓ Cierre guardado."; } catch { state.notice = "No fue posible guardar el cierre."; } render(ctx); }
   async function saveStaff(ctx) { const uid = document.getElementById("staffUid")?.value.trim(); const nombre = ctx.clean(document.getElementById("staffName")?.value, 60); if (!uid || !nombre) { state.notice = "Ingresa el UID y nombre del empleado."; return render(ctx); } try { await ctx.store.saveStaff(uid, { rol: "empleado", activo: !!document.getElementById("staffActive")?.checked, nombre }); state.notice = "✓ Empleado guardado."; } catch { state.notice = "No fue posible guardar el empleado."; } render(ctx); }
   root.BarrioPos = {
