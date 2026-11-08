@@ -438,19 +438,6 @@ dialog::backdrop {
   min-width: 0;
   overflow: hidden;
 }
-.brand img {
-  display: block;
-  flex: 0 0 auto;
-  width: auto;
-  height: 40px;
-  max-width: 44px;
-  padding: 2px;
-  border: 1px solid #a9d8eb;
-  border-radius: 10px;
-  background: #edf9ff;
-  object-fit: contain;
-  filter: none;
-}
 .brand b {
   font-size: clamp(0.98rem, 4.5vw, 1.25rem);
   line-height: 1.05;
@@ -601,10 +588,6 @@ dialog::backdrop {
   .brand {
     gap: 12px;
   }
-  .brand img {
-    height: 52px;
-    max-width: 56px;
-  }
   .brand small {
     font-size: 0.6rem;
   }
@@ -612,10 +595,6 @@ dialog::backdrop {
 @media (max-width: 380px) {
   .brand {
     gap: 7px;
-  }
-  .brand img {
-    height: 40px;
-    max-width: 42px;
   }
   .brand b {
     font-size: 0.96rem;
