@@ -761,3 +761,13 @@ button:disabled,
   min-height: 44px;
   align-items: center;
 }
+/* Volumen compartido sobre el vaso existente; conserva --flavor del menú. */
+.cup{perspective:700px;transform-style:preserve-3d;filter:drop-shadow(0 12px 8px #07131d44);transition:transform 220ms cubic-bezier(.23,1,.32,1)}
+.cup .glass{background:linear-gradient(100deg,#ffffff66,#ffffff08 38%,#ffffff44 78%,#07131d33);border:1px solid #d9faff;box-shadow:inset 5px 0 7px #ffffff66,inset -5px 0 8px #07131d33;transform:translateZ(6px)}
+.cup .fill{background:linear-gradient(160deg,#ffffff99,transparent 35%),var(--flavor,#5bc0eb);background:linear-gradient(160deg,color-mix(in srgb,var(--flavor,#5bc0eb),white 55%),var(--flavor,#5bc0eb) 55%,color-mix(in srgb,var(--flavor,#5bc0eb),black 25%))}
+.cup .glass::after{content:"";position:absolute;inset:10% 14%;background:radial-gradient(ellipse at 20% 20%,#fff9 0 2px,transparent 3px),radial-gradient(ellipse at 75% 55%,#fff7 0 3px,transparent 4px),linear-gradient(100deg,transparent 20%,#fff5 22%,transparent 30%);pointer-events:none}
+.cup .rim{box-shadow:inset 0 3px 3px #fff9,0 2px 2px #07131d33;transform:translateZ(9px)}
+.cup .straw{background:repeating-linear-gradient(140deg,#fff 0 6px,#5bc0eb 6px 12px);transform:translateZ(12px) rotate(12deg)}
+@media(hover:hover) and (pointer:fine){.flavor:hover .cup{transform:rotateY(-12deg) rotateX(7deg) translateY(-5px)}}
+.flavor:active .cup{transform:rotateY(8deg) scale(.97)}
+@media(prefers-reduced-motion:reduce){.cup{transition:none}.flavor:hover .cup,.flavor:active .cup{transform:none}}
