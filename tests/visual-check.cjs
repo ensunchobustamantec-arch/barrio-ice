@@ -297,7 +297,7 @@ const server = http.createServer((request, response) => {
       viewport: { width: 390, height: 844 },
       serviceWorkers: "block",
     });
-    await compatibilityPage.goto(address + "/#admin", {
+    await compatibilityPage.goto(address + "/?intro=0#admin", {
       waitUntil: "domcontentloaded",
     });
     await compatibilityPage.waitForURL("**/admin/", { timeout: 5000 });
@@ -334,7 +334,7 @@ const server = http.createServer((request, response) => {
             ),
           theme,
         );
-        await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
+        await page.goto(address + "/?e2e=1&intro=0", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#promoText");
         await page.waitForSelector(".flavor");
         const seo = await page.evaluate(() => {
@@ -856,7 +856,7 @@ const server = http.createServer((request, response) => {
           },
           { menu: sampleMenu, orders: sampleOrders, themeValue: theme },
         );
-        await page.goto(address + "/admin/?e2e=1", { waitUntil: "domcontentloaded" });
+        await page.goto(address + "/admin/?e2e=1&intro=0", { waitUntil: "domcontentloaded" });
         await page.waitForFunction(() => !!window.__barrioAdminE2E);
         const openAdmin = async () => {
           await page.evaluate(() =>
@@ -1027,7 +1027,7 @@ const server = http.createServer((request, response) => {
             () => JSON.parse(localStorage.getItem("barrio-ice-visual-menu") || "{}").dias?.["3"],
           );
           assert.ok(availability?.includes(flavorName), "el sabor debe publicarse para el miércoles");
-          await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
+          await page.goto(address + "/?e2e=1&intro=0", { waitUntil: "domcontentloaded" });
           await page.waitForFunction(() => !!window.__barrio?.store?.ready);
           const flavorCard = page.locator(".flavor").filter({ hasText: flavorName });
           await flavorCard.waitFor();
