@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#07131d" />
     <script src="./theme-init.js"></script>
     <link rel="stylesheet" href="/intro.css" />
+    <script defer src="./frozen-ui.js"></script>
     <script defer src="./intro.js"></script>
     <title>Barrio Ice · Granizados y bebidas frías en Montería</title>
     <meta
@@ -116,23 +117,7 @@
     <link rel="stylesheet" href="./motion-effects.css" />
   </head>
   <body>
-    <section id="barrioIntro" class="barrio-intro" aria-describedby="introStatus">
-      <span id="introStatus" class="sr-only" role="status">Cargando Barrio Ice</span>
-      <div class="intro-visual" aria-hidden="true">
-        <div class="intro-night"><i class="intro-moon"></i><div class="intro-skyline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-        <svg class="intro-wire" viewBox="0 0 1000 320" preserveAspectRatio="none"><path pathLength="1" d="M-20 95 C190 30 296 198 488 112 S760 35 1020 105"/><path pathLength="1" d="M716 86v150m-46 0h92m-68-92h44"/></svg>
-        <div class="intro-frost"></div><canvas class="intro-snow"></canvas>
-        <div class="intro-cube" id="introCube">
-          <span class="ice-shard" style="--sx:-46vw;--sy:-28vh;--sr:-145deg;--tx:-44%;--ty:-48%;--tr:20deg;--d:0ms"></span><span class="ice-shard" style="--sx:42vw;--sy:-35vh;--sr:125deg;--tx:12%;--ty:-54%;--tr:-20deg;--d:70ms"></span><span class="ice-shard" style="--sx:-55vw;--sy:8vh;--sr:72deg;--tx:-58%;--ty:-10%;--tr:67deg;--d:140ms"></span><span class="ice-shard" style="--sx:55vw;--sy:14vh;--sr:-105deg;--tx:43%;--ty:-8%;--tr:-58deg;--d:210ms"></span><span class="ice-shard" style="--sx:-38vw;--sy:42vh;--sr:-74deg;--tx:-37%;--ty:42%;--tr:16deg;--d:280ms"></span><span class="ice-shard" style="--sx:44vw;--sy:41vh;--sr:172deg;--tx:20%;--ty:46%;--tr:76deg;--d:350ms"></span><span class="ice-shard" style="--sx:-14vw;--sy:-47vh;--sr:22deg;--tx:-6%;--ty:-63%;--tr:-40deg;--d:420ms"></span><span class="ice-shard" style="--sx:8vw;--sy:48vh;--sr:145deg;--tx:-8%;--ty:59%;--tr:33deg;--d:490ms"></span><span class="ice-shard" style="--sx:-64vw;--sy:32vh;--sr:-30deg;--tx:-66%;--ty:25%;--tr:-72deg;--d:560ms"></span><span class="ice-shard" style="--sx:64vw;--sy:-4vh;--sr:45deg;--tx:62%;--ty:22%;--tr:88deg;--d:630ms"></span>
-          <img id="introMark" src="/assets/brand/logo-mark-dark.webp" width="575" height="504" alt="" decoding="async" />
-          <i class="intro-glint"></i>
-        </div>
-        <div class="intro-drops"><i></i><i></i><i></i></div><div class="intro-floaters"><i></i><i></i><i></i></div>
-      </div>
-      <div class="intro-copy" aria-hidden="true"><p class="intro-title"><span>B</span><span>A</span><span>R</span><span>R</span><span>I</span><span>O</span><span class="intro-space"> </span><span>I</span><span>C</span><span>E</span></p><small>COLD FLOW · MONTERÍA</small></div>
-      <p class="intro-phrase" aria-live="polite">Congelando el barrio…</p>
-      <button class="intro-skip" type="button" data-intro-skip>Saltar</button>
-    </section>
+    <section id="barrioIntro" class="barrio-intro"></section>
     <header class="top shell">
       <a class="brand" href="#inicio" aria-label="Barrio Ice inicio"
         ><img
@@ -189,7 +174,10 @@
           <span class="status" id="shopStatus">Cargando…</span>
         </div>
         <div class="week" id="week"></div>
-        <div class="grid" id="flavors"></div>
+        <div class="catalog-scene">
+          <aside class="flavor-showcase" aria-hidden="true"><div class="showcase-cup"></div><span class="showcase-name"></span></aside>
+          <div class="grid" id="flavors"></div>
+        </div>
         <button id="halfLaunch" class="secondary half-launch hide" type="button">
           Mitad y mitad · combina dos sabores
         </button>

@@ -8,25 +8,6 @@
   if (!menu.precios.jueves) menu.precios.jueves = [...menu.precios.semana];
 
   function installPageExtras() {
-    if (!document.getElementById("halfDialog")) {
-      document.body.insertAdjacentHTML(
-        "beforeend",
-        `<dialog id="halfDialog">
-          <form id="halfForm">
-            <h2>Mitad y mitad</h2>
-            <p class="notice">Escoge dos sabores de hoy para un mismo vaso.</p>
-            <div class="field"><label for="halfSize">Tamaño</label><select id="halfSize"></select></div>
-            <div class="field"><label for="halfFirst">Primer sabor</label><select id="halfFirst"></select></div>
-            <div class="field"><label for="halfSecond">Segundo sabor</label><select id="halfSecond"></select></div>
-            <p id="halfPrice" class="notice"></p>
-            <div class="dialog-actions">
-              <button class="secondary" type="button" id="halfCancel">Cancelar</button>
-              <button class="primary" type="submit">Agregar al pedido</button>
-            </div>
-          </form>
-        </dialog>`,
-      );
-    }
     if (!document.getElementById("cashChange")) {
       $("cashBox")?.insertAdjacentHTML(
         "beforeend",
@@ -309,53 +290,6 @@
         ? "Cambio para devolver: " + fmt(amount - total)
         : "";
   }
-  function ensureHalfOptions(initialFlavor) {
-    const options = allTodayFlavors();
-    $("halfFirst").innerHTML = options
-      .map(
-        (item) =>
-          '<option value="' +
-          esc(item.n) +
-          '" ' +
-          (item.n === initialFlavor ? "selected" : "") +
-          ">" +
-          esc(item.n) +
-          "</option>",
-      )
-      .join("");
-    $("halfSecond").innerHTML = options
-      .map(
-        (item, index) =>
-          '<option value="' +
-          esc(item.n) +
-          '" ' +
-          (item.n !== initialFlavor &&
-          index === options.findIndex((other) => other.n !== initialFlavor)
-            ? "selected"
-            : "") +
-          ">" +
-          esc(item.n) +
-          "</option>",
-      )
-      .join("");
-    const p = dayPlan();
-    $("halfSize").innerHTML = sizes
-      .map(
-        (size, index) =>
-          '<option value="' +
-          index +
-          '">' +
-          size +
-          " · " +
-          fmt(p.prices[index]) +
-          "</option>",
-      )
-      .join("");
-    $("halfPrice").textContent = "Precio del vaso: " + fmt(p.prices[0]);
-  }
-
-
-
   document.addEventListener("change", (event) => {
     const target = event.target;
     if (target.matches("[data-gift-flavor]")) {
@@ -367,45 +301,19 @@
     }
     if (target.id === "payment" || target.id === "delivery") updateCashChange();
   });
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-half-launch]");
+    if (!trigger) return;
+    showHalfPicker();
+    const select = $("halfFlavorA");
+    if (select && [...select.options].some(option => option.value === trigger.dataset.halfLaunch)) {
+      select.value = trigger.dataset.halfLaunch;
+      syncHalfPicker();
+    }
+  });
   document.addEventListener("input", (event) => {
     if (event.target.id === "cash") updateCashChange();
   });
-  $("halfCancel").onclick = () => $("halfDialog").close();
-  $("halfSize").onchange = () => {
-    $("halfPrice").textContent =
-      "Precio del vaso: " + fmt(dayPlan().prices[+$("halfSize").value]);
-  };
-  $("halfForm").onsubmit = (event) => {
-    event.preventDefault();
-    const first = $("halfFirst").value,
-      second = $("halfSecond").value,
-      index = +$("halfSize").value;
-    if (!first || !second || first === second) {
-      alert("Escoge dos sabores diferentes.");
-      return;
-    }
-    const p = dayPlan(),
-      key = [first, second].sort().join("/") + ":" + index;
-    const adult = [flavor(first), flavor(second)].some(
-      (item) => item?.l || item?.adulto,
-    );
-    add(
-      {
-        k: "h:" + key,
-        n: "Granizado mitad y mitad",
-        s: sizes[index],
-        sabores: [first, second],
-        p: +p.prices[index],
-        q: 1,
-        g: true,
-        tipo: "granizado",
-        adulto: adult,
-        giftFlavor: first,
-      },
-      null,
-    );
-    $("halfDialog").close();
-  };
   function reducedMotion() {
     return matchMedia("(prefers-reduced-motion: reduce)").matches;
   }

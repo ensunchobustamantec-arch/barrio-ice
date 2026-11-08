@@ -156,10 +156,12 @@ function firebaseStub(file) {
         const path = parts.join("/");
         return { id: parts.at(-1), path };
       }
-      export function query() { return { query: true }; }
+      export function query(ref) { return { query: true, path: ref.path }; }
       export function orderBy() { return {}; }
+      export function limit() { return {}; }
+      export function where() { return {}; }
       export function onSnapshot(ref, callback) {
-        if (ref.query) callback({ docs: orders.map((order) => ({ id: order.id, data: () => order })) });
+        if (ref.query) callback({ docs: (ref.path === "pedidos" ? orders : []).map((order) => ({ id: order.id, data: () => order })) });
         else if (ref.path === "tienda/menu") callback({ exists: () => true, data: () => menu });
         else if (ref.path.startsWith("seguimiento/")) {
           const data = tracking[ref.path];
@@ -311,6 +313,8 @@ const server = http.createServer((request, response) => {
             [412, 915],
             [768, 1024],
             [1280, 900],
+            [1366, 768],
+            [1920, 1080],
             [1440, 900],
           ];
     for (const theme of process.env.VISUAL_QUICK === "1"
@@ -324,7 +328,7 @@ const server = http.createServer((request, response) => {
           serviceWorkers: "block",
         });
         await interceptFirebase(page);
-        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("pageerror", (error) => errors.push(error.stack || error.message));
         await page.addInitScript(freezeDate);
         await page.addInitScript(
           (themeValue) =>
@@ -417,6 +421,11 @@ const server = http.createServer((request, response) => {
           );
         }
         await page.waitForTimeout(800);
+        if (width === 390 && theme === "light") {
+          await page.locator(".half-trigger").first().click();
+          assert.equal(await page.locator("#halfDialog").evaluate(node => node.open), true);
+          await page.locator("#halfClose").click();
+        }
         const socialImages = await page
           .locator('meta[property="og:image"], meta[name="twitter:image"]')
           .evaluateAll((tags) => tags.map((tag) => tag.content));
@@ -828,7 +837,7 @@ const server = http.createServer((request, response) => {
           serviceWorkers: "block",
         });
         await interceptFirebase(page);
-        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("pageerror", (error) => errors.push(error.stack || error.message));
         await page.addInitScript(freezeDate);
         if (theme === "light" && label === "movil")
           await page.addInitScript(() => {
@@ -870,6 +879,10 @@ const server = http.createServer((request, response) => {
             .waitFor();
         };
         await openAdmin();
+        // La sesión limpia la memoria; simular la primera instantánea remota.
+        await page.evaluate(() => window.__barrioAdminE2E.replaceOrders(
+          JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]"),
+        ));
         if (theme === "light" && label === "movil") {
           assert.equal(await page.locator("#installBar").isVisible(), true);
           await page.locator("#installNow").click();
@@ -898,7 +911,7 @@ const server = http.createServer((request, response) => {
               return label.textContent.replace(/\s+/g, " ").trim();
             }),
           ),
-          ["Hoy", "Pedidos", "Menú", "Ventas", "Ajustes"],
+          ["Hoy", "Pedidos", "Menú", "Mostrador", "Ventas", "Ajustes"],
           "las pestañas del panel deben estar en el HTML y en el orden acordado",
         );
         if (theme === "light" && label === "movil") {
@@ -1079,7 +1092,16 @@ const server = http.createServer((request, response) => {
             () => !document.getElementById("trackingCopy")?.textContent.includes("Buscando"),
           );
           const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
-          assert.match(trackingText.join(" "), /Cliente/);
+          assert.match(
+            trackingText.join(" "),
+            /Cliente/,
+            "seguimiento: " + JSON.stringify(await page.evaluate(() => ({
+              href: location.href,
+              copy: document.getElementById("trackingCopy")?.textContent,
+              meta: document.getElementById("trackingMeta")?.textContent,
+              writes: localStorage.getItem("barrio-ice-visual-writes"),
+            }))),
+          );
           assert.doesNotMatch(trackingText.join(" "), /3001234567|Prueba/);
           assert.deepEqual(
             await page.locator("#steps .step span").allTextContents(),
