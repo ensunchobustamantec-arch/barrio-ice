@@ -3,6 +3,23 @@
   let sequence = 0;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const observed = new Set();
+  let activeFlavor = '';
+  const flavorObserver = !reduced && 'IntersectionObserver' in window ? new IntersectionObserver(entries=>{
+    const entry=entries.filter(item=>item.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+    if(!entry)return;
+    const name=entry.target.querySelector('h3')?.textContent || '';
+    const color=getComputedStyle(entry.target).getPropertyValue('--flavor').trim();
+    if(name+color===activeFlavor)return;
+    activeFlavor=name+color;
+    const scene=document.querySelector('.flavor-showcase');
+    if(!scene)return;
+    scene.style.setProperty('--flavor',color);
+    scene.querySelector('.showcase-name').textContent=name;
+    scene.querySelector('.showcase-cup').replaceChildren(cup(color,'Grande'));
+    scene.querySelector('.showcase-cup').animate([{opacity:0,transform:'translateY(18px) scale(.9)'},{opacity:1,transform:'none'}],{duration:500,easing:'cubic-bezier(.23,1,.32,1)'});
+    document.getElementById('sabores')?.style.setProperty('--scene-flavor',color);
+  },{rootMargin:'-15% 0px -40%',threshold:[0,.25,.65]}) : null;
+  const observedCards = new Set();
   const visibility = 'IntersectionObserver' in window ? new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('is-paused',!entry.isIntersecting)),{rootMargin:'50px'}) : null;
   function cup(color = '#5bc0eb', size = 'Mediano') {
     const id = `frozen-${++sequence}`;
@@ -19,10 +36,20 @@
   window.BarrioCup = cup;
   function decorate() {
     observed.forEach(node=>{if(!node.isConnected){visibility?.unobserve(node);observed.delete(node);}});
+    observedCards.forEach(node=>{if(!node.isConnected){flavorObserver?.unobserve(node);observedCards.delete(node);}});
     document.querySelectorAll('.flavor .cup:not([data-frozen])').forEach(old => {
       old.dataset.frozen = '1';
       const color = getComputedStyle(old.closest('.flavor')).getPropertyValue('--flavor').trim();
       old.replaceChildren(cup(color));
+      const card=old.closest('.flavor');
+      const flavorName=card.querySelector('[data-flavor]')?.dataset.flavor;
+      const item=typeof flavor==='function' ? flavor(flavorName) : null;
+      const photo=item?.image || item?.imagen;
+      if(typeof photo==='string' && (/^https:\/\//i.test(photo) || /^\/(?!\/)/.test(photo))){
+        const img=new Image();img.width=140;img.height=190;img.alt='';img.loading='lazy';img.decoding='async';img.className='frozen-photo';
+        img.onload=()=>old.replaceChildren(img);img.src=photo;
+      }
+      flavorObserver?.observe(card);observedCards.add(card);
     });
     document.querySelectorAll('.cart-line:not([data-frozen])').forEach(line => {
       line.dataset.frozen = '1';

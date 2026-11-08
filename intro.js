@@ -25,7 +25,7 @@
   const drink=document.createElement('div');
   drink.className='entry-drink';
   if(window.BarrioCup)drink.append(window.BarrioCup('#9b3fd6','Pequeño'));
-  host.querySelector('.entry-stage').append(drink);
+  host.insertBefore(drink,host.querySelector('.entry-tag'));
   if(!reduced)drink.animate([{opacity:0,transform:'translateY(20px)'},{opacity:1,transform:'translateY(0)'}],{delay:LANDING_DURATION_MS*.77,duration:LANDING_DURATION_MS*.13,fill:'forwards'});
   if(!reduced){
     frost.animate([{opacity:0,transform:'scale(.15)'},{opacity:.9,offset:.2,transform:'scale(.5)'},{opacity:0,transform:'scale(1.6)'}],{delay:LANDING_DURATION_MS/3,duration:LANDING_DURATION_MS*.18,fill:'both'});

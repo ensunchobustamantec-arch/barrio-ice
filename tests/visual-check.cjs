@@ -156,10 +156,12 @@ function firebaseStub(file) {
         const path = parts.join("/");
         return { id: parts.at(-1), path };
       }
-      export function query() { return { query: true }; }
+      export function query(ref) { return { query: true, path: ref.path }; }
       export function orderBy() { return {}; }
+      export function limit() { return {}; }
+      export function where() { return {}; }
       export function onSnapshot(ref, callback) {
-        if (ref.query) callback({ docs: orders.map((order) => ({ id: order.id, data: () => order })) });
+        if (ref.query) callback({ docs: (ref.path === "pedidos" ? orders : []).map((order) => ({ id: order.id, data: () => order })) });
         else if (ref.path === "tienda/menu") callback({ exists: () => true, data: () => menu });
         else if (ref.path.startsWith("seguimiento/")) {
           const data = tracking[ref.path];
@@ -326,7 +328,7 @@ const server = http.createServer((request, response) => {
           serviceWorkers: "block",
         });
         await interceptFirebase(page);
-        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("pageerror", (error) => errors.push(error.stack || error.message));
         await page.addInitScript(freezeDate);
         await page.addInitScript(
           (themeValue) =>
@@ -419,6 +421,11 @@ const server = http.createServer((request, response) => {
           );
         }
         await page.waitForTimeout(800);
+        if (width === 390 && theme === "light") {
+          await page.locator(".half-trigger").first().click();
+          assert.equal(await page.locator("#halfDialog").evaluate(node => node.open), true);
+          await page.locator("#halfClose").click();
+        }
         const socialImages = await page
           .locator('meta[property="og:image"], meta[name="twitter:image"]')
           .evaluateAll((tags) => tags.map((tag) => tag.content));
@@ -830,7 +837,7 @@ const server = http.createServer((request, response) => {
           serviceWorkers: "block",
         });
         await interceptFirebase(page);
-        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("pageerror", (error) => errors.push(error.stack || error.message));
         await page.addInitScript(freezeDate);
         if (theme === "light" && label === "movil")
           await page.addInitScript(() => {
@@ -872,6 +879,10 @@ const server = http.createServer((request, response) => {
             .waitFor();
         };
         await openAdmin();
+        // La sesión limpia la memoria; simular la primera instantánea remota.
+        await page.evaluate(() => window.__barrioAdminE2E.replaceOrders(
+          JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]"),
+        ));
         if (theme === "light" && label === "movil") {
           assert.equal(await page.locator("#installBar").isVisible(), true);
           await page.locator("#installNow").click();
