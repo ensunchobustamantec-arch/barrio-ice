@@ -7,6 +7,8 @@ const SHELL = [
   "/admin/index.html",
   "/admin/admin.css",
   "/admin/theme-init.js",
+  "/intro.js",
+  "/intro.css",
   "/admin/admin.js",
   "/admin/pos.js",
   "/admin/stats-core.js",

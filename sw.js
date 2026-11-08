@@ -13,6 +13,8 @@ const SHELL = [
   "/site.css",
   "/motion-effects.css",
   "/theme-init.js",
+  "/intro.js",
+  "/intro.css",
   "/pricing.js",
   "/shared/menu-schema.js",
   "/store-firebase.js",

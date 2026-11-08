@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"
     />
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <meta name="theme-color" content="#07131d" />
@@ -20,9 +20,23 @@
     <link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
     <script src="/admin/theme-init.js"></script>
+    <link rel="stylesheet" href="/intro.css" />
+    <script defer src="/intro.js"></script>
     <link rel="stylesheet" href="/admin/admin.css" />
   </head>
   <body>
+    <section id="barrioIntro" class="barrio-intro" aria-label="Cargando el panel Barrio Ice" aria-live="polite">
+      <div class="intro-grid" aria-hidden="true"></div>
+      <span class="intro-beam intro-beam-one" aria-hidden="true"></span>
+      <span class="intro-beam intro-beam-two" aria-hidden="true"></span>
+      <div class="intro-ice intro-ice-one" aria-hidden="true"></div>
+      <div class="intro-ice intro-ice-two" aria-hidden="true"></div>
+      <div class="intro-ice intro-ice-three" aria-hidden="true"></div>
+      <div class="intro-scene"><div class="intro-cup" aria-hidden="true"><i></i><b></b><em></em></div><img src="/assets/brand/logo-mark-light.webp" width="575" height="504" alt="" /></div>
+      <div class="intro-copy"><p>EL FRÍO DEL BARRIO</p><h1>PANEL BARRIO</h1><span>MONTERÍA · COLD FLOW</span></div>
+      <p class="intro-loading">Enfriando el mostrador <i aria-hidden="true"></i></p>
+      <button class="intro-skip" type="button" data-intro-skip>Entrar ya</button>
+    </section>
     <section id="login" class="login">
       <div class="login-card">
         <img
