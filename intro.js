@@ -3,7 +3,6 @@
 
   // Editables sin tocar la coreografía.
   const PHRASES = ["Congelando el barrio…", "Sirviendo el frío…", "Hoy está sonando duro."];
-  const STORAGE_KEY = "barrio-ice-intro-v4";
   const MINIMUM = 7000;
   const MAXIMUM = 10000;
   const query = new URLSearchParams(location.search);
@@ -13,9 +12,7 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const forced = query.get("intro") === "1";
   const disabled = query.get("intro") === "0";
-  let seen = false;
-  try { seen = sessionStorage.getItem(STORAGE_KEY) === "1"; } catch {}
-  if (disabled || (!forced && seen)) { intro.hidden = true; return; }
+  if (disabled) { intro.hidden = true; return; }
 
   const restore = { html: document.documentElement.style.overflow, body: document.body.style.overflow };
   document.documentElement.style.overflow = "hidden";
@@ -31,7 +28,6 @@
     document.documentElement.style.overflow = restore.html;
     document.body.style.overflow = restore.body;
     particles?.stop();
-    try { sessionStorage.setItem(STORAGE_KEY, "1"); } catch {}
   }
   function setProgress(value) {
     const next = Math.max(progress, Math.min(100, value));
