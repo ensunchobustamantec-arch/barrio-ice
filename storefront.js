@@ -849,19 +849,10 @@ const BarrioShared = window.BarrioShared;
         $("delivery").onchange = draw;
         $("payment").onchange = paymentChanged;
         $("repeat").onclick = repeat;
-        $("theme").onclick = () => {
-          const value =
-            document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-          document.documentElement.dataset.theme = value;
-          local.set("theme", value);
-        };
         addEventListener("hashchange", route);
       }
       async function boot() {
-        document.documentElement.dataset.theme = local.get(
-          "theme",
-          matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light",
-        );
+        document.documentElement.dataset.theme = "dark";
         restore();
         events();
         store = new Store();

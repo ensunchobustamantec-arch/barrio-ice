@@ -2425,19 +2425,13 @@ async function initializeFirebase() {
   $("connState").textContent = "Ingresa con el correo autorizado.";
 }
 
-$("theme").addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("barrio-ice-theme", JSON.stringify(next));
-  applyBrandTheme();
-});
 $("soundToggle").addEventListener("click", activateSound);
 ["pointerdown", "keydown", "touchstart"].forEach((event) =>
   document.addEventListener(event, resetEmployeeIdle, { passive: true }),
 );
 document.addEventListener("visibilitychange", enforceEmployeeVisibility);
 function applyBrandTheme() {
-  const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  const theme = "dark";
   document.querySelectorAll("img[data-brand]").forEach((image) => {
     image.src = "/assets/brand/" + image.dataset.brand + "-" + theme + ".webp";
   });

@@ -569,8 +569,11 @@ body {
 }
 :root[data-theme="dark"] .hero-stage .hero-logo {
   filter:
-    drop-shadow(0 0 1px rgb(190 240 255 / 95%))
-    drop-shadow(0 0 34px rgb(60 160 255 / 50%));
+    brightness(1.16)
+    saturate(1.45)
+    contrast(1.12)
+    drop-shadow(0 0 2px rgb(220 250 255 / 100%))
+    drop-shadow(0 0 38px rgb(60 185 255 / 68%));
 }
 .hero-aura {
   position: absolute;
