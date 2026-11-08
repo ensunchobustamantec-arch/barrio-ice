@@ -5,7 +5,7 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const root = path.resolve(__dirname, "..");
-const output = path.join(__dirname, "screenshots");
+const output = path.resolve(__dirname, process.env.VISUAL_OUTPUT || "test-results/screenshots");
 const saveScreenshots = process.env.VISUAL_SCREENSHOTS !== "0";
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -240,8 +240,11 @@ const server = http.createServer((request, response) => {
   });
   const errors = [];
   try {
-    const interceptFirebase = (page) =>
-      page.route("https://www.gstatic.com/firebasejs/**", (route) => {
+    const interceptFirebase = async (page) => {
+      await page.route("https://wa.me/**", (route) => route.fulfill({
+        status: 302, headers: { location: page.url() }, body: "",
+      }));
+      return page.route("https://www.gstatic.com/firebasejs/**", (route) => {
         const file = new URL(route.request().url()).pathname.split("/").pop();
         return route.fulfill({
           status: 200,
@@ -249,6 +252,7 @@ const server = http.createServer((request, response) => {
           body: firebaseStub(file),
         });
       });
+    };
     const address = "http://127.0.0.1:" + server.address().port;
     const workerSource = await fs.promises.readFile(
       path.join(root, "sw.js"),
@@ -331,7 +335,7 @@ const server = http.createServer((request, response) => {
           theme,
         );
         await page.goto(address + "/?e2e=1", { waitUntil: "domcontentloaded" });
-        await page.waitForSelector("#promoBannerTitle");
+        await page.waitForSelector("#promoText");
         await page.waitForSelector(".flavor");
         const seo = await page.evaluate(() => {
           const structuredData = [
@@ -355,7 +359,7 @@ const server = http.createServer((request, response) => {
         });
         assert.equal(
           seo.title,
-          "Barrio Ice · Granizados en Montería | Promos 2x1",
+          "Barrio Ice · Granizados y bebidas frías en Montería",
         );
         assert.equal(seo.canonical, "https://barrio-ice.vercel.app/");
         assert.equal(seo.ogUrlCount, 1);
@@ -419,8 +423,8 @@ const server = http.createServer((request, response) => {
         assert.deepEqual(
           socialImages,
           [
-            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg",
-            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-1200x630.jpg",
+            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-social-v3.png",
+            "https://barrio-ice.vercel.app/assets/brand/og-barrio-ice-social-v3.png",
           ],
           "las imágenes sociales deben usar una URL absoluta de producción",
         );
@@ -461,14 +465,14 @@ const server = http.createServer((request, response) => {
             .querySelector(".hero > .eyebrow")
             ?.getBoundingClientRect().bottom,
           promoTop: document
-            .getElementById("promoBanner")
+            .getElementById("promoText")
             ?.getBoundingClientRect().top,
           theme: document.documentElement.dataset.theme,
-          promo: document.getElementById("promoBannerTitle")?.textContent,
+          promo: document.getElementById("promoText")?.textContent,
           tickerStyle: [
-            getComputedStyle(document.querySelector(".ticker")).transform,
-            getComputedStyle(document.querySelector(".ticker span")).transform,
-            getComputedStyle(document.querySelector(".ticker")).overflowX,
+            getComputedStyle(document.querySelector(".promo-ticker")).transform,
+            getComputedStyle(document.querySelector(".promo-ticker-track")).transform,
+            getComputedStyle(document.querySelector(".promo-ticker")).overflowX,
           ],
           shortButtons: [...document.querySelectorAll("button")]
             .filter((button) => {
@@ -539,15 +543,19 @@ const server = http.createServer((request, response) => {
         );
         const titleFits = await page
           .locator(".hero h1")
-          .evaluate((node) =>
-            node.classList.contains("sr-only")
-              ? node.textContent === "Barrio Ice · Granizados en Montería"
-              : node.scrollWidth <= node.clientWidth + 1,
-          );
+          .evaluate((node) => {
+            const style = getComputedStyle(node);
+            const accessibleOnly = style.position === "absolute" && style.clip !== "auto";
+            return node.textContent.trim() === "Barrio Ice" &&
+              (accessibleOnly || node.scrollWidth <= node.clientWidth + 1);
+          });
         assert.ok(
           titleFits,
           `el título accesible debe caber en ${width}x${height}`,
         );
+        if (saveScreenshots) await page.screenshot({
+          path: path.join(output, `tienda-${width}x${height}-${theme}.png`),
+        });
         if (width === 390 && height === 844) {
           await page.evaluate(() => {
             if (document.getElementById("sheet").classList.contains("open"))
@@ -808,7 +816,9 @@ const server = http.createServer((request, response) => {
             ["escritorio", { width: 1440, height: 900 }],
           ]
         : [
+            ["compacto", { width: 360, height: 640 }],
             ["movil", { width: 390, height: 844 }],
+            ["tablet", { width: 768, height: 1024 }],
             ["escritorio", { width: 1440, height: 900 }],
           ]) {
         console.log("Panel", theme, label);
@@ -1064,6 +1074,9 @@ const server = http.createServer((request, response) => {
             Object.keys(trackingWrite.data).sort(),
             ["creadoEn", "estado", "fecha", "nombreCorto", "tipo"],
             "el documento público de seguimiento no debe incluir datos personales",
+          );
+          await page.waitForFunction(
+            () => !document.getElementById("trackingCopy")?.textContent.includes("Buscando"),
           );
           const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
           assert.match(trackingText.join(" "), /Cliente/);
