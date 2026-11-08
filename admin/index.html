@@ -19,21 +19,7 @@
     <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
-    <script>
-      (function () {
-        try {
-          var saved = JSON.parse(localStorage.getItem("barrio-ice-theme"));
-          var theme =
-            saved ||
-            (matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light");
-          document.documentElement.dataset.theme = theme;
-        } catch (error) {
-          document.documentElement.dataset.theme = "light";
-        }
-      })();
-    </script>
+    <script src="/admin/theme-init.js"></script>
     <link rel="stylesheet" href="/admin/admin.css" />
   </head>
   <body>
@@ -115,6 +101,9 @@
         <button class="tab" data-admin-tab="menu" role="tab" type="button">
           Menú
         </button>
+        <button class="tab" data-admin-tab="pos" role="tab" type="button">
+          Mostrador
+        </button>
         <button class="tab" data-admin-tab="stats" role="tab" type="button">
           Ventas
         </button>
@@ -128,6 +117,7 @@
     <script src="/pricing.js"></script>
     <script src="/shared/menu-schema.js"></script>
     <script src="/admin/xlsx-export.js"></script>
+    <script src="/admin/pos.js"></script>
     <script type="module" src="/admin/admin.js"></script>
   </body>
 </html>

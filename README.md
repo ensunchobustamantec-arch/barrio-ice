@@ -28,6 +28,14 @@ La configuración pública del proyecto está en `shared/menu-schema.js`; el acc
 4. Publica después `firestore.rules` estrictas y prueba un pedido real. Si falla, vuelve temporalmente a las reglas de transición.
 5. Mantén App Check en modo monitor siete días; aplica protección obligatoria cuando más del 95 % de las solicitudes sean válidas.
 
+### Mostrador y empleados
+
+1. Crea primero la cuenta del cajero en Firebase Authentication (correo y contraseña).
+2. Copia su UID y, como dueña, entra a **Mostrador** en el panel. Guarda el UID, nombre y estado activo.
+3. Publica primero `firestore.rules.transition`, prueba una venta presencial y solo después del periodo de transición publica `firestore.rules`.
+4. La promo 2x1 del día se aplica por defecto en el mostrador; confírmala antes de abrir caja. TODO(dueño): confirmar esta política.
+5. App Check queda en modo monitor: configura reCAPTCHA v3, revisa solicitudes válidas durante siete días y activa enforcement únicamente cuando supere 95 %.
+
 No publiques reglas estrictas antes de completar el periodo de transición: puede bloquear clientes con versiones antiguas en caché.
 
 ## Pruebas
