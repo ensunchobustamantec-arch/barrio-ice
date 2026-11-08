@@ -1092,7 +1092,16 @@ const server = http.createServer((request, response) => {
             () => !document.getElementById("trackingCopy")?.textContent.includes("Buscando"),
           );
           const trackingText = await page.locator("#trackingCopy, #trackingMeta").allTextContents();
-          assert.match(trackingText.join(" "), /Cliente/);
+          assert.match(
+            trackingText.join(" "),
+            /Cliente/,
+            "seguimiento: " + JSON.stringify(await page.evaluate(() => ({
+              href: location.href,
+              copy: document.getElementById("trackingCopy")?.textContent,
+              meta: document.getElementById("trackingMeta")?.textContent,
+              writes: localStorage.getItem("barrio-ice-visual-writes"),
+            }))),
+          );
           assert.doesNotMatch(trackingText.join(" "), /3001234567|Prueba/);
           assert.deepEqual(
             await page.locator("#steps .step span").allTextContents(),
