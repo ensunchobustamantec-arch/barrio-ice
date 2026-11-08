@@ -36,8 +36,13 @@ let menuDocumentExists = false;
 let audio = null;
 let unsubscribeOrders = null;
 let unsubscribeMenu = null;
+let unsubscribeLocalSales = null;
+let localSales = [];
 let ordersLoaded = false;
 let deferredInstall = null;
+let session = { user: null, role: null, staff: null };
+let employeeIdleTimer = null;
+let hiddenAt = 0;
 
 function flavor(name) {
   return menu.cat.find((item) => item.n === name);
@@ -732,15 +737,16 @@ function beep() {
   }
   function statsView() {
     const dates = periodDates(adminState.statsPeriod);
-    const current = aggregate(
-      orders.filter((order) => between(order, dates.from, dates.to)),
+    const combined = orders.concat(localSales);
+    const current = BarrioStats.aggregate(
+      combined.filter((order) => between(order, dates.from, dates.to)), { dateKey: dateKey() },
     );
-    const previous = aggregate(
-      orders.filter(
+    const previous = BarrioStats.aggregate(
+      combined.filter(
         (order) =>
           dates.previousFrom &&
           between(order, dates.previousFrom, dates.previousTo),
-      ),
+      ), { dateKey: dateKey() },
     );
     const periodButtons = [
       ["today", "Hoy"],
@@ -1044,7 +1050,7 @@ function beep() {
         .join("") +
       '</select></div><button class="secondary" id="copyDay">Copiar</button><button class="secondary" id="repeatYesterday">Repetir ayer</button></div><div class="save"><button class="primary" id="saveDayMenu">Guardar sabores</button><span class="saved" id="menuSaved"></span></div></article><article class="card"><h2>Precios</h2>' +
       prices +
-      '<h2 style="margin-top:15px">Promociones</h2>' +
+      '<h2 style="margin-top:15px">2x1 por día</h2><p class="notice">Activa solo los días que tendrán 2x1. Cada día se guarda por separado.</p><div class="promo-days">' +
       ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
         .map(
           (day) =>
@@ -1058,7 +1064,7 @@ function beep() {
             "></label>",
         )
         .join("") +
-      '<label class="switch"><span>Permitir mitad y mitad</span><input id="halfEnabled" type="checkbox" ' +
+      '</div><label class="switch"><span>Permitir mitad y mitad</span><input id="halfEnabled" type="checkbox" ' +
       (menu.mitadMitad ? "checked" : "") +
       '></label><div class="save"><button class="primary" id="savePrices">Guardar precios y promos</button><span id="priceSaved" class="saved"></span></div></article><article class="card"><h2>Bebidas</h2><div class="table-like">' +
       drinks +
@@ -1191,8 +1197,10 @@ function beep() {
       esc(menu.whatsapp || "") +
       '"></div><div class="field"><label>Nequi</label><input id="nequiSetting" value="' +
       esc(menu.pagos?.Nequi || "") +
-      '"></div><div class="field"><label>Daviplata</label><input id="daviSetting" value="' +
-      esc(menu.pagos?.Daviplata || "") +
+      '"></div><div class="field"><label>Llaves Bre-B</label><input id="breBSetting" value="' +
+      esc(menu.pagos?.["Llaves Bre-B"] || "") +
+      '"></div><div class="field"><label>Bancolombia</label><input id="bancolombiaSetting" value="' +
+      esc(menu.pagos?.Bancolombia || "") +
       '"></div><div class="field"><label>Instagram</label><input id="instaSetting" value="' +
       esc(menu.instagram || "") +
       '"></div><div class="field"><label>Google Maps</label><input id="mapsSetting" value="' +
@@ -1223,8 +1231,10 @@ function beep() {
       menu.whatsapp = clean($("waSetting").value.replace(/[^\d+]/g, ""), 20);
       menu.pagos = Object.assign({}, menu.pagos, {
         Nequi: clean($("nequiSetting").value, 50),
-        Daviplata: clean($("daviSetting").value, 50),
+        "Llaves Bre-B": clean($("breBSetting").value, 100),
+        Bancolombia: clean($("bancolombiaSetting").value, 100),
       });
+      delete menu.pagos.Daviplata;
       menu.instagram = clean($("instaSetting").value, 200);
       menu.maps = clean($("mapsSetting").value, 300);
       menu.promoBanner = clean($("promoSetting").value, 180);
@@ -1257,7 +1267,9 @@ function beep() {
     const todayOrders = orders.filter(
       (order) => orderDate(order) === dateKey(),
     );
-    const current = aggregate(todayOrders);
+    const current = BarrioStats.aggregate(todayOrders.concat(localSales.filter(
+      (sale) => orderDate(sale) === dateKey(),
+    )), { dateKey: dateKey() });
     const flavors = names
       .map(
         (name) =>
@@ -1272,7 +1284,7 @@ function beep() {
       )
       .join("");
     $("adminView").innerHTML =
-      '<div class="admin-grid"><article class="card"><h2>Estado de la tienda</h2><p class="status ' +
+      '<div class="admin-grid today-dashboard"><article class="card"><h2>Estado de la tienda</h2><p class="status ' +
       (openNow() ? "open" : "closed") +
       '">' +
       (openNow() ? "Abierta ahora" : "Cerrada ahora") +
@@ -1299,7 +1311,7 @@ function beep() {
             "</p>",
         )
         .join("") || '<p class="notice">No hay pedidos nuevos.</p>') +
-      '</article><article class="card"><h2>Ventas del día</h2><div class="metrics"><div class="metric"><b>' +
+      '</article><article class="card day-sales-card"><h2>Ventas del día</h2><div class="metrics"><div class="metric"><b>' +
       fmt(current.total) +
       '</b><span>VENTAS</span></div><div class="metric"><b>' +
       current.n +
@@ -1345,6 +1357,7 @@ function beep() {
 
   function adminRender() {
     if (!admin) return;
+    if (adminState.tab !== "pos") window.BarrioPos?.stop?.();
     document
       .querySelectorAll("[data-admin-tab]")
       .forEach((button) =>
@@ -1356,6 +1369,20 @@ function beep() {
     if (adminState.tab === "today") todayView();
     if (adminState.tab === "orders") ordersView();
     if (adminState.tab === "menu") menuView();
+    if (adminState.tab === "pos") window.BarrioPos?.render?.({
+      menu,
+      store,
+      user: session.user,
+      role: session.role,
+      staff: session.staff,
+      fmt,
+      esc,
+      clean,
+      dateKey,
+      now,
+      pricing: BarrioIcePricing,
+      onChange: adminRender,
+    });
     if (adminState.tab === "stats") statsView();
     if (adminState.tab === "settings") settingsView();
   };
@@ -1811,21 +1838,48 @@ function showLogin(error = "") {
   $("login").classList.remove("hide");
   $("loginError").textContent = error;
 }
-function showPanel(user) {
+function resetEmployeeIdle() {
+  if (session.role !== "empleado") return;
+  clearTimeout(employeeIdleTimer);
+  employeeIdleTimer = setTimeout(() => store?.logout?.(), 10 * 60 * 1000);
+}
+function enforceEmployeeVisibility() {
+  if (session.role !== "empleado") return;
+  if (document.hidden) {
+    hiddenAt = Date.now();
+    return;
+  }
+  if (hiddenAt && Date.now() - hiddenAt > 2 * 60 * 1000) store?.logout?.();
+  hiddenAt = 0;
+  resetEmployeeIdle();
+}
+function showPanel(user, role = "owner", staff = null) {
   $("login").classList.add("hide");
   $("panel").classList.remove("hide");
   const welcome = $("welcome");
-  welcome.dataset.baseText = user?.email || "Conectado";
+  session = { user, role, staff };
+  welcome.dataset.baseText = role === "empleado"
+    ? "Mostrador · " + (staff?.nombre || user?.email || "Empleado")
+    : user?.email || "Conectado";
   welcome.textContent = welcome.dataset.baseText;
   welcome.className = "muted";
   admin = true;
+  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+    const allowed = role === "owner" || button.dataset.adminTab === "pos";
+    button.hidden = !allowed;
+  });
+  if (role === "empleado") adminState.tab = "pos";
+  resetEmployeeIdle();
   adminRender();
 }
-function startPanel(user) {
+function startPanel(user, role = "owner", staff = null) {
   unsubscribeOrders?.();
   unsubscribeMenu?.();
+  unsubscribeLocalSales?.();
+  clearTimeout(employeeIdleTimer);
   ordersLoaded = false;
-  unsubscribeOrders = store.watchOrders((nextOrders) => {
+  orders = [];
+  if (role === "owner") unsubscribeOrders = store.watchOrders((nextOrders) => {
     const incoming = nextOrders.filter((order) => !seen.has(order.id));
     orders = nextOrders;
     if (
@@ -1847,11 +1901,21 @@ function startPanel(user) {
     ordersLoaded = true;
     adminRender();
   }, showConnectionError);
+  else unsubscribeOrders = null;
+  if (role === "owner") unsubscribeLocalSales = store.watchLocalSales(
+    { uid: user.uid, all: true },
+    (nextSales) => {
+      localSales = nextSales || [];
+      if (adminState.tab === "today" || adminState.tab === "stats") adminRender();
+    },
+    showConnectionError,
+  );
+  else unsubscribeLocalSales = null;
   unsubscribeMenu = store.watchMenu((data) => {
     menu = BarrioShared.mergeMenu(data || DEFAULTS);
     adminRender();
   }, showConnectionError);
-  showPanel(user);
+  showPanel(user, role, staff);
 }
 function showConnectionError() {
   const welcome = $("welcome");
@@ -1910,7 +1974,8 @@ function diagnosticsMarkup() {
   });
   const whatsapp = String(menu.whatsapp || "").replace(/\D/g, ""),
     nequi = String(menu.pagos?.Nequi || "").replace(/\D/g, ""),
-    daviplata = String(menu.pagos?.Daviplata || "").replace(/\D/g, ""),
+    breB = String(menu.pagos?.["Llaves Bre-B"] || "").trim(),
+    bancolombia = String(menu.pagos?.Bancolombia || "").trim(),
     lastOrder = orders.reduce(
       (latest, order) =>
         !latest || orderCreatedAt(order) > orderCreatedAt(latest)
@@ -1948,12 +2013,8 @@ function diagnosticsMarkup() {
       whatsapp ? "+" + whatsapp : "Falta un número de 12 dígitos que empiece por 57",
     ),
     diagnosticRow("nequi", "Nequi configurado", nequi.length > 0, nequi || "Sin número"),
-    diagnosticRow(
-      "daviplata",
-      "Daviplata configurado",
-      daviplata.length > 0,
-      daviplata || "Sin número",
-    ),
+    diagnosticRow("bre-b", "Llaves Bre-B configuradas", breB.length > 0, breB || "Sin llave"),
+    diagnosticRow("bancolombia", "Bancolombia configurado", bancolombia.length > 0, bancolombia || "Sin dato de pago"),
     diagnosticRow(
       "hours",
       "Horario definido para los 7 días",
@@ -1998,11 +2059,16 @@ async function showPanelVersion() {
   }
 }
 function stopPanel() {
+  window.BarrioPos?.stop?.();
   unsubscribeOrders?.();
   unsubscribeMenu?.();
-  unsubscribeOrders = unsubscribeMenu = null;
+  unsubscribeLocalSales?.();
+  unsubscribeOrders = unsubscribeMenu = unsubscribeLocalSales = null;
   orders = [];
+  localSales = [];
   seen.clear();
+  clearTimeout(employeeIdleTimer);
+  session = { user: null, role: null, staff: null };
   admin = false;
   showLogin();
 }
@@ -2022,9 +2088,19 @@ function makeLocalTestStore() {
       return [];
     }
   };
+  const readSales = () => {
+    try {
+      return JSON.parse(localStorage.getItem("barrio-ice-visual-local-sales") || "[]");
+    } catch {
+      return [];
+    }
+  };
   menu = BarrioShared.mergeMenu(readMenu());
   menuDocumentExists = true;
   orders = readOrders();
+  let localSales = readSales();
+  const writeSales = () =>
+    localStorage.setItem("barrio-ice-visual-local-sales", JSON.stringify(localSales));
   store = {
     ready: true,
     time: () => new Date(),
@@ -2078,6 +2154,33 @@ function makeLocalTestStore() {
       callback(orders);
       return () => {};
     },
+    watchLocalSales: ({ uid, all = false }, callback) => {
+      callback(all ? localSales : localSales.filter((sale) => sale.empleadoUid === uid));
+      return () => {};
+    },
+    createLocalSale: async (id, value) => {
+      if (!localSales.some((sale) => sale.id === id)) {
+        localSales.unshift(Object.assign({ id, creadoEn: new Date() }, value));
+        writeSales();
+      }
+    },
+    voidLocalSale: async (id, reason, uid) => {
+      localSales = localSales.map((sale) => sale.id === id
+        ? Object.assign({}, sale, {
+            anulada: true,
+            anuladaMotivo: reason,
+            anuladaPor: uid,
+            anuladaEn: new Date(),
+          })
+        : sale);
+      writeSales();
+    },
+    createClosing: async (id, value) => {
+      const closings = JSON.parse(localStorage.getItem("barrio-ice-visual-closings") || "[]");
+      closings.push(Object.assign({ id, creadoEn: new Date() }, value));
+      localStorage.setItem("barrio-ice-visual-closings", JSON.stringify(closings));
+    },
+    saveStaff: async () => {},
   };
 }
 
@@ -2089,9 +2192,11 @@ if (e2eAllowed) {
   $("connState").textContent = "Prueba local disponible.";
   window.__barrioAdminE2E = Object.freeze({
     startSession(user) {
-      if (!user || user.uid !== ADMIN_UID)
-        throw new Error("UID de prueba no autorizado.");
-      startPanel(user);
+      if (!user) throw new Error("Usuario de prueba requerido.");
+      const role = user.uid === ADMIN_UID ? "owner" : "empleado";
+      startPanel(user, role, role === "empleado"
+        ? { nombre: user.nombre || "Empleado de prueba", activo: true, rol: "empleado" }
+        : null);
     },
     replaceOrders(nextOrders) {
       orders = nextOrders;
@@ -2229,15 +2334,63 @@ async function initializeFirebase() {
         onError,
       );
     },
+    watchLocalSales({ uid, all = false }, callback, onError) {
+      const constraints = all
+        ? [dbSdk.orderBy("creadoEn", "desc"), dbSdk.limit(150)]
+        : [dbSdk.where("empleadoUid", "==", uid), dbSdk.limit(150)];
+      return dbSdk.onSnapshot(
+        dbSdk.query(dbSdk.collection(db, "ventas_local"), ...constraints),
+        (snapshot) => callback(snapshot.docs.map((document) => Object.assign({
+          id: document.id,
+          pending: document.metadata.hasPendingWrites,
+        }, document.data()))),
+        onError,
+      );
+    },
+    createLocalSale: (id, value) =>
+      dbSdk.setDoc(dbSdk.doc(db, "ventas_local", id), value),
+    async voidLocalSale(id, reason, uid) {
+      const auditId = crypto.randomUUID().replace(/-/g, "");
+      const batch = dbSdk.writeBatch(db);
+      batch.update(dbSdk.doc(db, "ventas_local", id), {
+        anulada: true,
+        anuladaMotivo: reason,
+        anuladaPor: uid,
+        anuladaEn: dbSdk.serverTimestamp(),
+      });
+      batch.set(dbSdk.doc(db, "auditoria", auditId), {
+        tipo: "anulacion",
+        ventaId: id,
+        creadoEn: dbSdk.serverTimestamp(),
+        actorUid: uid,
+        detalle: reason,
+      });
+      await batch.commit();
+    },
+    createClosing: (id, value) => dbSdk.setDoc(dbSdk.doc(db, "cierres", id), value),
+    saveStaff: (uid, value) => dbSdk.setDoc(dbSdk.doc(db, "staff", uid), value),
   };
-  authSdk.onAuthStateChanged(auth, (user) => {
-    if (user && user.uid !== ADMIN_UID) {
-      showLogin("Esta cuenta no tiene permiso de dueño.");
-      authSdk.signOut(auth);
+  authSdk.onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      stopPanel();
       return;
     }
-    if (user) startPanel(user);
-    else stopPanel();
+    if (user.uid === ADMIN_UID) {
+      startPanel(user, "owner");
+      return;
+    }
+    try {
+      const staff = await dbSdk.getDoc(dbSdk.doc(db, "staff", user.uid));
+      const data = staff.exists() ? staff.data() : null;
+      if (data?.activo === true && data?.rol === "empleado") {
+        startPanel(user, "empleado", data);
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    showLogin("Esta cuenta no tiene permiso de mostrador.");
+    authSdk.signOut(auth);
   });
   $("loginButton").addEventListener("click", async () => {
     try {
@@ -2259,6 +2412,10 @@ $("theme").addEventListener("click", () => {
   applyBrandTheme();
 });
 $("soundToggle").addEventListener("click", activateSound);
+["pointerdown", "keydown", "touchstart"].forEach((event) =>
+  document.addEventListener(event, resetEmployeeIdle, { passive: true }),
+);
+document.addEventListener("visibilitychange", enforceEmployeeVisibility);
 function applyBrandTheme() {
   const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   document.querySelectorAll("img[data-brand]").forEach((image) => {

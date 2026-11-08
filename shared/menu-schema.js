@@ -13,7 +13,7 @@
   const DEFAULTS = {
     whatsapp: "573023489776",
     domicilio: 3000,
-    pagos: { Nequi: "302 348 9776", Daviplata: "302 348 9776" },
+    pagos: { Nequi: "302 348 9776", "Llaves Bre-B": "", Bancolombia: "" },
     instagram: "",
     maps: "",
     horario: { abre: "11:00", cierra: "22:00" },
@@ -118,8 +118,15 @@
 
   function mergeMenu(data) {
     const source = data && typeof data === "object" ? data : {};
+    const pagos = Object.assign({}, DEFAULTS.pagos, source.pagos || {});
+    if (Object.prototype.hasOwnProperty.call(source.pagos || {}, "Daviplata")) {
+      if (!String(pagos["Llaves Bre-B"] || "").trim()) {
+        pagos["Llaves Bre-B"] = source.pagos.Daviplata || "";
+      }
+      delete pagos.Daviplata;
+    }
     const menu = Object.assign(copy(DEFAULTS), source, {
-      pagos: Object.assign({}, DEFAULTS.pagos, source.pagos || {}),
+      pagos,
       horario: Object.assign({}, DEFAULTS.horario, source.horario || {}),
       precios: Object.assign({}, DEFAULTS.precios, source.precios || {}),
       dias: Object.assign({}, DEFAULTS.dias, source.dias || {}),

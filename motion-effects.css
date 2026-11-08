@@ -112,18 +112,23 @@
   }
 }
 
-/* Final brand sizing: transparent assets keep their aspect ratio in both themes. */
+/* Brand mark: one responsive rule for header and footer. */
 .brand img {
   display: block;
   flex: 0 0 auto;
   width: auto;
   height: 40px;
-  max-width: none;
+  max-width: 100%;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   object-fit: contain;
+}
+:root[data-theme="dark"] .brand img {
+  filter:
+    drop-shadow(0 0 1px rgb(190 240 255 / 95%))
+    drop-shadow(0 0 6px rgb(91 192 235 / 55%));
 }
 .hero-stage.hero-mark-scene {
   width: min(86vw, 380px);

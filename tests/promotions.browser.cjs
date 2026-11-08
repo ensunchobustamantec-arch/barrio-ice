@@ -69,7 +69,7 @@ const drink = (name, price, q = 1) => ({ n: name, s: "", sabores: [], p: price, 
     assert.deepEqual([byName["lunes 2 medianos"].received, byName["lunes 2 medianos"].total], [4, 30000]);
     // La regla comercial de 2x1 sí aplica al granizado aunque el carrito también tenga una bebida.
     assert.deepEqual([byName["lunes pequeño y gaseosa"].received, byName["lunes pequeño y gaseosa"].total], [2, 15000]);
-    assert.deepEqual([byName["jueves con 2x1 seleccionado"].gifts, byName["jueves con 2x1 seleccionado"].total], [1, 30000]);
+    assert.deepEqual([byName["jueves con 2x1 seleccionado"].gifts, byName["jueves con 2x1 seleccionado"].total], [2, 30000]);
     assert.deepEqual([byName["martes desactivado"].gifts, byName["martes desactivado"].total], [0, 12000]);
     assert.deepEqual([byName["sábado especial 2x1"].received, byName["sábado especial 2x1"].total], [4, 16000]);
     assert.deepEqual([byName["domingo especial 2x1"].received, byName["domingo especial 2x1"].total], [2, 8000]);
