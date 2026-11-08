@@ -123,7 +123,9 @@
       if (button.hasAttribute("data-pos-close")) return closeCash(ctx);
       if (button.hasAttribute("data-pos-staff")) return saveStaff(ctx);
     };
-    view.onchange = () => {
+    view.onchange = (event) => {
+      const field = event.target;
+      if (!field.matches("#posPromo, #posPayment, #posAdjustment, #posAdjustmentReason")) return;
       state.promo = !!document.getElementById("posPromo")?.checked;
       state.payment = document.getElementById("posPayment")?.value || state.payment;
       state.adjustment = Math.max(0, Math.round(Number(document.getElementById("posAdjustment")?.value) || 0));
