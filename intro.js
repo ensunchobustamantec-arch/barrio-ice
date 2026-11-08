@@ -3,8 +3,8 @@
 
   // Editables sin tocar la coreografía.
   const PHRASES = ["Congelando el barrio…", "Sirviendo el frío…", "Hoy está sonando duro."];
-  const STORAGE_KEY = "barrio-ice-intro-v3";
-  const MINIMUM = 5500;
+  const STORAGE_KEY = "barrio-ice-intro-v4";
+  const MINIMUM = 5800;
   const MAXIMUM = 10000;
   const query = new URLSearchParams(location.search);
   const intro = document.getElementById("barrioIntro");
@@ -46,12 +46,6 @@
   function loaded() {
     complete += 1;
     setProgress(20 + complete * 25);
-    if (complete >= 3) scheduleExit();
-  }
-  function scheduleExit() {
-    if (leaving) return;
-    const wait = Math.max(0, MINIMUM - (performance.now() - started));
-    window.setTimeout(() => leave(false), wait);
   }
   function launchFlight() {
     if (intro.hasAttribute("data-intro-panel") || reduced) return;
@@ -128,8 +122,8 @@
   window.setTimeout(loaded, 7600);
   window.setTimeout(() => leave(false), MAXIMUM - 340);
   intro.querySelector("[data-intro-skip]")?.addEventListener("click", () => leave(true));
-  intro.addEventListener("pointerdown", (event) => { if (!event.target.closest("[data-intro-skip]")) leave(true); }, { once: true });
   addEventListener("keydown", (event) => { if (event.key === "Escape") leave(true); }, { once: true });
   const originalLeave = leave;
   leave = (fast) => { window.clearInterval(phraseTimer); originalLeave(fast); };
+  window.setTimeout(() => leave(false), MINIMUM);
 })();
