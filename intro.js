@@ -14,6 +14,11 @@
   host.className = 'barrio-entry';
   host.style.setProperty('--duration', `${LANDING_DURATION_MS}ms`);
   const logo=host.querySelector('.entry-logo');
+  const drink=document.createElement('div');
+  drink.className='entry-drink';
+  if(window.BarrioCup)drink.append(window.BarrioCup('#9b3fd6','Pequeño'));
+  host.querySelector('.entry-stage').append(drink);
+  if(!reduced)drink.animate([{opacity:0,transform:'translateY(20px)'},{opacity:1,transform:'translateY(0)'}],{delay:LANDING_DURATION_MS*.77,duration:LANDING_DURATION_MS*.13,fill:'forwards'});
   if(!reduced){
     host.querySelectorAll('.entry-fragments i').forEach((piece,i)=>piece.animate([{transform:`rotate(${i*45}deg) translateX(55vw) rotateY(120deg)`,opacity:0},{transform:`rotate(${i*45}deg) translateX(30px) rotateY(0deg)`,opacity:.9},{transform:`rotate(${i*45}deg) translateX(0px)`,opacity:0}],{delay:LANDING_DURATION_MS*.1+i*40,duration:LANDING_DURATION_MS*.46,fill:'both',easing:'cubic-bezier(.23,1,.32,1)'}));
     logo.animate([{opacity:0,transform:'perspective(900px) rotateY(-25deg) scale(.9)'},{opacity:1,transform:'perspective(900px) rotateY(0deg) scale(1)'}],{delay:LANDING_DURATION_MS/3,duration:LANDING_DURATION_MS*.43,fill:'backwards',easing:'cubic-bezier(.23,1,.32,1)'});

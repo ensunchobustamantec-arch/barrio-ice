@@ -8,6 +8,8 @@ const SHELL = [
   "/admin/admin.css",
   "/admin/theme-init.js",
   "/intro.js",
+  "/frozen-ui.js",
+  "/assets/brand/logo-dark.webp",
   "/intro.css",
   "/admin/admin.js",
   "/admin/pos.js",

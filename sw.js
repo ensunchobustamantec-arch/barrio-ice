@@ -14,6 +14,8 @@ const SHELL = [
   "/motion-effects.css",
   "/theme-init.js",
   "/intro.js",
+  "/frozen-ui.js",
+  "/assets/brand/logo-dark.webp",
   "/intro.css",
   "/pricing.js",
   "/shared/menu-schema.js",

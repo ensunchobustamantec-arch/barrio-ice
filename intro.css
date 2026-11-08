@@ -1,4 +1,7 @@
 .barrio-intro{display:none}
+.frozen-cup{display:inline-block;width:100px;height:136px;perspective:700px;flex-shrink:0}.frozen-cup svg{width:100%;height:100%;overflow:visible;animation:frozen-float 4s ease-in-out infinite;transform-style:preserve-3d}.frozen-body,.frozen-dome{fill:var(--flavor,#5bc0eb)}.frozen-dome{fill:var(--flavor,#5bc0eb);fill:color-mix(in srgb,var(--flavor,#5bc0eb),white 38%)}.frozen-spark{animation:frozen-glint 3s ease-in-out infinite}.cart-line>.frozen-cup{width:36px;height:49px}.entry-drink{position:absolute;right:0;bottom:0;opacity:0;pointer-events:none}.entry-drink .frozen-cup{width:64px;height:87px}.entry-ready .entry-drink{opacity:1}
+@keyframes frozen-float{50%{transform:translateY(-5px) rotateY(8deg)}}@keyframes frozen-glint{50%{opacity:.3;transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){.frozen-cup svg,.frozen-spark{animation:none}}
 .barrio-entry{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(12px,2vh,24px);height:100vh;height:100dvh;padding:24px 16px;box-sizing:border-box;overflow:hidden;color:#eaffff;background:radial-gradient(ellipse at 50% 40%,#14618a,#07131d 72%);font-family:system-ui,sans-serif}
 .entry-stage{position:relative;width:min(70vw,310px);height:min(52vh,460px);perspective:900px;flex-shrink:1;min-height:120px}
 .entry-logo{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 220ms cubic-bezier(.23,1,.32,1)}
