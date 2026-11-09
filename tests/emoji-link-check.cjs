@@ -20,10 +20,12 @@ const message = [
   String.fromCodePoint(0x1f389) + " cortesía",
 ].join("\n");
 const url = buildWhatsAppUrl("3001112233", message);
-const encoded = url.split("?text=")[1];
+const encoded = url.split("&text=")[1];
+assert.match(url, /^https:\/\/api\.whatsapp\.com\/send\/\?phone=573001112233&text=/);
 assert.match(url, /%F0%9F/);
 assert.doesNotMatch(url, /%3F/);
 assert.equal(decodeURIComponent(encoded), message);
+assert.equal(new URL(url).searchParams.get("text"), message);
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync("../shared/menu-schema.js", "utf8"), sandbox);
 const clean = sandbox.window.BarrioShared.clean;
