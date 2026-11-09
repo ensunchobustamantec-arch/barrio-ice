@@ -1183,6 +1183,19 @@ function beep() {
 
   function settingsView() {
     const storeMode = manualStoreState();
+    const featureConfig = window.BarrioIceFeatures?.config(menu) || menu.funcionesNuevas || {};
+    const featureKeys = [
+      ["avisosPedido", "Avisos de pedidos nuevos"],
+      ["seguimiento", "Seguimiento público del pedido"],
+      ["edad18", "Confirmación de mayoría de edad"],
+      ["dropDia", "Drop de sabores del día"],
+      ["armador", "Armador visual de granizados"],
+      ["sonidosCliente", "Sonido y vibración del cliente"],
+      ["sonidoAdmin", "Sonido de avisos del panel"],
+    ];
+    const featureCard = '<article class="card"><h2>Funciones nuevas</h2><p>Activa o desactiva cada función sin cambiar precios ni pedidos.</p><div class="bi-x-feature-list">' +
+      featureKeys.map(([key, label]) => '<label class="switch"><span>' + label + '</span><input type="checkbox" data-feature="' + key + '" ' + (featureConfig[key] !== false ? "checked" : "") + '></label>').join("") +
+      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div></article>';
     const schedule = [1, 2, 3, 4, 5, 6, 0]
       .map((day) => {
         const hours =
@@ -1230,7 +1243,7 @@ function beep() {
       esc(menu.promoBanner || "") +
       '</textarea></div><div class="field"><label>Mensaje de tienda cerrada</label><textarea id="closedSetting" maxlength="180">' +
       esc(menu.closedMessage || "") +
-      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article><article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article><article class="card diagnostics" id="diagnosticsCard"><h2>Diagnóstico</h2><p>Estado actual del menú y la conexión.</p><ul class="diagnostic-list">' +
+      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article>' + featureCard + '<article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article><article class="card diagnostics" id="diagnosticsCard"><h2>Diagnóstico</h2><p>Estado actual del menú y la conexión.</p><ul class="diagnostic-list">' +
       diagnosticsMarkup() +
       "</ul></article></div>";
     showPanelVersion();
@@ -1260,6 +1273,11 @@ function beep() {
       menu.maps = clean($("mapsSetting").value, 300);
       menu.promoBanner = clean($("promoSetting").value, 180);
       menu.closedMessage = clean($("closedSetting").value, 180);
+      menu.funcionesNuevas = Object.assign({}, menu.funcionesNuevas, Object.fromEntries(
+        $$("[data-feature]").map((input) => [input.dataset.feature, input.checked]),
+      ));
+      menu.theme = $("themeSetting").value === "navidad" ? "navidad" : "normal";
+      window.BarrioIceFeatures?.setLocal("barrio-ice-admin-sound", menu.funcionesNuevas.sonidoAdmin !== false);
       await saveMenu("settingsSaved");
     };
     $("repairTrackingV4").onclick = async () => {

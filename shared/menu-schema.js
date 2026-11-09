@@ -67,6 +67,17 @@
       sabado: false,
       domingo: false,
     },
+    funcionesNuevas: {
+      avisosPedido: true,
+      seguimiento: true,
+      edad18: true,
+      dropDia: true,
+      armador: true,
+      sonidosCliente: true,
+      navidad: false,
+      sonidoAdmin: true,
+    },
+    theme: "normal",
     mitadMitad: true,
     promoBanner: "",
     closedMessage:
@@ -132,10 +143,12 @@
       dias: Object.assign({}, DEFAULTS.dias, source.dias || {}),
       agotados: source.agotados || {},
       promos: Object.assign({}, DEFAULTS.promos, source.promos || {}),
+      funcionesNuevas: Object.assign({}, DEFAULTS.funcionesNuevas, source.funcionesNuevas || {}),
     });
 
     if (!menu.precios.jueves) menu.precios.jueves = [...menu.precios.semana];
     menu.mitadMitad = menu.mitadMitad !== false;
+    menu.theme = menu.theme === "navidad" ? "navidad" : "normal";
     menu.closedMessage = clean(
       menu.closedMessage || DEFAULTS.closedMessage,
       180,
