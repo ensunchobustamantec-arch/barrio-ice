@@ -227,6 +227,7 @@ function beep() {
   }
   function normalizeClientPhone(value) {
     const digits = String(value || "").replace(/\D/g, "").replace(/^0+/, "");
+    if (!digits) return "";
     return digits.length === 12 && digits.startsWith("57") ? digits : "57" + digits;
   }
   function orderContactLink(order, status = order.estado) {

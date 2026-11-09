@@ -326,7 +326,7 @@ const BarrioShared = window.BarrioShared;
           maps = menu.maps || DEFAULTS.maps,
           insta = menu.instagram || DEFAULTS.instagram;
         ["contact", "floatWa"].forEach(
-          (x) => ($(x).href = "https://wa.me/" + wa),
+          (x) => { const node = $(x); if (node) node.href = "https://wa.me/" + wa; },
         );
         const genericInstagram = (value) => {
             if (!value) return true;
