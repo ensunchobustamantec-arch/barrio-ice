@@ -11,6 +11,7 @@
     show();
   }
   function show() {
+    if (new URLSearchParams(location.search).get("e2e") === "1" && ["localhost", "127.0.0.1"].includes(location.hostname)) return;
     if (shown || confirmed() || window.BarrioIceFeatures?.enabled(menu, "edad18") === false) return;
     const dialog = $("biAgeGate");
     if (!dialog) return;

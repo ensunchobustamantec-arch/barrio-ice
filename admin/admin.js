@@ -1929,9 +1929,9 @@ function startPanel(user, role = "owner", staff = null) {
   if (role === "owner") unsubscribeOrders = store.watchOrders((nextOrders) => {
     const incoming = nextOrders.filter((order) => !seen.has(order.id));
     orders = nextOrders;
-    const shouldNotify = ordersLoaded && incoming.filter(
+    const shouldNotify = ordersLoaded ? incoming.filter(
       (order) => order.estado === "Nuevo" && window.BarrioIceFeatures?.enabled(menu, "avisosPedido") !== false,
-    );
+    ) : [];
     if (
       ordersLoaded &&
       incoming.some(
