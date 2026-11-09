@@ -93,7 +93,7 @@
         <section class="card pos-history"><div class="section-head"><div><h3>Mis ventas de hoy</h3><small>${validSales.length} ventas · ${money(validSales.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0), ctx)}</small></div>${state.lastSale ? "<button data-pos-undo type=\"button\">Deshacer última</button>" : ""}</div><div class="pos-payments">${paymentRows || "<span class=\"muted\">Todavía no hay ventas registradas.</span>"}</div>${validSales.slice(0, 8).map((sale) => `<div class="pos-sale"><span>${saleDate(sale.creadoEn).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })} · ${ctx.esc(sale.metodoPago)}</span><b>${money(sale.total, ctx)}</b>${ctx.role === "owner" && !sale.anulada ? `<button data-pos-void="${sale.id}" type="button">Anular</button>` : ""}</div>`).join("")}</section>
         <section class="card pos-closing"><h3>Cierre de caja</h3><p>Efectivo esperado de tus ventas: <b>${money(cashExpected, ctx)}</b></p><div class="pos-closing-fields"><label>Efectivo contado <input id="posCounted" type="number" min="0" inputmode="numeric"></label><label>Notas <input id="posClosingNotes" maxlength="300"></label><button data-pos-close type="button">Guardar cierre</button></div></section>
         ${ctx.role === "owner" ? `<section class="card pos-staff"><h3>Equipo de mostrador</h3><p class="muted">La cuenta se crea primero en Firebase Authentication.</p><div class="pos-staff-fields"><label>UID <input id="staffUid" maxlength="128"></label><label>Nombre <input id="staffName" maxlength="60"></label><label class="check"><input id="staffActive" type="checkbox" checked> Activo</label><button data-pos-staff type="button">Guardar empleado</button></div></section>` : ""}
-        <footer class="pos-checkout"><label>Método de pago <select id="posPayment">${["Efectivo", "Nequi", "Llaves Bre-B", "Bancolombia", "Otro"].map((method) => `<option ${state.payment === method ? "selected" : ""}>${ctx.esc(method)}</option>`).join("")}</select></label><button class="primary" data-pos-save type="button" ${!state.cart.length || state.saving ? "disabled" : ""}>${state.saving ? "Registrando…" : "Registrar venta · " + money(Math.max(0, result.total - state.adjustment), ctx)}</button></footer>
+        <footer class="pos-checkout"><label>Método de pago <select id="posPayment">${["Efectivo", "Nequi", "Llaves Bre-B", "Bancolombia", "Otro"].map((method) => `<option ${state.payment === method ? "selected" : ""}>${ctx.esc(method)}</option>`).join("")}</select></label><button class="primary" data-pos-save type="button" ${!state.cart.length || state.saving ? "disabled" : ""}>${state.saving ? "Registrando…" : "Registrar compra · " + money(Math.max(0, result.total - state.adjustment), ctx)}</button></footer>
       </section>`;
     bind(ctx);
   }
@@ -132,8 +132,14 @@
       state.adjustmentReason = document.getElementById("posAdjustmentReason")?.value || "";
       render(ctx);
     };
+    view.onfocusin = (event) => {
+      const target = event.target;
+      if (!target.matches("input, select, textarea") || !matchMedia("(pointer: coarse)").matches) return;
+      window.setTimeout(() => target.scrollIntoView({ block: "center", behavior: "smooth" }), 120);
+    };
   }
   async function save(ctx) {
+    if (state.saving) return;
     const result = current(ctx), adjustment = Math.max(0, Math.round(state.adjustment || 0));
     if (adjustment * 2 > result.subtotal || (adjustment && state.adjustmentReason.trim().length < 5)) { state.notice = "El descuento requiere motivo y no puede superar el 50%."; return render(ctx); }
     const alcohol = result.lines.some((item) => item.adulto === true);

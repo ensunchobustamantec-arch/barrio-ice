@@ -140,10 +140,11 @@ function activateSound() {
     audio = new (window.AudioContext || window.webkitAudioContext)();
     audio.resume();
     localStorage.setItem("barrio-ice-admin-sound", "true");
+    window.BarrioIceAdminNotice?.setEnabled(true);
     $("soundToggle").setAttribute("aria-pressed", "true");
     const soundButton = $("sound");
     if (soundButton) {
-      soundButton.textContent = "🔔 Avisos activos";
+      soundButton.textContent = String.fromCodePoint(0x1f514) + " Avisos activos";
       soundButton.setAttribute("aria-pressed", "true");
     }
     beep();
@@ -247,7 +248,7 @@ function beep() {
     try {
       const result = await store.update(
         id,
-        { estado: status, actualizadoEn: store.time() },
+        { estado: status, status: status === "Nuevo" ? "Recibido" : status, actualizadoEn: store.time(), statusUpdatedAt: store.time() },
         order,
       );
       if (feedback)
@@ -496,7 +497,7 @@ function beep() {
       '</strong><button class="secondary" id="deleteSelected" disabled>Eliminar seleccionados</button><button class="secondary" id="sound" title="Activa un aviso sonoro cada vez que llegue un pedido nuevo." aria-label="Activar avisos sonoros para pedidos nuevos" aria-pressed="' +
       String(audio?.state === "running") +
       '">' +
-      (audio?.state === "running" ? "🔔 Avisos activos" : "🔔 Activar avisos") +
+      (audio?.state === "running" ? String.fromCodePoint(0x1f514) + " Avisos activos" : String.fromCodePoint(0x1f514) + " Activar avisos") +
       '</button><button class="primary" id="xlsx" title="Descarga el historial completo, aunque no esté cargado en pantalla.">Exportar Excel completo</button><span class="saved" id="xlsxFeedback" role="status" aria-live="polite"></span><span class="saved" id="orderStatusFeedback" role="status" aria-live="polite"></span></div><div class="orders">' +
       (list.length
         ? list
@@ -1183,6 +1184,19 @@ function beep() {
 
   function settingsView() {
     const storeMode = manualStoreState();
+    const featureConfig = window.BarrioIceFeatures?.config(menu) || menu.funcionesNuevas || {};
+    const featureKeys = [
+      ["avisosPedido", "Avisos de pedidos nuevos"],
+      ["seguimiento", "Seguimiento público del pedido"],
+      ["edad18", "Confirmación de mayoría de edad"],
+      ["dropDia", "Drop de sabores del día"],
+      ["armador", "Armador visual de granizados"],
+      ["sonidosCliente", "Sonido y vibración del cliente"],
+      ["sonidoAdmin", "Sonido de avisos del panel"],
+    ];
+    const featureCard = '<article class="card"><h2>Funciones nuevas</h2><p>Activa o desactiva cada función sin cambiar precios ni pedidos.</p><div class="bi-x-feature-list">' +
+      featureKeys.map(([key, label]) => '<label class="switch"><span>' + label + '</span><input type="checkbox" data-feature="' + key + '" ' + (featureConfig[key] !== false ? "checked" : "") + '></label>').join("") +
+      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div><div class="admin-actions"><button class="secondary" id="allowNotifications" type="button">Permitir avisos del navegador</button><span id="notificationSaved" class="saved" role="status"></span></div></article>';
     const schedule = [1, 2, 3, 4, 5, 6, 0]
       .map((day) => {
         const hours =
@@ -1230,10 +1244,15 @@ function beep() {
       esc(menu.promoBanner || "") +
       '</textarea></div><div class="field"><label>Mensaje de tienda cerrada</label><textarea id="closedSetting" maxlength="180">' +
       esc(menu.closedMessage || "") +
-      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article><article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article><article class="card diagnostics" id="diagnosticsCard"><h2>Diagnóstico</h2><p>Estado actual del menú y la conexión.</p><ul class="diagnostic-list">' +
+      '</textarea></div><div class="notice">Domicilio: se paga aparte. No se suma al total.</div><div class="save"><button class="primary" id="saveSettingsV4">Guardar ajustes</button><span id="settingsSaved" class="saved"></span></div></article>' + featureCard + '<article class="card"><h2>Mantenimiento</h2><p>Completa el seguimiento público de pedidos de los últimos 7 días que no tengan documento.</p><div class="admin-actions"><button class="secondary" id="repairTrackingV4">Reparar seguimiento de pedidos recientes</button><span id="trackingRepairResult" class="saved" role="status"></span></div></article><article class="card diagnostics" id="diagnosticsCard"><h2>Diagnóstico</h2><p>Estado actual del menú y la conexión.</p><ul class="diagnostic-list">' +
       diagnosticsMarkup() +
       "</ul></article></div>";
     showPanelVersion();
+    $("allowNotifications").onclick = async () => {
+      const result = $("notificationSaved");
+      if (!window.Notification) { result.textContent = "Este navegador no admite avisos."; return; }
+      try { result.textContent = (await Notification.requestPermission()) === "granted" ? "Avisos permitidos." : "Avisos no activados."; } catch { result.textContent = "No se pudo activar avisos."; }
+    };
     $("saveSettingsV4").onclick = async () => {
       const hours = {};
       [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
@@ -1260,6 +1279,11 @@ function beep() {
       menu.maps = clean($("mapsSetting").value, 300);
       menu.promoBanner = clean($("promoSetting").value, 180);
       menu.closedMessage = clean($("closedSetting").value, 180);
+      menu.funcionesNuevas = Object.assign({}, menu.funcionesNuevas, Object.fromEntries(
+        $$("[data-feature]").map((input) => [input.dataset.feature, input.checked]),
+      ));
+      menu.theme = $("themeSetting").value === "navidad" ? "navidad" : "normal";
+      window.BarrioIceFeatures?.setLocal("barrio-ice-admin-sound", menu.funcionesNuevas.sonidoAdmin !== false);
       await saveMenu("settingsSaved");
     };
     $("repairTrackingV4").onclick = async () => {
@@ -1903,15 +1927,19 @@ function startPanel(user, role = "owner", staff = null) {
   if (role === "owner") unsubscribeOrders = store.watchOrders((nextOrders) => {
     const incoming = nextOrders.filter((order) => !seen.has(order.id));
     orders = nextOrders;
+    const shouldNotify = ordersLoaded ? incoming.filter(
+      (order) => order.estado === "Nuevo" && window.BarrioIceFeatures?.enabled(menu, "avisosPedido") !== false,
+    ) : [];
     if (
       ordersLoaded &&
       incoming.some(
         (order) =>
           order.estado === "Nuevo" &&
+          window.BarrioIceFeatures?.enabled(menu, "avisosPedido") !== false &&
           !orderAudit(order).some((warning) => warning.startsWith("Total no cuadra")),
       )
     )
-      beep();
+      if (window.BarrioIceFeatures?.getLocal("barrio-ice-admin-sound", true) !== false) beep();
     orders.forEach((order) => seen.add(order.id));
     if ($("newBadge"))
       $("newBadge").textContent = String(
@@ -1921,6 +1949,7 @@ function startPanel(user, role = "owner", staff = null) {
       );
     ordersLoaded = true;
     adminRender();
+    shouldNotify.forEach((order) => window.BarrioIceAdminNotice?.notify(order, { enabled: true }));
   }, showConnectionError);
   else unsubscribeOrders = null;
   if (role === "owner") unsubscribeLocalSales = store.watchLocalSales(

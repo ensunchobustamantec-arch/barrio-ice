@@ -6,12 +6,16 @@
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) { host.remove(); return; }
   const query = new URLSearchParams(location.search);
   let seen = false;
-  try { seen = localStorage.getItem('barrioice_intro_v1') === '1'; } catch {}
+  let storageAvailable = true;
+  try { seen = sessionStorage.getItem('barrioice_intro_session') === '1'; } catch { storageAvailable = false; }
+  const hideForBackForwardCache = event => { if (event.persisted) host.remove(); };
+  addEventListener('pageshow', hideForBackForwardCache, { once: true });
   if (query.get('intro') === '0' || seen) { host.remove(); return; }
+  if (storageAvailable) { try { sessionStorage.setItem('barrioice_intro_session', '1'); } catch { storageAvailable = false; } }
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   host.innerHTML = `<div class="entry-snow" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="left:${i*4.2}%;animation-delay:-${i*.37}s"></i>`).join('')}</div><div class="entry-stage"><div class="entry-fragments" aria-hidden="true">${Array.from({length:8},(_,i)=>`<i style="--angle:${i*45}deg"></i>`).join('')}</div><div class="entry-logo">${Array.from({length:4},(_,i)=>`<img src="/assets/brand/logo-dark.webp" width="625" height="970" alt="${i===3?'Barrio Ice':''}" style="--depth:${i*5}px" />`).join('')}</div></div><p class="entry-tag">COLD FLOW · MONTERÍA</p>`;
   let final = false;
-  const finish = () => { if(final)return; final=true;host.getAnimations({subtree:true}).forEach(animation=>animation.cancel());host.classList.add('entry-leaving');try{localStorage.setItem('barrioice_intro_v1','1');}catch{};setTimeout(()=>{document.body.style.overflow=previousOverflow;host.remove();},reduced?0:220); };
+  const finish = () => { if(final)return; final=true;host.getAnimations({subtree:true}).forEach(animation=>animation.cancel());host.classList.add('entry-leaving');setTimeout(()=>{document.body.style.overflow=previousOverflow;host.remove();},reduced?0:220); };
   host.className = 'barrio-entry';
   host.removeAttribute('aria-describedby');
   host.setAttribute('aria-label','Bienvenido a Barrio Ice');
