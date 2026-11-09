@@ -1201,7 +1201,7 @@ function beep() {
     ];
     const featureCard = '<article class="card"><h2>Funciones nuevas</h2><p>Activa o desactiva cada función sin cambiar precios ni pedidos.</p><div class="bi-x-feature-list">' +
       featureKeys.map(([key, label]) => '<label class="switch"><span>' + label + '</span><input type="checkbox" data-feature="' + key + '" ' + (featureConfig[key] !== false ? "checked" : "") + '></label>').join("") +
-      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div><div class="admin-actions"><button class="secondary" id="allowNotifications" type="button">Permitir avisos del navegador</button><span id="notificationSaved" class="saved" role="status"></span></div></article>';
+      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div><div class="admin-actions"><button class="secondary" id="allowNotifications" type="button">Permitir avisos del navegador</button><span id="notificationSaved" class="saved" role="status"></span></div><div class="save"><button class="primary" id="saveFeatureSettings" type="button">Guardar ajustes</button><span id="featureSettingsSaved" class="saved" role="status"></span></div></article>';
     const schedule = [1, 2, 3, 4, 5, 6, 0]
       .map((day) => {
         const hours =
@@ -1258,7 +1258,7 @@ function beep() {
       if (!window.Notification) { result.textContent = "Este navegador no admite avisos."; return; }
       try { result.textContent = (await Notification.requestPermission()) === "granted" ? "Avisos permitidos." : "Avisos no activados."; } catch { result.textContent = "No se pudo activar avisos."; }
     };
-    $("saveSettingsV4").onclick = async () => {
+    const saveSettings = async (event) => {
       const hours = {};
       [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
         hours[day] = {
@@ -1289,8 +1289,10 @@ function beep() {
       ));
       menu.theme = $("themeSetting").value === "navidad" ? "navidad" : "normal";
       window.BarrioIceFeatures?.setLocal("barrio-ice-admin-sound", menu.funcionesNuevas.sonidoAdmin !== false);
-      await saveMenu("settingsSaved");
+      await saveMenu(event.currentTarget.id === "saveFeatureSettings" ? "featureSettingsSaved" : "settingsSaved");
     };
+    $("saveSettingsV4").onclick = saveSettings;
+    $("saveFeatureSettings").onclick = saveSettings;
     $("repairTrackingV4").onclick = async () => {
       const button = $("repairTrackingV4");
       const result = $("trackingRepairResult");
