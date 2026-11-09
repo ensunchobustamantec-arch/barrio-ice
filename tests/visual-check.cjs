@@ -243,7 +243,7 @@ const server = http.createServer((request, response) => {
   const errors = [];
   try {
     const interceptFirebase = async (page) => {
-      await page.route("https://wa.me/**", (route) => route.fulfill({
+      await page.route("https://api.whatsapp.com/**", (route) => route.fulfill({
         status: 302, headers: { location: page.url() }, body: "",
       }));
       return page.route("https://www.gstatic.com/firebasejs/**", (route) => {
@@ -601,7 +601,7 @@ const server = http.createServer((request, response) => {
             });
             assert.match(whatsappSample.message, /2x1: Mora \+ Limón/);
             assert.match(whatsappSample.url, /%F0%9F%A7%8A/);
-            assert.equal(decodeURIComponent(whatsappSample.url.split("?text=")[1]), whatsappSample.message);
+            assert.equal(new URL(whatsappSample.url).searchParams.get("text"), whatsappSample.message);
             if (saveScreenshots) {
               await page.locator("#biXBuilder").scrollIntoViewIfNeeded();
               await page.waitForTimeout(800);

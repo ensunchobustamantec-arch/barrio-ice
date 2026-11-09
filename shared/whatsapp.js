@@ -6,7 +6,8 @@
   function buildWhatsAppUrl(number, message) {
     const digits = String(number || "").replace(/\D/g, "").replace(/^0+/, "");
     const phone = digits.length === 12 && digits.startsWith("57") ? digits : "57" + digits;
-    return "https://wa.me/" + phone + "?text=" + encodeURIComponent(String(message ?? ""));
+    // wa.me currently replaces emoji while redirecting; open WhatsApp's send page directly.
+    return "https://api.whatsapp.com/send/?phone=" + phone + "&text=" + encodeURIComponent(String(message ?? ""));
   }
   return Object.freeze({ buildWhatsAppUrl });
 });
