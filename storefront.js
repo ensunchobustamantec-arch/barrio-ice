@@ -959,6 +959,7 @@ const BarrioShared = window.BarrioShared;
           openCart,
           closeCart,
           add,
+          orderMessage,
         };
       }
       boot();

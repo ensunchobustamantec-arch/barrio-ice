@@ -21,6 +21,26 @@
       entrega: value.entrega || {}, creadoEn: created(value),
     };
   }
+  function missingGifts(items) {
+    const lines = Array.isArray(items) ? items : [], available = new Map(), missing = new Map();
+    const key = (size, name) => JSON.stringify([size || "", name]);
+    lines.forEach((item) => {
+      if (!item || !item.regalo) return;
+      const names = flavorNames(item), quantity = Math.max(0, Number(item.q) || 0);
+      names.forEach((name) => {
+        const id = key(item.s, name);
+        available.set(id, (available.get(id) || 0) + quantity / names.length);
+      });
+    });
+    lines.forEach((item, index) => {
+      if (!item || item.regalo || !item.secondFlavor) return;
+      const id = key(item.s, item.secondFlavor), quantity = Math.max(0, Number(item.q) || 0);
+      const covered = Math.min(quantity, available.get(id) || 0);
+      available.set(id, (available.get(id) || 0) - covered);
+      if (quantity > covered) missing.set(index, quantity - covered);
+    });
+    return missing;
+  }
   function aggregate(values, options) {
     const list = (values || []).map((value) => normalize(value, options?.dateKey)).filter(Boolean);
     const summary = { total: 0, discount: 0, n: list.length, dom: 0, pickup: 0, cash: 0, flavors: {}, gifts: {}, sizes: {}, pay: {}, weekdays: {}, hours: {}, paidGranizados: 0, freeGranizados: 0, channels: {} };
@@ -35,21 +55,23 @@
       summary.weekdays[weekday] = (summary.weekdays[weekday] || 0) + sale.total;
       const hour = Number.isNaN(sale.creadoEn.getTime()) ? 0 : sale.creadoEn.getHours();
       summary.hours[hour + ":00"] = (summary.hours[hour + ":00"] || 0) + 1;
-      sale.items.forEach((item) => {
+      const missing = missingGifts(sale.items);
+      sale.items.forEach((item, index) => {
         if (!(item.g === true || item.tipo === "granizado" || /granizado/i.test(item.n || ""))) return;
         const q = Number(item.q) || 0, names = flavorNames(item);
         if (item.regalo) summary.freeGranizados += q; else summary.paidGranizados += q;
-        if (item.secondFlavor && !item.regalo) {
-          const primary = names[0];
-          if (primary) summary.flavors[primary] = (summary.flavors[primary] || 0) + q;
-        } else {
-          names.forEach((name) => { const target = item.regalo ? summary.gifts : summary.flavors; target[name] = (target[name] || 0) + q / Math.max(1, names.length); });
-        }
+        names.forEach((name) => { const target = item.regalo ? summary.gifts : summary.flavors; target[name] = (target[name] || 0) + q / Math.max(1, names.length); });
         if (item.s) summary.sizes[item.s] = (summary.sizes[item.s] || 0) + q;
+        const extra = missing.get(index) || 0;
+        if (extra) {
+          summary.gifts[item.secondFlavor] = (summary.gifts[item.secondFlavor] || 0) + extra;
+          summary.freeGranizados += extra;
+          if (item.s) summary.sizes[item.s] = (summary.sizes[item.s] || 0) + extra;
+        }
       });
     });
     summary.avg = summary.n ? summary.total / summary.n : 0;
     return summary;
   }
-  return Object.freeze({ normalize, aggregate });
+  return Object.freeze({ normalize, aggregate, missingGifts });
 });

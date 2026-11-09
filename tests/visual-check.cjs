@@ -590,7 +590,28 @@ const server = http.createServer((request, response) => {
             .getByRole("button", { name: /Pequeño/ })
             .first()
             .click();
-          if (await page.locator("#promoDialog").isVisible()) await page.locator("#promoConfirm").click();
+          if (await page.locator("#promoDialog").isVisible()) {
+            await page.locator("#promoGiftFlavor").selectOption("Limón");
+            assert.equal(await page.locator("#biXBuilder .bi-x-cup-scene").count(), 2);
+            assert.match(await page.locator("#biXBuilder").innerText(), /Limón/);
+            await page.locator("#promoConfirm").click();
+            const whatsappSample = await page.evaluate(() => {
+              const message = window.__barrio.orderMessage({ id: "TEST123456", items: [{ n: "Granizado", tipo: "granizado", sabores: ["Mora"], secondFlavor: "Limón", s: "Pequeño", q: 1, p: 12000 }], cliente: { nombre: "Ana", celular: "3001234567" }, entrega: { tipo: "recoger" }, pago: "Nequi", total: 12000 });
+              return { message, url: window.BarrioIceWhatsApp.buildWhatsAppUrl("3001234567", message) };
+            });
+            assert.match(whatsappSample.message, /2x1: Mora \+ Limón/);
+            assert.match(whatsappSample.url, /%F0%9F%A7%8A/);
+            assert.equal(decodeURIComponent(whatsappSample.url.split("?text=")[1]), whatsappSample.message);
+            if (saveScreenshots) {
+              await page.locator("#biXBuilder").scrollIntoViewIfNeeded();
+              await page.waitForTimeout(800);
+              await page.locator("#biXBuilder").screenshot({ path: path.join(output, "armador-390.png") });
+            }
+            assert.equal(await page.evaluate(() => window.__barrio.cart[0]?.secondFlavor), "Limón");
+            await page.evaluate(() => { window.__barrio.menu.theme = "navidad"; window.__barrio.render(); });
+            assert.notEqual(await page.locator(".bi-x-builder-santa").first().evaluate((node) => getComputedStyle(node).display), "none");
+            await page.evaluate(() => { window.__barrio.menu.theme = "normal"; window.__barrio.render(); });
+          }
           console.log("Línea agregada desde la tienda, verificando carrito");
           const cartState = await page.evaluate(() => ({
             lines: window.__barrio?.cart?.length ?? "no cart",
@@ -661,6 +682,26 @@ const server = http.createServer((request, response) => {
             await page.locator("#cashChange").innerText(),
             /Cambio para devolver/,
           );
+        }
+        if ([360, 768, 1366, 1920].includes(width)) {
+          await page.locator('[data-flavor="Mora"][data-size="1"]').click();
+          if (await page.locator("#promoDialog").isVisible()) {
+            await page.locator("#promoGiftFlavor").selectOption("Limón");
+            await page.locator("#promoConfirm").click();
+          }
+          await page.locator("#biXBuilder").scrollIntoViewIfNeeded();
+          const builderFits = await page.locator("#biXBuilder").evaluate((host) => {
+            const box = host.getBoundingClientRect();
+            return [...host.querySelectorAll(".bi-x-cup-scene")].every((cup) => {
+              const rect = cup.getBoundingClientRect();
+              return rect.left >= box.left && rect.right <= box.right;
+            }) && document.documentElement.scrollWidth <= document.documentElement.clientWidth;
+          });
+          assert.equal(builderFits, true, "El armador debe caber en " + width + "px");
+          if (saveScreenshots && width === 1366) {
+            await page.waitForTimeout(800);
+            await page.locator("#biXBuilder").screenshot({ path: path.join(output, "armador-1366.png") });
+          }
         }
         if (width === 1440 && height === 900) {
           await page.evaluate(() => {
@@ -934,6 +975,13 @@ const server = http.createServer((request, response) => {
             return { left: rect.left, right: rect.right, width: rect.width, viewport: innerWidth };
           });
           assert.ok(bounds.width > 0 && bounds.left >= 0 && bounds.right <= bounds.viewport);
+          await page.locator('[data-admin-tab="pos"]').click();
+          assert.equal(await page.locator(".pos-checkout").evaluate((node) => getComputedStyle(node).position), "static");
+          await page.locator('[data-pos-flavor="Mora"]').click();
+          await page.locator("#posPromoGift").selectOption("Limón");
+          await page.locator('[data-pos-size="Mediano"]').click();
+          assert.match(await page.locator(".pos-cart").innerText(), /2x1: Mora \+ Limón/);
+          await page.locator("[data-pos-clear]").click();
         }
         await page.locator('[data-admin-tab="menu"]').click();
         await page.getByRole("heading", { name: "Catálogo de sabores" }).waitFor();
@@ -1021,6 +1069,7 @@ const server = http.createServer((request, response) => {
           await page.locator('[data-admin-tab="menu"]').click();
           await page.locator("#newFlavorName").fill(flavorName);
           await page.locator("#newFlavorAdult").check();
+          await page.locator("#newFlavorCupStyle").selectOption("black");
           await page.locator("#addFlavorV4").click();
           await page.locator("#saveCatalogV4").click();
           await page.getByText("Guardado correctamente.", { exact: true }).last().waitFor();
@@ -1031,6 +1080,7 @@ const server = http.createServer((request, response) => {
               )?.l,
           );
           assert.equal(persistedAdult, true, "+18 debe persistir al guardar el menú");
+          assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("barrio-ice-visual-menu")).cat.find((item) => item.n === "Tequila de prueba").cupStyle), "black");
           await page.reload({ waitUntil: "domcontentloaded" });
           await page.waitForFunction(() => !!window.__barrioAdminE2E);
           await openAdmin();
@@ -1057,6 +1107,7 @@ const server = http.createServer((request, response) => {
           await flavorCard.waitFor();
           assert.match(await flavorCard.locator(".tag.adult").innerText(), /\+18/);
           await flavorCard.locator(`[data-flavor="${flavorName}"]`).first().click();
+          assert.ok(await page.locator("#biXBuilder .bi-x-cup-black").count() > 0);
           if (await page.locator("#promoDialog").isVisible()) await page.locator("#promoConfirm").click();
           await page.getByRole("button", { name: /Mi pedido/ }).click();
           assert.equal(await page.locator("#ageBox").isVisible(), true);

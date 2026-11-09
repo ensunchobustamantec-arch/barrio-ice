@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const vm = require("node:vm");
 const { buildWhatsAppUrl } = require("../shared/whatsapp.js");
 const storefront = fs.readFileSync("../storefront.js", "utf8");
 const checkout = fs.readFileSync("../checkout.js", "utf8");
@@ -19,10 +20,17 @@ const message = [
   String.fromCodePoint(0x1f389) + " cortesía",
 ].join("\n");
 const url = buildWhatsAppUrl("3001112233", message);
-const encoded = new URL(url).searchParams.get("text");
+const encoded = url.split("?text=")[1];
 assert.match(url, /%F0%9F/);
 assert.doesNotMatch(url, /%3F/);
 assert.equal(decodeURIComponent(encoded), message);
+const sandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync("../shared/menu-schema.js", "utf8"), sandbox);
+const clean = sandbox.window.BarrioShared.clean;
+const ice = String.fromCodePoint(0x1f9ca);
+assert.equal(clean("x".repeat(29) + ice, 30), "x".repeat(29));
+assert.equal(clean("x".repeat(29) + ice, 31), "x".repeat(29) + ice);
+assert.doesNotThrow(() => buildWhatsAppUrl("3001112233", clean("x".repeat(29) + ice, 30)));
 for (const file of ["../storefront.js", "../checkout.js", "../admin/admin.js", "../admin/pos.js"]) {
   assert.notEqual(fs.readFileSync(file).at(0), "\uFEFF", file + " tiene BOM");
 }

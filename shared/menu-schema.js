@@ -117,11 +117,23 @@
     });
   }
 
+  const textSegmenter = typeof Intl.Segmenter === "function"
+    ? new Intl.Segmenter("es", { granularity: "grapheme" }) : null;
   function clean(value, max = 300) {
-    return String(value ?? "")
-      .replace(/[<>\u0000-\u001f]/g, " ")
-      .trim()
-      .slice(0, max);
+    const raw = String(value ?? "").replace(/[<>\u0000-\u001f]/g, " ").trim();
+    let text = "";
+    for (const point of raw) {
+      const code = point.charCodeAt(0);
+      text += point.length === 1 && code >= 0xd800 && code <= 0xdfff ? "\uFFFD" : point;
+    }
+    if (text.length <= max) return text;
+    const parts = textSegmenter ? Array.from(textSegmenter.segment(text), (part) => part.segment) : Array.from(text);
+    let result = "";
+    for (const part of parts) {
+      if (result.length + part.length > max) break;
+      result += part;
+    }
+    return result;
   }
 
   function fmt(value) {

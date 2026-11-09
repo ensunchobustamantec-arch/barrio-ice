@@ -14,6 +14,7 @@ html.bi-x-christmas-store body {
   background: radial-gradient(ellipse at 12% 0, #12584c 0, transparent 36rem), radial-gradient(ellipse at 90% 30%, #62273755, transparent 26rem), linear-gradient(150deg, #061925, #0a302c 57%, #061a23);
 }
 html.bi-x-christmas-store .top { background: #092820f2; border-color: #d9bb6b77; }
+html.bi-x-christmas-store .top .brand, html.bi-x-christmas-store .top .actions { position: relative; z-index: 1; }
 html.bi-x-christmas-store .top::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 10px; pointer-events: none;
   background: radial-gradient(circle at 10px 0, #b92f43 0 3px, transparent 4px) 0 0/42px 10px, radial-gradient(ellipse at 10px 0, #39866b 0 8px, transparent 9px) 0 0/21px 10px;
@@ -34,7 +35,7 @@ html.bi-x-christmas-store .hero > .eyebrow { border-color: #e7c978; background: 
 .bi-x-season-banner { display: inline-flex; align-items: center; gap: 4px; padding-left: 6px; color: #ffe5a0; font-weight: 900; letter-spacing: 0; }
 .bi-x-season-banner i { font-style: normal; animation: bi-x-twinkle 2.6s ease-in-out infinite alternate; }
 .bi-x-season-banner i:last-child { animation-delay: -1.3s; }
-.bi-x-christmas-lights { height: 17px; }
+.bi-x-christmas-store .bi-x-christmas-lights { position: absolute; z-index: 0; height: 17px; }
 .bi-x-christmas-lights::before { content: ""; position: absolute; top: -7px; width: 110%; height: 12px; border-bottom: 2px solid #2d6b50; border-radius: 50%; }
 .bi-x-christmas-scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .bi-x-christmas-scene *, .bi-x-holiday-hills { pointer-events: none; }

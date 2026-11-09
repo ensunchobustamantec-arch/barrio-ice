@@ -637,7 +637,8 @@ function beep() {
         (summary.weekdays[weekday] || 0) + (+order.total || 0);
       const hour = hourOf(order);
       summary.hours[hour + ":00"] = (summary.hours[hour + ":00"] || 0) + 1;
-      (order.items || []).forEach((item) => {
+      const missing = BarrioStats.missingGifts(order.items);
+      (order.items || []).forEach((item, index) => {
         const isGranizado =
           item.g === true ||
           item.tipo === "granizado" ||
@@ -647,14 +648,15 @@ function beep() {
         if (item.regalo) summary.freeGranizados += +item.q || 0;
         else summary.paidGranizados += +item.q || 0;
         const bucket = item.regalo ? summary.gifts : summary.flavors;
-        const primary = names[0];
-        if (!item.regalo && item.secondFlavor) {
-          if (primary) bucket[primary] = (bucket[primary] || 0) + (+item.q || 0);
-        } else {
-          names.forEach((name) => { bucket[name] = (bucket[name] || 0) + (+item.q || 0) / Math.max(1, names.length); });
-        }
+        names.forEach((name) => { bucket[name] = (bucket[name] || 0) + (+item.q || 0) / Math.max(1, names.length); });
         if (item.s)
           summary.sizes[item.s] = (summary.sizes[item.s] || 0) + (+item.q || 0);
+        const extra = missing.get(index) || 0;
+        if (extra) {
+          summary.gifts[item.secondFlavor] = (summary.gifts[item.secondFlavor] || 0) + extra;
+          summary.freeGranizados += extra;
+          if (item.s) summary.sizes[item.s] = (summary.sizes[item.s] || 0) + extra;
+        }
       });
     });
     return summary;
@@ -885,6 +887,10 @@ function beep() {
       const item = menu.cat[+input.dataset.catColor];
       if (item) item.c = safeColor(input.value);
     });
+    document.querySelectorAll("[data-cat-cup-style]").forEach((input) => {
+      const item = menu.cat[+input.dataset.catCupStyle];
+      if (item) item.cupStyle = input.value === "black" ? "black" : "white";
+    });
     document.querySelectorAll("[data-cat-adult]").forEach((input) => {
       const item = menu.cat[+input.dataset.catAdult];
       if (item) item.l = item.adulto = input.checked;
@@ -931,7 +937,7 @@ function beep() {
           index +
           '" type="color" value="' +
           esc(safeColor(item.c)) +
-          '"></div><label class="check"><input data-cat-adult="' +
+          '"></div><div class="field"><label>Estilo del vaso</label><select data-cat-cup-style="' + index + '"><option value="white" ' + (item.cupStyle !== "black" ? "selected" : "") + '>Blanco</option><option value="black" ' + (item.cupStyle === "black" ? "selected" : "") + '>Negro Venom</option></select></div><label class="check"><input data-cat-adult="' +
           index +
           '" type="checkbox" ' +
           (item.l || item.adulto ? "checked" : "") +
@@ -1036,7 +1042,7 @@ function beep() {
     $("adminView").innerHTML =
       '<div class="admin-grid"><article class="card"><h2>Catálogo de sabores</h2><p>Edita nombre, color, edad mínima y disponibilidad.</p><div class="table-like">' +
       catalog +
-      '</div><div class="row"><div class="field"><label for="newFlavorName">Nuevo sabor</label><input id="newFlavorName" maxlength="30"></div><div class="field"><label for="newFlavorColor">Color</label><input id="newFlavorColor" type="color" value="#5bc0eb"></div><label class="check"><input id="newFlavorAdult" type="checkbox"> +18</label><button class="secondary" id="addFlavorV4">Agregar</button></div></article><article class="card"><h2>Sabores por día</h2><div class="daypick">' +
+      '</div><div class="row"><div class="field"><label for="newFlavorName">Nuevo sabor</label><input id="newFlavorName" maxlength="30"></div><div class="field"><label for="newFlavorColor">Color</label><input id="newFlavorColor" type="color" value="#5bc0eb"></div><div class="field"><label for="newFlavorCupStyle">Estilo del vaso</label><select id="newFlavorCupStyle"><option value="white">Blanco</option><option value="black">Negro Venom</option></select></div><label class="check"><input id="newFlavorAdult" type="checkbox"> +18</label><button class="secondary" id="addFlavorV4">Agregar</button></div></article><article class="card"><h2>Sabores por día</h2><div class="daypick">' +
       [1, 2, 3, 4, 5, 6, 0]
         .map(
           (day) =>
@@ -1499,7 +1505,8 @@ function beep() {
       const totalGiftGranizados = validOrders.reduce(
         (sum, order) => sum + granizados(order)
           .filter((item) => item.regalo)
-          .reduce((lineSum, item) => lineSum + quantityOf(item), 0),
+          .reduce((lineSum, item) => lineSum + quantityOf(item), 0) +
+          [...BarrioStats.missingGifts(order.items).values()].reduce((total, quantity) => total + quantity, 0),
         0,
       );
 
@@ -1523,11 +1530,13 @@ function beep() {
 
       selected.forEach((order) => {
         const lines = Array.isArray(order.items) ? order.items : [];
+        const missing = BarrioStats.missingGifts(lines);
         const orderGranizados = granizados(order);
         const paid = orderGranizados.filter((item) => !item.regalo)
           .reduce((sum, item) => sum + quantityOf(item), 0);
         const gifts = orderGranizados.filter((item) => item.regalo)
-          .reduce((sum, item) => sum + quantityOf(item), 0);
+          .reduce((sum, item) => sum + quantityOf(item), 0) +
+          [...missing.values()].reduce((sum, quantity) => sum + quantity, 0);
         orderRows.push([
           idOf(order),
           excelDate(orderDate(order)),
@@ -1547,7 +1556,7 @@ function beep() {
           order.notas || "",
         ]);
 
-        lines.forEach((item) => {
+        lines.forEach((item, index) => {
           const quantity = quantityOf(item);
           const value = lineValue(item);
           const names = isGranizado(item)
@@ -1572,7 +1581,7 @@ function beep() {
           ]);
           if (order.estado === "Cancelado" || !isGranizado(item)) return;
 
-          const aggregateNames = item.secondFlavor && !item.regalo ? names.slice(0, 1) : names;
+          const aggregateNames = BarrioIcePricing.flavorNames(item);
           const allocation = aggregateNames.length ? 1 / aggregateNames.length : 1;
           aggregateNames.forEach((name) => {
             const current = flavorTotals.get(name) || { paid: 0, gifts: 0, value: 0 };
@@ -1591,6 +1600,13 @@ function beep() {
             currentSize.value += value;
           }
           sizeTotals.set(size, currentSize);
+          const extra = missing.get(index) || 0;
+          if (extra) {
+            const currentGift = flavorTotals.get(item.secondFlavor) || { paid: 0, gifts: 0, value: 0 };
+            currentGift.gifts += extra;
+            flavorTotals.set(item.secondFlavor, currentGift);
+            currentSize.gifts += extra;
+          }
         });
 
         const status = order.estado || "Sin estado";
@@ -1820,6 +1836,7 @@ function beep() {
         menu.cat.push({
           n: name,
           c: safeColor($("newFlavorColor").value),
+          cupStyle: $("newFlavorCupStyle").value === "black" ? "black" : "white",
           l: adult,
           adulto: adult,
           active: true,

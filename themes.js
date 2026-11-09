@@ -11,7 +11,7 @@
       lights.className = "bi-x-christmas-lights";
       lights.setAttribute("aria-hidden", "true");
       for (let i = 0; i < 18; i += 1) { const bulb = document.createElement("i"); bulb.style.setProperty("--bi-x-delay", (i * -0.18) + "s"); lights.append(bulb); }
-      document.body.prepend(lights);
+      (document.querySelector(".top") || document.body).prepend(lights);
     }
     if (lights) lights.hidden = !navidad;
   }
