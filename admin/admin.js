@@ -140,6 +140,7 @@ function activateSound() {
     audio = new (window.AudioContext || window.webkitAudioContext)();
     audio.resume();
     localStorage.setItem("barrio-ice-admin-sound", "true");
+    window.BarrioIceAdminNotice?.setEnabled(true);
     $("soundToggle").setAttribute("aria-pressed", "true");
     const soundButton = $("sound");
     if (soundButton) {
@@ -190,6 +191,8 @@ function beep() {
   function publicTracking(order, estado = order.estado || "Nuevo") {
     return {
       estado,
+      status: estado === "Nuevo" ? "Recibido" : estado,
+      statusUpdatedAt: order.statusUpdatedAt || order.actualizadoEn || order.creadoEn || store.time(),
       tipo: order.entrega?.tipo === "domicilio" ? "domicilio" : "recoger",
       fecha: order.fecha || "",
       creadoEn: order.creadoEn || store.time(),
@@ -247,7 +250,7 @@ function beep() {
     try {
       const result = await store.update(
         id,
-        { estado: status, actualizadoEn: store.time() },
+        { estado: status, status: status === "Nuevo" ? "Recibido" : status, actualizadoEn: store.time(), statusUpdatedAt: store.time() },
         order,
       );
       if (feedback)
@@ -1195,7 +1198,7 @@ function beep() {
     ];
     const featureCard = '<article class="card"><h2>Funciones nuevas</h2><p>Activa o desactiva cada función sin cambiar precios ni pedidos.</p><div class="bi-x-feature-list">' +
       featureKeys.map(([key, label]) => '<label class="switch"><span>' + label + '</span><input type="checkbox" data-feature="' + key + '" ' + (featureConfig[key] !== false ? "checked" : "") + '></label>').join("") +
-      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div></article>';
+      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div><div class="admin-actions"><button class="secondary" id="allowNotifications" type="button">Permitir avisos del navegador</button><span id="notificationSaved" class="saved" role="status"></span></div></article>';
     const schedule = [1, 2, 3, 4, 5, 6, 0]
       .map((day) => {
         const hours =
@@ -1247,6 +1250,11 @@ function beep() {
       diagnosticsMarkup() +
       "</ul></article></div>";
     showPanelVersion();
+    $("allowNotifications").onclick = async () => {
+      const result = $("notificationSaved");
+      if (!window.Notification) { result.textContent = "Este navegador no admite avisos."; return; }
+      try { result.textContent = (await Notification.requestPermission()) === "granted" ? "Avisos permitidos." : "Avisos no activados."; } catch { result.textContent = "No se pudo activar avisos."; }
+    };
     $("saveSettingsV4").onclick = async () => {
       const hours = {};
       [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
@@ -1921,15 +1929,19 @@ function startPanel(user, role = "owner", staff = null) {
   if (role === "owner") unsubscribeOrders = store.watchOrders((nextOrders) => {
     const incoming = nextOrders.filter((order) => !seen.has(order.id));
     orders = nextOrders;
+    const shouldNotify = ordersLoaded && incoming.filter(
+      (order) => order.estado === "Nuevo" && window.BarrioIceFeatures?.enabled(menu, "avisosPedido") !== false,
+    );
     if (
       ordersLoaded &&
       incoming.some(
         (order) =>
           order.estado === "Nuevo" &&
+          window.BarrioIceFeatures?.enabled(menu, "avisosPedido") !== false &&
           !orderAudit(order).some((warning) => warning.startsWith("Total no cuadra")),
       )
     )
-      beep();
+      if (window.BarrioIceFeatures?.getLocal("barrio-ice-admin-sound", true) !== false) beep();
     orders.forEach((order) => seen.add(order.id));
     if ($("newBadge"))
       $("newBadge").textContent = String(
@@ -1939,6 +1951,7 @@ function startPanel(user, role = "owner", staff = null) {
       );
     ordersLoaded = true;
     adminRender();
+    shouldNotify.forEach((order) => window.BarrioIceAdminNotice?.notify(order, { enabled: true }));
   }, showConnectionError);
   else unsubscribeOrders = null;
   if (role === "owner") unsubscribeLocalSales = store.watchLocalSales(
@@ -2159,7 +2172,7 @@ function makeLocalTestStore() {
       const order = orders.find((item) => item.id === id) || {};
       tracking[id] = Object.assign(
         tracking[id] || publicTracking(order),
-        { estado: value.estado, actualizadoEn: value.actualizadoEn },
+        { estado: value.estado, status: value.status || (value.estado === "Nuevo" ? "Recibido" : value.estado), actualizadoEn: value.actualizadoEn, statusUpdatedAt: value.statusUpdatedAt || value.actualizadoEn },
       );
       localStorage.setItem("barrio-ice-visual-tracking", JSON.stringify(tracking));
     },
@@ -2311,10 +2324,10 @@ async function initializeFirebase() {
         await dbSdk.setDoc(
           trackingRef,
           tracking.exists()
-            ? { estado: value.estado, actualizadoEn: value.actualizadoEn }
+            ? { estado: value.estado, status: value.status || (value.estado === "Nuevo" ? "Recibido" : value.estado), actualizadoEn: value.actualizadoEn, statusUpdatedAt: value.statusUpdatedAt || value.actualizadoEn }
             : Object.assign(
                 publicTracking(order || orders.find((item) => item.id === id) || {}, value.estado),
-                { actualizadoEn: value.actualizadoEn },
+                { status: value.status || (value.estado === "Nuevo" ? "Recibido" : value.estado), actualizadoEn: value.actualizadoEn, statusUpdatedAt: value.statusUpdatedAt || value.actualizadoEn },
               ),
           { merge: true },
         );
@@ -2341,6 +2354,8 @@ async function initializeFirebase() {
           "Cliente";
         await dbSdk.setDoc(reference, {
           estado: order.estado || "Nuevo",
+          status: order.estado === "Nuevo" || !order.estado ? "Recibido" : order.estado,
+          statusUpdatedAt: order.actualizadoEn || order.creadoEn || dbSdk.serverTimestamp(),
           tipo: order.entrega?.tipo === "domicilio" ? "domicilio" : "recoger",
           fecha: order.fecha || "",
           creadoEn: order.creadoEn || dbSdk.serverTimestamp(),

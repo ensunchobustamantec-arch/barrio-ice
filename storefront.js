@@ -379,7 +379,7 @@ const BarrioShared = window.BarrioShared;
         });
         $("footMaps").parentElement.hidden = !hasMaps && !hasInstagram;
         draw();
-        document.dispatchEvent(new Event("barrio:render"));
+        document.dispatchEvent(new CustomEvent("barrio:render", { detail: { menu } }));
       }
       function toast(m) {
         let t = $("toast");
@@ -763,13 +763,15 @@ const BarrioShared = window.BarrioShared;
                 "No encontramos ese pedido. Si lo hiciste antes de esta actualización, escríbenos por WhatsApp.";
               return;
             }
-            const state = o.estado || "Nuevo";
+            const rawState = o.status || o.estado || "Nuevo";
+            const state = rawState === "Recibido" ? "Nuevo" : rawState;
             const delivery = o.tipo === "domicilio";
             const type = delivery ? "Domicilio" : "Recoger";
             $("trackingCopy").textContent =
               "Pedido #" + id.slice(-6).toUpperCase() + " · " + state + " · " + type;
             const flow = states.slice(0, 5);
             const currentStep = flow.indexOf(state);
+            $("steps").classList.add("bi-x-timeline");
             $("steps").innerHTML =
               state === "Cancelado"
                 ? '<p class="tracking-cancelled">Este pedido fue cancelado. Comunícate con Barrio Ice si necesitas ayuda.</p>'

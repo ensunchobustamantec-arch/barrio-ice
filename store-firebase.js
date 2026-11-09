@@ -52,6 +52,8 @@ class Store {
     batch.set(reference, order);
     batch.set(doc(this.db, "seguimiento", reference.id), {
       estado: "Nuevo",
+      status: "Recibido",
+      statusUpdatedAt: order.creadoEn,
       tipo: order.entrega.tipo,
       fecha: order.fecha,
       creadoEn: order.creadoEn,
