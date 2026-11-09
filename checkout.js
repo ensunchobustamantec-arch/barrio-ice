@@ -91,12 +91,9 @@
       confetti();
       history.pushState({}, "", "?pedido=" + encodeURIComponent(order.id));
       showTracking(order.id);
-      const url = new URL(
-        "https://wa.me/" + String(menu.whatsapp).replace(/\D/g, ""),
-      );
-      url.search = "?text=" + encodeURIComponent(orderMessage(order));
+      const url = window.BarrioIceWhatsApp.buildWhatsAppUrl(menu.whatsapp, orderMessage(order));
       $("send").textContent = "Abriendo WhatsApp…";
-      location.assign(url.href);
+      location.assign(url);
     } catch (error) {
       console.error(error);
       $("checkoutError").textContent =

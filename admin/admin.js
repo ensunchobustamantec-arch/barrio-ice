@@ -233,12 +233,7 @@ function beep() {
   }
   function orderContactLink(order, status = order.estado) {
     const phone = normalizeClientPhone(order.cliente?.celular);
-    return (
-      "https://wa.me/" +
-      phone +
-      "?text=" +
-      encodeURIComponent(orderWhatsapp(order, status))
-    );
+    return window.BarrioIceWhatsApp.buildWhatsAppUrl(phone, orderWhatsapp(order, status));
   }
   async function setOrderStatus(id, status) {
     if (!store?.ready) return;

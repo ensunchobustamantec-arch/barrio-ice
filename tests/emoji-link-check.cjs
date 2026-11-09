@@ -1,18 +1,24 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { buildWhatsAppUrl } = require("../shared/whatsapp.js");
 const storefront = fs.readFileSync("../storefront.js", "utf8");
 const checkout = fs.readFileSync("../checkout.js", "utf8");
+const admin = fs.readFileSync("../admin/admin.js", "utf8");
+const whatsapp = fs.readFileSync("../shared/whatsapp.js", "utf8");
 assert.match(storefront, /orderMessage/);
 assert.match(storefront, /\\u\{1F9CA\}/);
-assert.match(checkout, /encodeURIComponent\(orderMessage\(order\)\)/);
-assert.doesNotMatch(checkout, /encodeURI\(|escape\(/);
+assert.match(checkout, /buildWhatsAppUrl\(menu\.whatsapp, orderMessage\(order\)\)/);
+assert.match(admin, /buildWhatsAppUrl\(phone, orderWhatsapp\(order, status\)\)/);
+assert.match(whatsapp, /encodeURIComponent\(String\(message/);
+assert.doesNotMatch(whatsapp, /encodeURI\(|escape\(/);
 const message = [
   String.fromCodePoint(0x1f9ca) + " PEDIDO NUEVO",
   String.fromCodePoint(0x1f464) + " Cliente: Ana",
   String.fromCodePoint(0x1f367) + " PRODUCTOS",
+  "2x1: Mango + Maracuyá",
   String.fromCodePoint(0x1f389) + " cortesía",
 ].join("\n");
-const url = "https://wa.me/573001112233?text=" + encodeURIComponent(message);
+const url = buildWhatsAppUrl("3001112233", message);
 const encoded = new URL(url).searchParams.get("text");
 assert.match(url, /%F0%9F/);
 assert.doesNotMatch(url, /%3F/);
