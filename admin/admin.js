@@ -225,8 +225,12 @@ function beep() {
       " Gracias por elegir Barrio Ice."
     );
   }
+  function normalizeClientPhone(value) {
+    const digits = String(value || "").replace(/\D/g, "").replace(/^0+/, "");
+    return digits.length === 12 && digits.startsWith("57") ? digits : "57" + digits;
+  }
   function orderContactLink(order, status = order.estado) {
-    const phone = String(order.cliente?.celular || "").replace(/\D/g, "");
+    const phone = normalizeClientPhone(order.cliente?.celular);
     return (
       "https://wa.me/" +
       phone +

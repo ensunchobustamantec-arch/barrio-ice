@@ -94,7 +94,7 @@
       const url = new URL(
         "https://wa.me/" + String(menu.whatsapp).replace(/\D/g, ""),
       );
-      url.searchParams.set("text", orderMessage(order));
+      url.search = "?text=" + encodeURIComponent(orderMessage(order));
       $("send").textContent = "Abriendo WhatsApp…";
       location.assign(url.href);
     } catch (error) {
