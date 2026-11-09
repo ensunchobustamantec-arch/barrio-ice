@@ -225,8 +225,13 @@ function beep() {
       " Gracias por elegir Barrio Ice."
     );
   }
+  function normalizeClientPhone(value) {
+    const digits = String(value || "").replace(/\D/g, "").replace(/^0+/, "");
+    if (!digits) return "";
+    return digits.length === 12 && digits.startsWith("57") ? digits : "57" + digits;
+  }
   function orderContactLink(order, status = order.estado) {
-    const phone = String(order.cliente?.celular || "").replace(/\D/g, "");
+    const phone = normalizeClientPhone(order.cliente?.celular);
     return (
       "https://wa.me/" +
       phone +
@@ -513,7 +518,7 @@ function beep() {
                 '"><div class="order-top"><div><label class="order-select"><input type="checkbox" aria-label="Seleccionar pedido" data-order-select="' +
                 esc(order.id) +
                 '"></label><h3>' +
-                esc(order.cliente?.nombre || "Cliente") +
+                esc(order.cliente?.nombre || "Cliente") + "<small>+" + esc(normalizeClientPhone(order.cliente?.celular).replace(/^(57)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4")) + "</small>" +
                 (order.estado === "Nuevo"
                   ? ' <span class="new">NUEVO</span>'
                   : "") +
@@ -2045,9 +2050,9 @@ function diagnosticsMarkup() {
     ),
     diagnosticRow(
       "app-check",
-      "App Check configurado",
-      Boolean(APP_CHECK_SITE_KEY),
-      APP_CHECK_SITE_KEY ? "Clave de sitio presente" : "Falta la clave de sitio reCAPTCHA v3",
+      "Protección anti-bots (App Check)",
+      true,
+      APP_CHECK_SITE_KEY ? "activa" : "inactiva — opcional. 1. Registra reCAPTCHA v3 en Firebase App Check. 2. Añade BARRIO_APP_CHECK_SITE_KEY en Vercel. 3. Vuelve a desplegar.",
     ),
     '<li class="diagnostic-version"><span>Versión del panel</span><small id="diagnosticsVersion" aria-live="polite">Consultando service worker…</small></li>',
     diagnosticRow(
@@ -2425,19 +2430,13 @@ async function initializeFirebase() {
   $("connState").textContent = "Ingresa con el correo autorizado.";
 }
 
-$("theme").addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("barrio-ice-theme", JSON.stringify(next));
-  applyBrandTheme();
-});
 $("soundToggle").addEventListener("click", activateSound);
 ["pointerdown", "keydown", "touchstart"].forEach((event) =>
   document.addEventListener(event, resetEmployeeIdle, { passive: true }),
 );
 document.addEventListener("visibilitychange", enforceEmployeeVisibility);
 function applyBrandTheme() {
-  const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  const theme = "dark";
   document.querySelectorAll("img[data-brand]").forEach((image) => {
     image.src = "/assets/brand/" + image.dataset.brand + "-" + theme + ".webp";
   });

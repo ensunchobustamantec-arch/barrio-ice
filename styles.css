@@ -1,15 +1,15 @@
 :root {
-        color-scheme: light;
+        color-scheme: dark;
         --ice: #5bc0eb;
         --ice2: #c6efff;
         --yellow: #ffd447;
-        --ink: #07131d;
-        --bg: #edf9ff;
-        --paper: #fff;
-        --muted: #526675;
-        --line: #bdd3dd;
-        --danger: #bd2937;
-        --glass: #f9fdffdf;
+        --ink: #f2fbff;
+        --bg: #06121c;
+        --paper: #0b1b27;
+        --muted: #aac1cc;
+        --line: #315162;
+        --danger: #ff929d;
+        --glass: #0b1b27e8;
         --safe-b: env(safe-area-inset-bottom, 0px);
         --safe-t: env(safe-area-inset-top, 0px);
       }

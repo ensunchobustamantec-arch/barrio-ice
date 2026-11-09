@@ -15,3 +15,9 @@ for (const file of ["sw.js", "admin/sw.js"]) {
 }
 
 console.log("BUILD_ID =", id);
+const menuFile = "shared/menu-schema.js";
+const key = process.env.BARRIO_APP_CHECK_SITE_KEY?.trim() || "";
+writeFileSync(menuFile, readFileSync(menuFile, "utf8").replace(
+  /const APP_CHECK_SITE_KEY = "[^"]*";/,
+  () => "const APP_CHECK_SITE_KEY = " + JSON.stringify(key) + ";",
+));

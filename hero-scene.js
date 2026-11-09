@@ -13,8 +13,7 @@
   const HERO_SPARK = { left: 78.88, top: 16.19 };
 
   function applyBrandTheme() {
-    const theme =
-      document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    const theme = "dark";
     document.querySelectorAll("img[data-brand]").forEach((image) => {
       const next = `/assets/brand/${image.dataset.brand}-${theme}.webp`;
       if (image.getAttribute("src") !== next) image.setAttribute("src", next);

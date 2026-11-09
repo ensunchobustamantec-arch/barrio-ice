@@ -1,18 +1,25 @@
 :root {
-  color-scheme: light;
-  --bg: #edf8fc;
-  --surface: #fff;
-  --glass: rgb(255 255 255 / 92%);
-  --text: #102d3b;
-  --muted: #53707d;
-  --line: #cfe3eb;
-  --accent: #087eae;
-  --accent-ink: #fff;
-  --danger: #a5313f;
-  --success: #197349;
-  --shadow: 0 16px 46px rgb(7 39 56 / 12%);
+  --ticket-accent: #5bc0eb;
+  color-scheme: dark;
+  --bg: #07131d;
+  --surface: #102330;
+  --glass: rgb(7 19 29 / 92%);
+  --text: #edfaff;
+  --muted: #a9c1cd;
+  --line: #294553;
+  --accent: #5bc0eb;
+  --accent-ink: #07131d;
+  --danger: #ff929d;
+  --success: #83e1b2;
+  --shadow: 0 16px 46px rgb(0 0 0 / 28%);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+body {background-image:radial-gradient(ellipse at top,#123e54,transparent 65%),repeating-linear-gradient(60deg,transparent 0 80px,#5bc0eb05 80px 81px)}
+.admin-top h1::after{content:"PANEL DEL LOCAL";display:block;font-size:11px;letter-spacing:.18em;color:#5bc0eb;text-shadow:0 0 12px #5bc0eb88}
+.order{border-left:4px solid var(--ticket-accent);border-bottom-style:dashed}
+.admin-nav .tab.active{box-shadow:0 0 20px #5bc0eb33}
+@media(hover:hover){.admin-nav .tab:hover,.order button:hover{transform:translateY(-2px)}}
+@media(prefers-reduced-motion:no-preference){#adminView>.card,#adminView>.admin-grid{animation:panel-arrive 240ms ease-out}@keyframes panel-arrive{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}}
 
 :root[data-theme="dark"] {
   color-scheme: dark;

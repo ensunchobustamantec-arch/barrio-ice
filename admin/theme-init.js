@@ -1,9 +1,3 @@
 (() => {
-  try {
-    const saved = JSON.parse(localStorage.getItem("barrio-ice-theme"));
-    document.documentElement.dataset.theme =
-      saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  } catch {
-    document.documentElement.dataset.theme = "light";
-  }
+  document.documentElement.dataset.theme = "dark";
 })();

@@ -319,7 +319,7 @@ const server = http.createServer((request, response) => {
           ];
     for (const theme of process.env.VISUAL_QUICK === "1"
       ? ["light"]
-      : ["light", "dark"]) {
+      : ["dark"]) {
       for (const [width, height] of dimensions) {
         console.log("Tienda", theme, width + "x" + height);
         const page = await browser.newPage({
@@ -404,7 +404,7 @@ const server = http.createServer((request, response) => {
             logo.currentSrc.includes("/assets/brand/")
           );
         });
-        if (width === 390 && theme === "light") {
+        if (width === 390 && theme === "dark") {
           const initialTransferBytes = await page.evaluate(() => {
             const origin = location.origin;
             const resources = performance
@@ -421,7 +421,7 @@ const server = http.createServer((request, response) => {
           );
         }
         await page.waitForTimeout(800);
-        if (width === 390 && theme === "light") {
+        if (width === 390 && theme === "dark") {
           await page.locator(".half-trigger").first().click();
           assert.equal(await page.locator("#halfDialog").evaluate(node => node.open), true);
           await page.locator("#halfClose").click();
@@ -818,7 +818,7 @@ const server = http.createServer((request, response) => {
     }
     for (const theme of process.env.VISUAL_QUICK === "1"
       ? ["light"]
-      : ["light", "dark"]) {
+      : ["dark"]) {
       for (const [label, viewport] of process.env.VISUAL_QUICK === "1"
         ? [
             ["movil", { width: 390, height: 844 }],
@@ -839,7 +839,7 @@ const server = http.createServer((request, response) => {
         await interceptFirebase(page);
         page.on("pageerror", (error) => errors.push(error.stack || error.message));
         await page.addInitScript(freezeDate);
-        if (theme === "light" && label === "movil")
+        if (theme === "dark" && label === "movil")
           await page.addInitScript(() => {
             Object.defineProperty(navigator, "userAgent", {
               configurable: true,
@@ -883,7 +883,7 @@ const server = http.createServer((request, response) => {
         await page.evaluate(() => window.__barrioAdminE2E.replaceOrders(
           JSON.parse(localStorage.getItem("barrio-ice-visual-orders") || "[]"),
         ));
-        if (theme === "light" && label === "movil") {
+        if (theme === "dark" && label === "movil") {
           assert.equal(await page.locator("#installBar").isVisible(), true);
           await page.locator("#installNow").click();
           assert.match(await page.locator("#installHelp").innerText(), /Añadir a pantalla de inicio/);
@@ -914,7 +914,7 @@ const server = http.createServer((request, response) => {
           ["Hoy", "Pedidos", "Menú", "Mostrador", "Ventas", "Ajustes"],
           "las pestañas del panel deben estar en el HTML y en el orden acordado",
         );
-        if (theme === "light" && label === "movil") {
+        if (theme === "dark" && label === "movil") {
           await page.locator('[data-admin-tab="stats"]').click();
           const firstBar = page.locator(".chart-grid .bar-row").first();
           await firstBar.waitFor();
@@ -929,7 +929,7 @@ const server = http.createServer((request, response) => {
         await page.locator('[data-admin-tab="orders"]').click();
         const renderedOrders = await page.locator("#adminView").innerText();
         assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");
-        if (theme === "light" && label === "movil") {
+        if (theme === "dark" && label === "movil") {
           const popupPromise = page.waitForEvent("popup");
           await page.locator("[data-print]").first().click();
           const printPopup = await popupPromise;
@@ -1161,7 +1161,7 @@ const server = http.createServer((request, response) => {
       "la página no debe generar errores de JavaScript",
     );
     console.log(
-      `Comprobación visual headless: ${dimensions.length} tamaños × ${process.env.VISUAL_QUICK === "1" ? 1 : 2} temas; panel autenticado${saveScreenshots ? "; capturas guardadas en tests/screenshots" : ""}.`,
+      `Comprobación visual headless: ${dimensions.length} tamaños × tema oscuro; panel autenticado${saveScreenshots ? "; capturas guardadas en tests/screenshots" : ""}.`,
     );
   } finally {
     await browser.close();
