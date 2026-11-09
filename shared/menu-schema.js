@@ -74,7 +74,7 @@
       dropDia: true,
       armador: true,
       sonidosCliente: true,
-      navidad: false,
+      navidad: true,
       sonidoAdmin: true,
     },
     theme: "normal",
