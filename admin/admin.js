@@ -143,7 +143,7 @@ function activateSound() {
     $("soundToggle").setAttribute("aria-pressed", "true");
     const soundButton = $("sound");
     if (soundButton) {
-      soundButton.textContent = "🔔 Avisos activos";
+      soundButton.textContent = String.fromCodePoint(0x1f514) + " Avisos activos";
       soundButton.setAttribute("aria-pressed", "true");
     }
     beep();
@@ -496,7 +496,7 @@ function beep() {
       '</strong><button class="secondary" id="deleteSelected" disabled>Eliminar seleccionados</button><button class="secondary" id="sound" title="Activa un aviso sonoro cada vez que llegue un pedido nuevo." aria-label="Activar avisos sonoros para pedidos nuevos" aria-pressed="' +
       String(audio?.state === "running") +
       '">' +
-      (audio?.state === "running" ? "🔔 Avisos activos" : "🔔 Activar avisos") +
+      (audio?.state === "running" ? String.fromCodePoint(0x1f514) + " Avisos activos" : String.fromCodePoint(0x1f514) + " Activar avisos") +
       '</button><button class="primary" id="xlsx" title="Descarga el historial completo, aunque no esté cargado en pantalla.">Exportar Excel completo</button><span class="saved" id="xlsxFeedback" role="status" aria-live="polite"></span><span class="saved" id="orderStatusFeedback" role="status" aria-live="polite"></span></div><div class="orders">' +
       (list.length
         ? list

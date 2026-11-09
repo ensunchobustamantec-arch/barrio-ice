@@ -292,7 +292,7 @@ const BarrioShared = window.BarrioShared;
           .map(
             (b, i) =>
               '<article class="drink"><i class="drink-icon">' +
-              esc(b.icon || "🧊") +
+              esc(b.icon || String.fromCodePoint(0x1f9ca)) +
               "</i><div><h3>" +
               esc(b.n) +
               (b.adulto ? ' <span class="tag adult">+18</span>' : "") +
@@ -309,7 +309,7 @@ const BarrioShared = window.BarrioShared;
         $("combos").innerHTML = menu.combos
           .map(
             (c, i) =>
-              '<article class="combo"><i class="drink-icon">🤝</i><div><h3>' +
+              '<article class="combo"><i class="drink-icon">' + String.fromCodePoint(0x1f91d) + '</i><div><h3>' +
               esc(c.n) +
               "</h3><p>" +
               esc(c.d) +
@@ -587,7 +587,7 @@ const BarrioShared = window.BarrioShared;
           ).getBoundingClientRect(),
           g = document.createElement("i");
         g.className = "flying";
-        g.textContent = "🧊";
+        g.textContent = String.fromCodePoint(0x1f9ca);
         g.style.left = b.left + "px";
         g.style.top = b.top + "px";
         document.body.append(g);
