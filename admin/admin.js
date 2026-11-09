@@ -191,8 +191,6 @@ function beep() {
   function publicTracking(order, estado = order.estado || "Nuevo") {
     return {
       estado,
-      status: estado === "Nuevo" ? "Recibido" : estado,
-      statusUpdatedAt: order.statusUpdatedAt || order.actualizadoEn || order.creadoEn || store.time(),
       tipo: order.entrega?.tipo === "domicilio" ? "domicilio" : "recoger",
       fecha: order.fecha || "",
       creadoEn: order.creadoEn || store.time(),
@@ -2354,8 +2352,6 @@ async function initializeFirebase() {
           "Cliente";
         await dbSdk.setDoc(reference, {
           estado: order.estado || "Nuevo",
-          status: order.estado === "Nuevo" || !order.estado ? "Recibido" : order.estado,
-          statusUpdatedAt: order.actualizadoEn || order.creadoEn || dbSdk.serverTimestamp(),
           tipo: order.entrega?.tipo === "domicilio" ? "domicilio" : "recoger",
           fecha: order.fecha || "",
           creadoEn: order.creadoEn || dbSdk.serverTimestamp(),
