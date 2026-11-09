@@ -1,0 +1,20 @@
+.bi-x-pricing-days { display: grid; gap: 8px; margin-block: 16px; }
+.bi-x-pricing-day { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--glass); overflow: hidden; }
+.bi-x-pricing-day > summary { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 12px 14px; cursor: pointer; font-weight: 850; list-style: none; }
+.bi-x-pricing-day > summary::after { content: "+"; margin-left: auto; color: var(--accent); }
+.bi-x-pricing-day[open] > summary::after { content: "−"; }
+.bi-x-pricing-today { border: 1px solid var(--accent); border-radius: 99px; padding: 2px 8px; color: var(--accent); font-size: .72rem; }
+.bi-x-pricing-body { display: grid; gap: 12px; padding: 0 12px 14px; }
+.bi-x-pricing-list { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
+.bi-x-pricing-list legend { padding-inline: 5px; font-size: .85rem; font-weight: 800; }
+.bi-x-pricing-field { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(100px, 1.2fr); align-items: center; gap: 8px; min-width: 0; font-size: .83rem; }
+.bi-x-pricing-pesos { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bi-x-pricing-pesos input { width: 100%; min-width: 0; min-height: 46px; font-size: 16px; scroll-margin-block: 110px; }
+.bi-x-pricing-pesos input[aria-invalid="true"] { border-color: var(--danger); }
+.bi-x-pricing-copy > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--accent); font-size: .85rem; }
+.bi-x-pricing-targets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; }
+.bi-x-pricing-targets label { font-size: .8rem; }
+.bi-x-pricing-preview { padding: 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
+.bi-x-pricing-dirty { color: var(--accent); font-size: .8rem; }
+.bi-x-pricing-dirty:empty { display: none; }
+@media (max-width: 600px) { #biXDailyPricing #savePrices { width: 100%; min-height: 52px; } }

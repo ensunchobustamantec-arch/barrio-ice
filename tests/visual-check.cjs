@@ -341,6 +341,7 @@ const server = http.createServer((request, response) => {
         await page.goto(address + "/?e2e=1&intro=0", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#promoText");
         await page.waitForSelector(".flavor");
+        assert.equal(await page.locator("#biXDropCountdown").count(), 0);
         const seo = await page.evaluate(() => {
           const structuredData = [
             ...document.querySelectorAll('script[type="application/ld+json"]'),
@@ -985,6 +986,54 @@ const server = http.createServer((request, response) => {
         }
         await page.locator('[data-admin-tab="menu"]').click();
         await page.getByRole("heading", { name: "Catálogo de sabores" }).waitFor();
+        if (theme === "dark" && label === "movil") {
+          const originalMenu = await page.evaluate(() => JSON.parse(localStorage.getItem("barrio-ice-visual-menu")));
+          const originalOrders = await page.evaluate(() => localStorage.getItem("barrio-ice-visual-orders"));
+          assert.equal(await page.locator(".bi-x-pricing-day").count(), 7);
+          assert.equal(originalMenu.dailyPricing, undefined, "Abrir el editor no debe migrar los datos");
+          const normal = page.locator('[data-bi-price="miercoles"][data-list="normal"][data-index="0"]');
+          assert.equal(await normal.inputValue(), "12.000");
+          await normal.fill("12345");
+          await page.locator('[data-bi-price="miercoles"][data-list="promoPrices"][data-index="0"]').fill("16000");
+          assert.match(await page.locator(".bi-x-pricing-dirty").innerText(), /sin guardar/);
+          await page.locator('[data-bi-day="miercoles"] .bi-x-pricing-copy > summary').click();
+          await page.locator('[data-bi-copy-target="miercoles"][value="jueves"]').check();
+          await page.locator('[data-bi-copy="miercoles"]').click();
+          assert.equal(await page.locator('[data-bi-price="jueves"][data-list="promoPrices"][data-index="0"]').inputValue(), "16.000");
+          await page.locator("#savePrices").click();
+          await page.waitForFunction(() => document.getElementById("priceSaved")?.textContent.includes("Precios guardados"));
+          const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("barrio-ice-visual-menu")));
+          assert.equal(Object.keys(saved.dailyPricing).length, 7);
+          assert.equal(saved.dailyPricing.miercoles.normal[0], 12345);
+          assert.equal(saved.dailyPricing.jueves.promoPrices[0], 16000);
+          assert.deepEqual(saved.precios, originalMenu.precios);
+          for (const [key, value] of Object.entries(originalMenu.promos)) assert.equal(saved.promos[key], value);
+          if (saveScreenshots) await page.locator("#biXDailyPricing").screenshot({ path: path.join(output, "precios-por-dia-390.png") });
+          assert.equal(await page.evaluate(() => localStorage.getItem("barrio-ice-visual-orders")), originalOrders);
+          await page.locator('[data-admin-tab="pos"]').click();
+          await page.locator('[data-pos-flavor="Mora"]').click();
+          await page.locator('[data-pos-size="Pequeño"]').click();
+          assert.match(await page.locator(".pos-totals").innerText(), /16\.000/);
+          await page.locator("#posPromo").uncheck();
+          assert.match(await page.locator(".pos-totals").innerText(), /12\.345/);
+          assert.equal(await page.locator(".pos-gift").count(), 0);
+          await page.locator("[data-pos-clear]").click();
+          await page.goto(address + "/?e2e=1&intro=0", { waitUntil: "domcontentloaded" });
+          await page.waitForFunction(() => !!window.__barrio?.store?.ready);
+          await page.locator('[data-flavor="Mora"][data-size="0"]').click();
+          await page.locator("#promoConfirm").click();
+          assert.match(await page.locator("#fabTotal").innerText(), /16\.000/);
+          await page.evaluate(() => { window.__barrio.menu.dailyPricing.miercoles.promoPrices[0] = 17000; window.__barrio.render(); });
+          assert.match(await page.locator("#fabTotal").innerText(), /17\.000/);
+          assert.match(await page.locator("#toast").innerText(), /Actualizamos/);
+          await page.evaluate(() => { window.__barrio.menu.funcionesNuevas.preciosPorDia = false; window.__barrio.render(); });
+          assert.match(await page.locator("#fabTotal").innerText(), /12\.000/);
+          await page.evaluate((value) => localStorage.setItem("barrio-ice-visual-menu", JSON.stringify(value)), originalMenu);
+          await page.goto(address + "/admin/?e2e=1&intro=0", { waitUntil: "domcontentloaded" });
+          await page.waitForFunction(() => !!window.__barrioAdminE2E);
+          await openAdmin();
+          await page.evaluate((value) => window.__barrioAdminE2E.replaceOrders(JSON.parse(value)), originalOrders);
+        }
         await page.locator('[data-admin-tab="orders"]').click();
         const renderedOrders = await page.locator("#adminView").innerText();
         assert.match(renderedOrders, /REGALO 2x1/, "el panel debe mostrar pedidos y regalos");

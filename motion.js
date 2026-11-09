@@ -40,7 +40,7 @@
 
   installLoadingSkeletons();
 
-  function dayPlan(day = now().getDay()) {
+  function dayPlan(day) {
     const result = BarrioIcePricing.planForDay(day, menu);
     return Object.assign({}, result, {
       g: result.active ? result.receive : 0,

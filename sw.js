@@ -26,6 +26,7 @@ const SHELL = [
   "/assets/brand/logo-dark-mobile.webp",
   "/intro.css",
   "/pricing.js",
+  "/shared/daily-pricing.js",
   "/shared/menu-schema.js",
   "/shared/features.js",
   "/shared/whatsapp.js",

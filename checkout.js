@@ -39,7 +39,7 @@
     saveCustomer();
     $("send").disabled = true;
     $("send").textContent = "Guardando tu pedido…";
-    const promo = BarrioIcePricing.planForDay(new Date().getDay(), menu);
+    const promo = result.plan;
     const items = result.lines.map((line) => ({
       n: clean(line.n || "Producto", 80),
       s: clean(line.s || "", 30),

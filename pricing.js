@@ -1,29 +1,10 @@
 (function (root, factory) {
-  const api = factory();
+  const daily = typeof module === "object" && module.exports ? require("./shared/daily-pricing.js") : root.BarrioDailyPricing;
+  const api = factory(daily);
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.BarrioIcePricing = api;
-})(typeof globalThis === "undefined" ? this : globalThis, function () {
-  const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  const PROMO_KEYS = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-
-  function planForDay(day, menu = {}) {
-    const weekdayPrices = menu.precios?.semana || [12000, 15000, 18000];
-    const thursdayPrices = menu.precios?.jueves || weekdayPrices;
-    const weekendPrices = menu.precios?.finde || [8000, 12000, 15000];
-    const name = DAY_NAMES[day] || "domingo";
-    const promoKey = PROMO_KEYS[day] || "domingo";
-    const prices = day >= 1 && day <= 3
-      ? weekdayPrices
-      : day === 4
-        ? thursdayPrices
-        : weekendPrices;
-    const active = menu.promos?.[promoKey] === true;
-
-    if (active) {
-      return { title: "2x1", name: "Promo 2x1", buy: 1, receive: 2, prices, active: true };
-    }
-    return { title: "Precios normales", name: "Precios normales", buy: 0, receive: 0, prices, active: false };
-  }
+})(typeof globalThis === "undefined" ? this : globalThis, function (daily) {
+  function planForDay(value, menu = {}, options) { return daily.getDayPlan(value, menu, options); }
 
   function flavorNames(item) {
     if (Array.isArray(item.sabores) && item.sabores.length) return item.sabores.map(String);
@@ -32,8 +13,8 @@
     return name ? [name] : [];
   }
 
-  function calculate(items = [], day = new Date().getDay(), menu = {}) {
-    const plan = planForDay(day, menu);
+  function calculate(items = [], day, menu = {}, options) {
+    const plan = planForDay(day, menu, options);
     const paidLines = [];
     const groups = new Map();
     let subtotal = 0;
