@@ -2170,7 +2170,7 @@ function makeLocalTestStore() {
       const order = orders.find((item) => item.id === id) || {};
       tracking[id] = Object.assign(
         tracking[id] || publicTracking(order),
-        { estado: value.estado, status: value.status || (value.estado === "Nuevo" ? "Recibido" : value.estado), actualizadoEn: value.actualizadoEn, statusUpdatedAt: value.statusUpdatedAt || value.actualizadoEn },
+        { estado: value.estado, actualizadoEn: value.actualizadoEn },
       );
       localStorage.setItem("barrio-ice-visual-tracking", JSON.stringify(tracking));
     },
@@ -2322,10 +2322,10 @@ async function initializeFirebase() {
         await dbSdk.setDoc(
           trackingRef,
           tracking.exists()
-            ? { estado: value.estado, status: value.status || (value.estado === "Nuevo" ? "Recibido" : value.estado), actualizadoEn: value.actualizadoEn, statusUpdatedAt: value.statusUpdatedAt || value.actualizadoEn }
+            ? { estado: value.estado, actualizadoEn: value.actualizadoEn }
             : Object.assign(
                 publicTracking(order || orders.find((item) => item.id === id) || {}, value.estado),
-                { status: value.status || (value.estado === "Nuevo" ? "Recibido" : value.estado), actualizadoEn: value.actualizadoEn, statusUpdatedAt: value.statusUpdatedAt || value.actualizadoEn },
+                { actualizadoEn: value.actualizadoEn },
               ),
           { merge: true },
         );
