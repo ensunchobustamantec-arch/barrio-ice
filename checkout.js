@@ -54,6 +54,7 @@
       regalo: !!line.regalo,
       promo: clean(line.promo || "", 30),
       ahorroUnitario: +line.ahorroUnitario || 0,
+      secondFlavor: clean(line.secondFlavor || "", 30),
     }));
     const order = {
       items,

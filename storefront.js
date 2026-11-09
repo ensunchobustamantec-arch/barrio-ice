@@ -39,7 +39,7 @@ const BarrioShared = window.BarrioShared;
       function merge(data) {
         return BarrioShared.mergeMenu(data);
       }
-      let menu = merge(), cart = [], store;
+      let menu = merge(), cart = [], store, pendingPromo = null;
       function plan(d = now().getDay()) {
         const result = BarrioIcePricing.planForDay(d, menu);
         return {
@@ -406,23 +406,45 @@ const BarrioShared = window.BarrioShared;
         document.dispatchEvent(new CustomEvent("barrio:item-added", { detail: { source } }));
         if (!quiet) toast("✓ " + x.n + (x.s ? " · " + x.s : "") + " agregado");
       }
-      function addFlavor(n, i, s) {
+      function closePromoPicker() {
+        const dialog = $("promoDialog");
+        if (dialog?.close) dialog.close();
+        else dialog?.removeAttribute("open");
+        pendingPromo = null;
+      }
+      function openPromoPicker(n, i, source) {
+        const base = flavor(n), dialog = $("promoDialog"), select = $("promoGiftFlavor");
+        if (!base || !dialog || !select) return addFlavor(n, i, source, n);
+        const options = availableHalfFlavors();
+        pendingPromo = { n, i, source };
+        $("promoBaseFlavor").textContent = n;
+        select.innerHTML = options.map((item) => '<option value="' + esc(item.n) + '">' + (item.n === n ? 'Mismo sabor · ' : 'Otro sabor · ') + esc(item.n) + (item.l || item.adulto ? ' (+18)' : '') + '</option>').join("");
+        select.value = n;
+        if (dialog.showModal) dialog.showModal();
+        else dialog.setAttribute("open", "");
+      }
+      function addFlavor(n, i, s, giftName) {
         let f = flavor(n);
         if (f && f.active !== false && !sold(n)) {
           let p = plan();
+          const giftFlavor = giftName || n, gift = flavor(giftFlavor);
+          if (!gift || gift.active === false || sold(giftFlavor) || !(menu.dias[now().getDay()] || []).includes(giftFlavor)) return;
+          const key = "g:" + n + ":" + i + ":" + giftFlavor;
+          const item = {
+            k: key,
+            n: "Granizado de " + n,
+            s: sizes[i],
+            p: +p.p[i],
+            q: 1,
+            g: true,
+            tipo: "granizado",
+            sabores: [n],
+            adulto: !!(f.l || f.adulto || gift.l || gift.adulto),
+            giftFlavor,
+          };
+          if (giftFlavor !== n) item.secondFlavor = giftFlavor;
           add(
-            {
-              k: "g:" + n + ":" + i,
-              n: "Granizado de " + n,
-              s: sizes[i],
-              p: +p.p[i],
-              q: 1,
-              g: true,
-              tipo: "granizado",
-              sabores: [n],
-              adulto: !!(f.l || f.adulto),
-              giftFlavor: n,
-            },
+            item,
             s,
           );
         }
@@ -489,6 +511,7 @@ const BarrioShared = window.BarrioShared;
                   esc(x.n) +
                   (x.s ? " · " + esc(x.s) : "") +
                   (x.sabores?.length > 1 ? " · " + esc(x.sabores.join(" / ")) : "") +
+                  (x.secondFlavor && x.sabores?.[0] ? " · 2x1: " + esc(x.sabores[0]) + " + " + esc(x.secondFlavor) : "") +
                   (x.adulto ? " · +18" : "") +
                   "</b><small>" +
                   fmt(x.p) +
@@ -508,11 +531,10 @@ const BarrioShared = window.BarrioShared;
             '</b><small>' + esc(line.s) + ' · REGALO 2x1' +
             (line.adulto ? ' · +18' : '') + '</small></div><b>×' + line.q + '</b></div>'
           ).join(""));
-          $("lines").insertAdjacentHTML("beforeend", cart.filter((item) => item.g).map((item) => {
+          if (window.BarrioIceFeatures?.enabled(menu, "saboresDistintos2x1") !== false) $("lines").insertAdjacentHTML("beforeend", cart.filter((item) => item.g).map((item) => {
             const options = (menu.dias[now().getDay()] || []).filter((name) => {
               const candidate = flavor(name);
-              return candidate && candidate.active !== false && !sold(name) &&
-                Boolean(candidate.l || candidate.adulto) === Boolean(item.adulto);
+              return candidate && candidate.active !== false && !sold(name);
             });
             return '<label class="field">Sabor del regalo · ' + esc(item.n) +
               '<select data-gift-flavor="' + esc(item.k) + '">' +
@@ -666,12 +688,16 @@ const BarrioShared = window.BarrioShared;
           const amount = item.regalo
             ? "\u{1F381} cortesía"
             : fmt((+item.p || 0) * quantity);
+          const promoLabel = item.secondFlavor && flavors[0]
+            ? " · 2x1: " + flavors[0] + " + " + item.secondFlavor
+            : "";
           return (
             "• " +
             quantity +
             " × " +
             name +
             (item.s ? " · " + item.s : "") +
+            promoLabel +
             " · " +
             amount +
             (item.adulto ? " · +18" : "")
@@ -818,9 +844,16 @@ const BarrioShared = window.BarrioShared;
           const item = cart.find((line) => line.k === key);
           const candidate = flavor(event.target.value);
           if (item && candidate && candidate.active !== false && !sold(candidate.n) &&
-              (menu.dias[now().getDay()] || []).includes(candidate.n) &&
-              Boolean(candidate.l || candidate.adulto) === Boolean(item.adulto)) {
+              (menu.dias[now().getDay()] || []).includes(candidate.n)) {
             item.giftFlavor = candidate.n;
+            if (candidate.n !== item.sabores?.[0]) item.secondFlavor = candidate.n;
+            else delete item.secondFlavor;
+            item.adulto = !!(candidate.l || candidate.adulto || (item.sabores || []).some((name) => flavor(name)?.l || flavor(name)?.adulto));
+            if (item.k.startsWith("g:")) {
+              item.k = "g:" + item.sabores[0] + ":" + sizes.indexOf(item.s) + ":" + candidate.n;
+              const duplicate = cart.find((line) => line !== item && line.k === item.k);
+              if (duplicate) { duplicate.q += item.q; cart.splice(cart.indexOf(item), 1); }
+            }
             draw();
           }
         });
@@ -829,8 +862,12 @@ const BarrioShared = window.BarrioShared;
             drinkButton = event.target.closest("[data-drink]"),
             comboButton = event.target.closest("[data-combo]"),
             quantityButton = event.target.closest("[data-change]");
-          if (flavorButton)
-            addFlavor(flavorButton.dataset.flavor, +flavorButton.dataset.size, flavorButton);
+          if (flavorButton) {
+            const name = flavorButton.dataset.flavor, size = +flavorButton.dataset.size;
+            if (plan().g === 2 && window.BarrioIceFeatures?.enabled(menu, "saboresDistintos2x1") !== false)
+              openPromoPicker(name, size, flavorButton);
+            else addFlavor(name, size, flavorButton);
+          }
           if (drinkButton) addDrink(+drinkButton.dataset.drink, drinkButton);
           if (comboButton) addCombo(+comboButton.dataset.combo, comboButton);
           if (quantityButton)
@@ -838,6 +875,11 @@ const BarrioShared = window.BarrioShared;
           if (event.target.closest("#halfLaunch")) showHalfPicker();
           if (event.target.closest("#halfAdd")) addHalfMix();
           if (event.target.closest("#halfClose")) closeHalfPicker();
+          if (event.target.closest("#promoClose")) closePromoPicker();
+          if (event.target.closest("#promoConfirm") && pendingPromo) {
+            addFlavor(pendingPromo.n, pendingPromo.i, pendingPromo.source, $("promoGiftFlavor")?.value || pendingPromo.n);
+            closePromoPicker();
+          }
         });
         ["halfFlavorA", "halfFlavorB", "halfSize"].forEach((id) => {
           $(id).addEventListener("change", syncHalfPicker);

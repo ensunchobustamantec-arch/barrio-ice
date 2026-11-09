@@ -73,6 +73,7 @@
       edad18: true,
       dropDia: true,
       armador: true,
+      saboresDistintos2x1: true,
       sonidosCliente: true,
       navidad: true,
       sonidoAdmin: true,

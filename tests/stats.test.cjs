@@ -6,4 +6,10 @@ const result = stats.aggregate([
   { id: "void", anulada: true, total: 99000 },
 ]);
 assert.equal(result.total, 27000); assert.equal(result.n, 2); assert.equal(result.channels.online, 12000); assert.equal(result.channels.mostrador, 15000); assert.equal(result.freeGranizados, 1); assert.equal(result.cash, 12000);
+const twoFlavors = stats.aggregate([{ fecha: "2026-11-08", items: [
+  { n: "Granizado", sabores: ["Mango"], secondFlavor: "Maracuyá", s: "Mediano", q: 1, g: true },
+  { n: "Granizado", sabores: ["Maracuyá"], s: "Mediano", q: 1, g: true, regalo: true },
+] }]);
+assert.equal(twoFlavors.flavors.Mango, 1);
+assert.equal(twoFlavors.gifts.Maracuyá, 1, "El regalo solo debe contarse una vez");
 console.log("Stats core: 6 casos aprobados.");

@@ -580,6 +580,7 @@ const server = http.createServer((request, response) => {
             .getByRole("button", { name: /Pequeño/ })
             .first()
             .click();
+          if (await page.locator("#promoDialog").isVisible()) await page.locator("#promoConfirm").click();
           console.log("Línea agregada desde la tienda, verificando carrito");
           const cartState = await page.evaluate(() => ({
             lines: window.__barrio?.cart?.length ?? "no cart",
@@ -1046,6 +1047,7 @@ const server = http.createServer((request, response) => {
           await flavorCard.waitFor();
           assert.match(await flavorCard.locator(".tag.adult").innerText(), /\+18/);
           await flavorCard.locator(`[data-flavor="${flavorName}"]`).first().click();
+          if (await page.locator("#promoDialog").isVisible()) await page.locator("#promoConfirm").click();
           await page.getByRole("button", { name: /Mi pedido/ }).click();
           assert.equal(await page.locator("#ageBox").isVisible(), true);
           await page.locator("#name").fill("Cliente Prueba");

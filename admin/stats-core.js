@@ -39,7 +39,12 @@
         if (!(item.g === true || item.tipo === "granizado" || /granizado/i.test(item.n || ""))) return;
         const q = Number(item.q) || 0, names = flavorNames(item);
         if (item.regalo) summary.freeGranizados += q; else summary.paidGranizados += q;
-        names.forEach((name) => { const target = item.regalo ? summary.gifts : summary.flavors; target[name] = (target[name] || 0) + q / Math.max(1, names.length); });
+        if (item.secondFlavor && !item.regalo) {
+          const primary = names[0];
+          if (primary) summary.flavors[primary] = (summary.flavors[primary] || 0) + q;
+        } else {
+          names.forEach((name) => { const target = item.regalo ? summary.gifts : summary.flavors; target[name] = (target[name] || 0) + q / Math.max(1, names.length); });
+        }
         if (item.s) summary.sizes[item.s] = (summary.sizes[item.s] || 0) + q;
       });
     });

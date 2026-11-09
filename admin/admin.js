@@ -113,6 +113,7 @@ function orderLineText(item) {
     " x " +
     flavorText(item) +
     (item.s ? " " + item.s : "") +
+    (item.secondFlavor ? " · 2x1: " + (BarrioIcePricing.flavorNames(item)[0] || item.n || "") + " + " + item.secondFlavor : "") +
     " = " +
     fmt(item.p || 0)
   );
@@ -645,11 +646,13 @@ function beep() {
         const names = BarrioIcePricing.flavorNames(item);
         if (item.regalo) summary.freeGranizados += +item.q || 0;
         else summary.paidGranizados += +item.q || 0;
-        names.forEach((name) => {
-          const bucket = item.regalo ? summary.gifts : summary.flavors;
-          bucket[name] =
-            (bucket[name] || 0) + (+item.q || 0) / Math.max(1, names.length);
-        });
+        const bucket = item.regalo ? summary.gifts : summary.flavors;
+        const primary = names[0];
+        if (!item.regalo && item.secondFlavor) {
+          if (primary) bucket[primary] = (bucket[primary] || 0) + (+item.q || 0);
+        } else {
+          names.forEach((name) => { bucket[name] = (bucket[name] || 0) + (+item.q || 0) / Math.max(1, names.length); });
+        }
         if (item.s)
           summary.sizes[item.s] = (summary.sizes[item.s] || 0) + (+item.q || 0);
       });
@@ -1186,6 +1189,7 @@ function beep() {
       ["edad18", "Confirmación de mayoría de edad"],
       ["dropDia", "Drop de sabores del día"],
       ["armador", "Armador visual de granizados"],
+      ["saboresDistintos2x1", "Sabores distintos en el 2x1"],
       ["sonidosCliente", "Sonido y vibración del cliente"],
       ["sonidoAdmin", "Sonido de avisos del panel"],
     ];
@@ -1548,7 +1552,7 @@ function beep() {
           const value = lineValue(item);
           const names = isGranizado(item)
             ? [...new Set(
-                BarrioIcePricing.flavorNames(item)
+                BarrioIcePricing.flavorNames(item).concat(item.secondFlavor ? [item.secondFlavor] : [])
                   .map((name) => String(name).trim())
                   .filter(Boolean),
               )]
@@ -1568,8 +1572,9 @@ function beep() {
           ]);
           if (order.estado === "Cancelado" || !isGranizado(item)) return;
 
-          const allocation = names.length ? 1 / names.length : 1;
-          names.forEach((name) => {
+          const aggregateNames = item.secondFlavor && !item.regalo ? names.slice(0, 1) : names;
+          const allocation = aggregateNames.length ? 1 / aggregateNames.length : 1;
+          aggregateNames.forEach((name) => {
             const current = flavorTotals.get(name) || { paid: 0, gifts: 0, value: 0 };
             if (item.regalo) current.gifts += quantity * allocation;
             else {
