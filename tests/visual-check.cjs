@@ -1003,6 +1003,20 @@ const server = http.createServer((request, response) => {
           assert.equal(await diagnostics.locator('[data-diagnostic="whatsapp"]').getAttribute("class"), "diagnostic-ok");
           assert.equal(await diagnostics.locator('[data-diagnostic="hours"]').getAttribute("class"), "diagnostic-ok");
           assert.ok(await diagnostics.locator("[data-diagnostic]").count() >= 9);
+          await page.locator("#themeSetting").selectOption("navidad");
+          await page.locator('[data-feature="armador"]').uncheck();
+          await page.locator("#promoSetting").fill("Mensaje de prueba");
+          await page.locator("#saveFeatureSettings").click();
+          await page.waitForFunction(() => document.getElementById("featureSettingsSaved")?.textContent.includes("Guardado correctamente"));
+          const savedSettings = await page.evaluate(() => JSON.parse(localStorage.getItem("barrio-ice-visual-menu")));
+          assert.equal(savedSettings.theme, "navidad");
+          assert.equal(savedSettings.funcionesNuevas.armador, false);
+          assert.equal(savedSettings.promoBanner, "Mensaje de prueba");
+          await page.locator("#themeSetting").selectOption("normal");
+          await page.locator('[data-feature="armador"]').check();
+          await page.locator("#promoSetting").fill("");
+          await page.locator("#saveSettingsV4").click();
+          await page.waitForFunction(() => document.getElementById("settingsSaved")?.textContent.includes("Guardado correctamente"));
           await page.waitForFunction(
             () => !!document.getElementById("diagnosticsVersion")?.textContent,
           );
