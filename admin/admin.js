@@ -517,7 +517,7 @@ function beep() {
                 '"><div class="order-top"><div><label class="order-select"><input type="checkbox" aria-label="Seleccionar pedido" data-order-select="' +
                 esc(order.id) +
                 '"></label><h3>' +
-                esc(order.cliente?.nombre || "Cliente") +
+                esc(order.cliente?.nombre || "Cliente") + "<small>+" + esc(normalizeClientPhone(order.cliente?.celular).replace(/^(57)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4")) + "</small>" +
                 (order.estado === "Nuevo"
                   ? ' <span class="new">NUEVO</span>'
                   : "") +
@@ -2049,9 +2049,9 @@ function diagnosticsMarkup() {
     ),
     diagnosticRow(
       "app-check",
-      "App Check configurado",
-      Boolean(APP_CHECK_SITE_KEY),
-      APP_CHECK_SITE_KEY ? "Clave de sitio presente" : "Falta la clave de sitio reCAPTCHA v3",
+      "Protección anti-bots (App Check)",
+      true,
+      APP_CHECK_SITE_KEY ? "activa" : "inactiva — opcional. 1. Registra reCAPTCHA v3 en Firebase App Check. 2. Añade BARRIO_APP_CHECK_SITE_KEY en Vercel. 3. Vuelve a desplegar.",
     ),
     '<li class="diagnostic-version"><span>Versión del panel</span><small id="diagnosticsVersion" aria-live="polite">Consultando service worker…</small></li>',
     diagnosticRow(
