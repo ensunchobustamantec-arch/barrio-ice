@@ -4,12 +4,14 @@
   function apply() {
     const navidad = menu?.theme === "navidad" && menu?.funcionesNuevas?.navidad !== false;
     document.documentElement.dataset.theme = navidad ? "navidad" : "dark";
-    if (!lights && navidad && document.body) {
+    const storefront = !!document.getElementById("storefront");
+    document.documentElement.classList.toggle("bi-x-christmas-store", navidad && storefront);
+    if (!lights && navidad && storefront && document.body) {
       lights = document.createElement("div");
       lights.className = "bi-x-christmas-lights";
       lights.setAttribute("aria-hidden", "true");
       for (let i = 0; i < 18; i += 1) { const bulb = document.createElement("i"); bulb.style.setProperty("--bi-x-delay", (i * -0.18) + "s"); lights.append(bulb); }
-      document.body.prepend(lights);
+      (document.querySelector(".top") || document.body).prepend(lights);
     }
     if (lights) lights.hidden = !navidad;
   }

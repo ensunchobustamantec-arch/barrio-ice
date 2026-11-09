@@ -69,7 +69,7 @@
           if (!awarded) continue;
           const trigger = group.units[start + plan.buy - 1];
           const originalFlavors = flavorNames(trigger);
-          const giftFlavor = String(trigger.giftFlavor || originalFlavors[0] || "Sorpresa");
+          const giftFlavor = String(trigger.secondFlavor || trigger.giftFlavor || originalFlavors[0] || "Sorpresa");
           const sameGift = giftLines.find(line => line.s === group.size && line.promo === plan.name &&
             line.sabores[0] === giftFlavor && !!line.adulto === !!trigger.adulto);
           if (sameGift) sameGift.q += awarded;

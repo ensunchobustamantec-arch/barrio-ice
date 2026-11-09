@@ -1,0 +1,83 @@
+/* Seasonal styles are active only when the menu selects Navidad. */
+.bi-x-christmas-lights[hidden], .bi-x-christmas-scene[hidden], .bi-x-season-banner[hidden] { display: none !important; }
+html.bi-x-christmas-store {
+  --bg: #071d26;
+  --paper: #102d32;
+  --glass: #08252beF;
+  --line: #497a72;
+  --ice: #a7f4e0;
+  --ice2: #e9fff8;
+  --muted: #c5ded7;
+}
+html.bi-x-christmas-store body {
+  isolation: isolate;
+  background: radial-gradient(ellipse at 12% 0, #12584c 0, transparent 36rem), radial-gradient(ellipse at 90% 30%, #62273755, transparent 26rem), linear-gradient(150deg, #061925, #0a302c 57%, #061a23);
+}
+html.bi-x-christmas-store .top { background: #092820f2; border-color: #d9bb6b77; }
+html.bi-x-christmas-store .top .brand, html.bi-x-christmas-store .top .actions { position: relative; z-index: 1; }
+html.bi-x-christmas-store .top::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 10px; pointer-events: none;
+  background: radial-gradient(circle at 10px 0, #b92f43 0 3px, transparent 4px) 0 0/42px 10px, radial-gradient(ellipse at 10px 0, #39866b 0 8px, transparent 9px) 0 0/21px 10px;
+}
+html.bi-x-christmas-store .hero-stage .hero-logo { filter: none; }
+html.bi-x-christmas-store .flavor, html.bi-x-christmas-store .drink, html.bi-x-christmas-store .combo, html.bi-x-christmas-store .feature, html.bi-x-christmas-store .info article, html.bi-x-christmas-store .sheet {
+  background: linear-gradient(155deg, #174339, #0a252c 72%); border-color: #719f8c;
+}
+html.bi-x-christmas-store .flavor::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; pointer-events: none;
+  background: radial-gradient(ellipse at 12px 0, #efffff 0 7px, transparent 8px) 0 0/24px 10px; opacity: .85;
+}
+html.bi-x-christmas-store .primary {
+  color: #fff; border-color: #ffcbc6; background: repeating-linear-gradient(125deg, transparent 0 18px, #fff2 18px 23px), linear-gradient(110deg, #a92239, #d9404c 55%, #ad293b);
+  box-shadow: inset 0 1px #fff8, 0 5px 0 #6d1727, 0 10px 24px #761a3050;
+}
+html.bi-x-christmas-store .hero > .eyebrow { border-color: #e7c978; background: #153d35; }
+.bi-x-season-banner { display: inline-flex; align-items: center; gap: 4px; padding-left: 6px; color: #ffe5a0; font-weight: 900; letter-spacing: 0; }
+.bi-x-season-banner i { font-style: normal; animation: bi-x-twinkle 2.6s ease-in-out infinite alternate; }
+.bi-x-season-banner i:last-child { animation-delay: -1.3s; }
+.bi-x-christmas-store .bi-x-christmas-lights { position: absolute; z-index: 0; height: 17px; }
+.bi-x-christmas-lights::before { content: ""; position: absolute; top: -7px; width: 110%; height: 12px; border-bottom: 2px solid #2d6b50; border-radius: 50%; }
+.bi-x-christmas-scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.bi-x-christmas-scene *, .bi-x-holiday-hills { pointer-events: none; }
+.bi-x-snow, .bi-x-snow-layer { position: absolute; inset: 0; overflow: hidden; }
+.bi-x-snow-layer span { position: absolute; top: -12px; left: var(--x); animation: bi-x-snow-fall var(--duration) linear var(--delay) infinite; }
+.bi-x-snow-layer i { display: block; width: 3px; height: 3px; border-radius: 50%; background: #efffff; opacity: .42; animation: bi-x-snow-sway 3.2s ease-in-out var(--delay) infinite alternate; }
+.bi-x-snow-layer-1 i { width: 5px; height: 5px; opacity: .5; }
+.bi-x-snow-layer-2 i { width: 7px; height: 7px; opacity: .58; }
+.bi-x-ornament { position: absolute; top: 65px; width: 42px; height: 58px; transform-origin: 50% 0; animation: bi-x-ornament 4.5s ease-in-out infinite alternate; }
+.bi-x-ornament-left { left: 0; }
+.bi-x-ornament-right { right: 0; animation-delay: -2s; }
+.bi-x-santa { position: absolute; top: 30%; right: -18px; width: 74px; transform-origin: right center; animation: bi-x-peek 12s ease-in-out infinite; }
+.bi-x-snowman { position: absolute; right: 8px; bottom: 112px; width: 80px; opacity: .78; }
+.bi-x-snow-eyes { transform-box: fill-box; transform-origin: center; animation: bi-x-blink 6s infinite; }
+.bi-x-scarf { transform-box: fill-box; transform-origin: top left; animation: bi-x-wave 2.4s ease-in-out infinite alternate; }
+.bi-x-wave { transform-box: fill-box; transform-origin: bottom left; animation: bi-x-wave 2s ease-in-out infinite alternate; }
+.bi-x-sleigh { position: absolute; top: 16%; left: 0; width: clamp(140px, 18vw, 260px); opacity: 0; animation: bi-x-sleigh 45s linear infinite; }
+.bi-x-holiday-hills { position: absolute; bottom: 0; left: 0; width: 100%; height: 54px; z-index: 0; }
+.bi-x-snow-confetti { position: absolute; inset: 0; overflow: hidden; }
+.bi-x-snow-confetti i { position: absolute; left: var(--x); top: -12px; width: 7px; height: 10px; background: #fff4cc; border-radius: 50%; animation: bi-x-confetti 1.7s ease-out var(--delay) both; }
+.bi-x-snow-confetti i:nth-child(3n) { background: #f0c35b; }
+.bi-x-snow-confetti i:nth-child(3n+1) { background: #df6673; }
+html.bi-x-season-paused .bi-x-christmas-scene *, html.bi-x-season-paused .bi-x-christmas-lights *, html.bi-x-season-paused .bi-x-season-banner * { animation-play-state: paused !important; }
+:root[data-theme="navidad"] .admin-top { border-bottom-color: #739e83; }
+@keyframes bi-x-snow-fall { to { transform: translate3d(var(--drift), 110vh, 0); } }
+@keyframes bi-x-snow-sway { to { transform: translateX(14px); } }
+@keyframes bi-x-ornament { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes bi-x-twinkle { from { opacity: .45; transform: scale(.85); } to { opacity: 1; transform: scale(1.15); } }
+@keyframes bi-x-blink { 0%, 45%, 48%, 100% { transform: scaleY(1); } 46.5% { transform: scaleY(.12); } }
+@keyframes bi-x-wave { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes bi-x-peek { 0%, 70%, 100% { transform: translateX(46px); } 78%, 92% { transform: translateX(0); } }
+@keyframes bi-x-sleigh { 0%, 80% { opacity: 0; transform: translateX(-110%); } 81% { opacity: .75; } 97% { opacity: .75; transform: translateX(112vw); } 100% { opacity: 0; transform: translateX(112vw); } }
+@keyframes bi-x-confetti { from { opacity: 1; transform: translateY(0) rotate(0); } to { opacity: 0; transform: translateY(85vh) rotate(var(--turn)); } }
+@media (max-width: 600px) {
+  .bi-x-snow-layer span:nth-child(n+11) { display: none; }
+  .bi-x-ornament { width: 27px; top: 72px; }
+  .bi-x-snowman { width: 48px; bottom: 150px; }
+  .bi-x-santa { width: 48px; right: -14px; }
+  .bi-x-season-banner { font-size: .59rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bi-x-christmas-scene *, .bi-x-christmas-lights *, .bi-x-season-banner * { animation: none !important; }
+  .bi-x-snow-layer span { top: var(--y); }
+  .bi-x-sleigh { display: none; }
+}

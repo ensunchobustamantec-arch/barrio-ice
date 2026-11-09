@@ -119,12 +119,17 @@
     <link rel="stylesheet" href="./drop-day.css" />
     <link rel="stylesheet" href="./granizado-builder.css" />
     <link rel="stylesheet" href="./client-sound.css" />
+    <link rel="stylesheet" href="./promo-2x1.css" />
     <link rel="stylesheet" href="./themes.css" />
+    <link rel="stylesheet" href="./christmas.css" />
   </head>
   <body>
     <section id="barrioIntro" class="barrio-intro"></section>
     <dialog id="biAgeGate" class="bi-x-age-gate" aria-labelledby="ageGateTitle">
       <div class="bi-x-age-card"><span class="bi-x-age-mark" aria-hidden="true">❄</span><h2 id="ageGateTitle">Antes de entrar al frío</h2><p>Los granizados de Barrio Ice contienen alcohol. Venta solo a mayores de 18 años.</p><div class="bi-x-age-actions"><button id="ageYes" class="primary" type="button">Soy mayor de 18</button><button id="ageNo" class="secondary" type="button">Soy menor de 18</button></div></div>
+    </dialog>
+    <dialog id="promoDialog" class="bi-x-promo-dialog" aria-labelledby="promoTitle">
+      <div class="bi-x-promo-card"><div class="bi-x-promo-head"><span class="eyebrow">Promo activa</span><button id="promoClose" class="close" type="button" aria-label="Cerrar">×</button></div><h2 id="promoTitle">Tu 2x1</h2><p>Granizado 1: <strong id="promoBaseFlavor"></strong></p><label class="field" for="promoGiftFlavor">Granizado 2 · regalo<select id="promoGiftFlavor"></select></label><div class="bi-x-promo-actions"><button id="promoConfirm" class="primary" type="button">Agregar 2x1</button></div></div>
     </dialog>
     <header class="top shell">
       <a class="brand" href="#inicio" aria-label="Barrio Ice inicio"
@@ -448,9 +453,11 @@
     <script defer src="./pricing.js"></script>
     <script defer src="./shared/menu-schema.js"></script>
     <script defer src="./shared/features.js"></script>
+    <script defer src="./shared/whatsapp.js"></script>
     <script defer src="./age-gate.js"></script>
     <script defer src="./client-sound.js"></script>
     <script defer src="./themes.js"></script>
+    <script defer src="./christmas.js"></script>
     <script defer src="./drop-day.js"></script>
     <script defer src="./store-firebase.js"></script>
     <script defer src="./hero-scene.js"></script>
