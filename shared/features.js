@@ -7,6 +7,7 @@
     dropDia: true,
     armador: true,
     saboresDistintos2x1: true,
+    preciosPorDia: true,
     sonidosCliente: true,
     navidad: true,
     sonidoAdmin: true,

@@ -5,7 +5,7 @@
   const state = {
     cart: [], selected: "", promo: true, payment: "Efectivo", adjustment: 0,
     adjustmentReason: "", sales: [], unsubscribe: null, saving: false,
-    notice: "", lastSale: null,
+    notice: "", lastSale: null, dayKey: "", pricingKey: "", activePromo: null,
   };
   const money = (value, helpers) => helpers.fmt(Math.max(0, Number(value) || 0));
   const saleDate = (value) => value?.toDate ? value.toDate() : new Date(value || 0);
@@ -13,12 +13,6 @@
   const id = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random())
     .replace(/-/g, "");
 
-  function activeMenu(menu, day, promo) {
-    const copy = Object.assign({}, menu, { promos: Object.assign({}, menu.promos) });
-    const key = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][day];
-    copy.promos[key] = promo;
-    return copy;
-  }
   function todayFlavors(menu, day) {
     const sold = new Set(menu.agotados?.[day] || []);
     return (menu.dias?.[day] || []).map((name) => menu.cat.find((flavor) => flavor.n === name))
@@ -43,17 +37,17 @@
     else state.cart.push(item);
   }
   function current(ctx) {
-    const day = ctx.now().getDay();
-    const usedMenu = activeMenu(ctx.menu, day, state.promo);
-    const items = state.promo ? state.cart : state.cart.map(({ secondFlavor, giftFlavor, ...item }) => item);
-    return ctx.pricing.calculate(items, day, usedMenu);
+    return root.BarrioDailyPricing.calcOrderTotal(state.cart, undefined, ctx.menu, { promo: state.promo ? undefined : "ninguna" });
   }
   function render(ctx) {
     const target = document.getElementById("adminView");
     if (!target || !ctx.menu || !ctx.user) return;
-    const day = ctx.now().getDay();
-    const plan = ctx.pricing.planForDay(day, ctx.menu);
-    if (!state.cart.length) state.promo = plan.active;
+    const day = root.BarrioDailyPricing.dayIndex(), sizes = root.BarrioDailyPricing.getSizes(ctx.menu);
+    const plan = ctx.pricing.planForDay(undefined, ctx.menu), today = root.BarrioDailyPricing.dateKey();
+    const pricingKey = JSON.stringify([today, plan.promo, plan.prices]);
+    if (!state.cart.length || state.dayKey !== today || state.activePromo !== plan.active) state.promo = plan.active;
+    if (state.pricingKey && state.pricingKey !== pricingKey && state.cart.length) state.notice = "✓ Actualizamos los precios y la promo de esta venta.";
+    state.dayKey = today; state.pricingKey = pricingKey; state.activePromo = plan.active;
     const result = current(ctx);
     const flavors = todayFlavors(ctx.menu, day);
     const selected = flavors.find((flavor) => flavor.n === state.selected);
@@ -81,7 +75,7 @@
             <section class="card"><div class="section-head"><h3>Sabores de hoy</h3><small>${plan.active ? "2x1 disponible" : "Precio normal"}</small></div>
               <div class="pos-flavors">${flavors.map((flavor) => `<button class="pos-flavor ${state.selected === flavor.n ? "selected" : ""}" data-pos-flavor="${ctx.esc(flavor.n)}" ${flavor.sold ? "disabled" : ""} style="--flavor:${ctx.esc(/^#[0-9a-f]{6}$/i.test(flavor.c || "") ? flavor.c : "#5bc0eb")}">
                 <span class="pos-swatch" aria-hidden="true"></span><span>${ctx.esc(flavor.n)}</span>${flavor.adulto || flavor.l ? "<em>+18</em>" : ""}${flavor.sold ? "<small>Agotado</small>" : ""}</button>`).join("") || "<p class=\"muted\">No hay sabores disponibles hoy.</p>"}</div>
-              ${selected ? `<div class="pos-picker"><strong>${ctx.esc(selected.n)}</strong><div class="pos-size-row">${["Pequeño", "Mediano", "Grande"].map((size, index) => `<button data-pos-size="${size}" type="button">${size}<small>${money(plan.prices[index], ctx)}</small></button>`).join("")}</div>
+              ${selected ? `<div class="pos-picker"><strong>${ctx.esc(selected.n)}</strong><div class="pos-size-row">${sizes.map((size, index) => `<button data-pos-size="${ctx.esc(size)}" type="button">${ctx.esc(size)}<small>${money(result.plan.prices[index], ctx)}</small></button>`).join("")}</div>
                 ${result.plan.active && ctx.menu.funcionesNuevas?.saboresDistintos2x1 !== false && promoGiftOptions.length ? `<label class="pos-half">Sabor del regalo · 2x1 <select id="posPromoGift">${promoGiftOptions.map((flavor) => `<option value="${ctx.esc(flavor.n)}" ${flavor.n === selected.n ? "selected" : ""}>${flavor.n === selected.n ? "Mismo sabor · " : "Otro sabor · "}${ctx.esc(flavor.n)}${flavor.l || flavor.adulto ? " (+18)" : ""}</option>`).join("")}</select></label>` : ctx.menu.mitadMitad !== false && halfOptions.length ? `<label class="pos-half">Mitad y mitad <select id="posHalf"><option value="">Elige el segundo sabor</option>${halfOptions.map((flavor) => `<option value="${ctx.esc(flavor.n)}">${ctx.esc(flavor.n)}</option>`).join("")}</select></label>` : ""}</div>` : ""}
             </section>
              <footer class="pos-checkout"><label>Método de pago <select id="posPayment">${["Efectivo", "Nequi", "Llaves Bre-B", "Bancolombia", "Otro"].map((method) => `<option ${state.payment === method ? "selected" : ""}>${ctx.esc(method)}</option>`).join("")}</select></label><button class="primary" data-pos-save type="button" ${!state.cart.length || state.saving ? "disabled" : ""}>${state.saving ? "Registrando…" : "Registrar compra · " + money(Math.max(0, result.total - state.adjustment), ctx)}</button></footer>
@@ -89,7 +83,7 @@
           </div>
           <aside class="card pos-cart"><div class="section-head"><h3>Venta actual</h3>${state.cart.length ? "<button class=\"text-button\" data-pos-clear type=\"button\">Vaciar</button>" : ""}</div>
             <div class="pos-lines">${result.lines.map((item, index) => item.regalo ? `<p class="pos-gift">Regalo: ${ctx.esc(displayName(item))} · ${item.s}</p>` : `<div class="pos-line"><span>${ctx.esc(displayName(item))}<small>${ctx.esc(item.s || "")}</small></span><div><button data-pos-minus="${index}" aria-label="Quitar uno">−</button><b>${item.q}</b><button data-pos-plus="${index}" aria-label="Agregar uno">+</button></div><strong>${money((item.p || 0) * item.q, ctx)}</strong></div>`).join("") || "<p class=\"muted\">Toca un sabor para empezar la venta.</p>"}</div>
-            <label class="check pos-promo"><input id="posPromo" type="checkbox" ${state.promo ? "checked" : ""} ${plan.active ? "" : "disabled"}> Aplicar promo del día ${plan.active ? "" : "(no disponible hoy)"}</label>
+            <label class="check pos-promo"><input id="posPromo" type="checkbox" ${state.promo ? "checked" : ""} ${plan.active ? "" : "disabled"}> Aplicar promo de hoy a esta venta ${plan.active ? "" : "(no disponible hoy)"}</label>
             <details class="pos-adjust"><summary>Descuento manual</summary><label>Monto <input id="posAdjustment" type="number" min="0" step="1000" value="${state.adjustment || ""}" inputmode="numeric"></label><label>Motivo <input id="posAdjustmentReason" maxlength="160" value="${ctx.esc(state.adjustmentReason)}"></label></details>
             <div class="pos-totals"><span>Subtotal <b>${money(result.subtotal, ctx)}</b></span>${result.discount ? `<span>Ahorro promo <b>−${money(result.discount, ctx)}</b></span>` : ""}${state.adjustment ? `<span>Ajuste <b>−${money(state.adjustment, ctx)}</b></span>` : ""}<strong>Total <b>${money(Math.max(0, result.total - state.adjustment), ctx)}</b></strong></div>
           </aside>
@@ -107,14 +101,15 @@
       if (!button) return;
       if (button.dataset.posFlavor !== undefined) { state.selected = button.dataset.posFlavor; return render(ctx); }
       if (button.dataset.posSize) {
-        const flavor = todayFlavors(ctx.menu, ctx.now().getDay()).find((item) => item.n === state.selected);
-        const index = ["Pequeño", "Mediano", "Grande"].indexOf(button.dataset.posSize);
+        const day = root.BarrioDailyPricing.dayIndex();
+        const flavor = todayFlavors(ctx.menu, day).find((item) => item.n === state.selected);
+        const index = root.BarrioDailyPricing.getSizes(ctx.menu).indexOf(button.dataset.posSize);
         const other = document.getElementById("posHalf")?.value;
         const promoGift = document.getElementById("posPromoGift")?.value;
-        const second = other && todayFlavors(ctx.menu, ctx.now().getDay()).find((item) => item.n === other);
+        const second = other && todayFlavors(ctx.menu, day).find((item) => item.n === other);
         if (!flavor) return;
         const promoSecond = promoGift && promoGift !== flavor.n ? promoGift : "";
-        const promoSecondItem = promoGift && todayFlavors(ctx.menu, ctx.now().getDay()).find((item) => item.n === promoGift && !item.sold);
+        const promoSecondItem = promoGift && todayFlavors(ctx.menu, day).find((item) => item.n === promoGift && !item.sold);
         if (promoGift && !promoSecondItem) return;
         const item = promoGift ? { n: "Granizado", s: button.dataset.posSize, sabores: [flavor.n], giftFlavor: promoGift, p: current(ctx).plan.prices[index], q: 1, g: true, tipo: "granizado", adulto: !!(flavor.adulto || flavor.l || promoSecondItem?.adulto || promoSecondItem?.l), secondFlavor: promoSecond } : { n: "Granizado", s: button.dataset.posSize, sabores: second ? [flavor.n, second.n] : [flavor.n], p: current(ctx).plan.prices[index], q: 1, g: true, tipo: "granizado", adulto: !!(flavor.adulto || flavor.l || second?.adulto || second?.l) };
         if (!item.secondFlavor) delete item.secondFlavor;

@@ -23,6 +23,7 @@ const drink = (name, price, q = 1) => ({ n: name, s: "", sabores: [], p: price, 
   try {
     const page = await browser.newPage();
     await page.goto("about:blank");
+    await page.addScriptTag({ path: path.resolve(__dirname, "..", "shared", "daily-pricing.js") });
     await page.addScriptTag({ path: pricingPath });
     const results = await page.evaluate(({ menu, cases }) => {
       const calc = window.BarrioIcePricing.calculate;

@@ -2,8 +2,9 @@
   "name": "barrio-ice-tests",
   "private": true,
   "scripts": {
-    "test": "npm run test:pricing && npm run test:stats && npm run test:promotions && npm run test:visual",
+    "test": "npm run test:pricing && npm run test:daily-pricing && npm run test:stats && npm run test:promotions && npm run test:visual",
     "test:pricing": "node pricing.test.cjs",
+    "test:daily-pricing": "node ../scripts/test-pricing.mjs",
     "test:stats": "node stats.test.cjs",
     "test:promotions": "node promotions.browser.cjs",
     "test:visual": "node visual-check.cjs",

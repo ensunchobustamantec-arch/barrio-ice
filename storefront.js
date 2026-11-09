@@ -20,7 +20,7 @@ const BarrioShared = window.BarrioShared;
           "viernes",
           "sábado",
         ],
-        sizes = ["Pequeño", "Mediano", "Grande"],
+        sizes = window.BarrioDailyPricing.getSizes(),
         states = ["Nuevo", "Preparando", "Listo", "En camino", "Entregado", "Cancelado"];
       const local = {
         get(k, f) {
@@ -39,8 +39,8 @@ const BarrioShared = window.BarrioShared;
       function merge(data) {
         return BarrioShared.mergeMenu(data);
       }
-      let menu = merge(), cart = [], store, pendingPromo = null;
-      function plan(d = now().getDay()) {
+      let menu = merge(), cart = [], store, pendingPromo = null, pricingKey = null;
+      function plan(d) {
         const result = BarrioIcePricing.planForDay(d, menu);
         return {
           title: result.name,
@@ -83,6 +83,8 @@ const BarrioShared = window.BarrioShared;
           second = $("halfFlavorB"),
           flavors = availableHalfFlavors();
         if (!button || !first || !second) return;
+        const sizeSelect = $("halfSize"), selectedSize = sizeSelect?.value || "0";
+        if (sizeSelect) { sizeSelect.innerHTML = sizes.map((size, index) => '<option value="' + index + '">' + esc(size) + '</option>').join(""); sizeSelect.value = selectedSize; }
         button.classList.toggle(
           "hide",
           menu.mitadMitad === false || flavors.length < 2,
@@ -196,6 +198,10 @@ const BarrioShared = window.BarrioShared;
           .join("");
       }
       function render() {
+        sizes.splice(0, sizes.length, ...window.BarrioDailyPricing.getSizes(menu));
+        const nextPricingKey = JSON.stringify([window.BarrioDailyPricing.dateKey(), plan().g, plan().p]);
+        const pricesChanged = pricingKey !== null && pricingKey !== nextPricingKey;
+        pricingKey = nextPricingKey;
         let p = plan(),
           on = openNow(),
           day = now().getDay();
@@ -379,6 +385,7 @@ const BarrioShared = window.BarrioShared;
         });
         $("footMaps").parentElement.hidden = !hasMaps && !hasInstagram;
         draw();
+        if (pricesChanged && cart.length) toast("Actualizamos los precios y la promo de tu pedido.");
         document.dispatchEvent(new CustomEvent("barrio:render", { detail: { menu } }));
       }
       function toast(m) {
@@ -490,7 +497,8 @@ const BarrioShared = window.BarrioShared;
         );
       }
       function totals() {
-        const result = BarrioIcePricing.calculate(cart, now().getDay(), menu);
+        const result = window.BarrioDailyPricing.calcOrderTotal(cart, undefined, menu);
+        cart = result.paidLines;
         return Object.assign({ sub: result.subtotal }, result);
       }
       function nudgeText() {
@@ -906,6 +914,7 @@ const BarrioShared = window.BarrioShared;
           menu = merge(data);
           render();
         });
+        window.BarrioDailyPricing.watchDay(render);
         route();
         let id = new URLSearchParams(location.search).get("pedido");
         if (id) showTracking(id);

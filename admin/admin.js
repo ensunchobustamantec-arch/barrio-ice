@@ -21,7 +21,6 @@ const days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "
 const dayNames = days;
 const weekdayKeys = days;
 const orderStates = ["Nuevo", "Preparando", "Listo", "En camino", "Entregado", "Cancelado"];
-const sizes = ["Pequeño", "Mediano", "Grande"];
 const adminState = {
   tab: location.hash === "#orders" ? "orders" : "today",
   from: dateKey(),
@@ -62,7 +61,7 @@ function flavorText(item, includeProduct = true) {
 function safeColor(color) {
   return /^#[0-9a-f]{6}$/i.test(String(color || "")) ? color : "#5bc0eb";
 }
-function dayPlan(day = now().getDay()) {
+function dayPlan(day) {
   const result = BarrioIcePricing.planForDay(day, menu);
   return Object.assign({}, result, {
     g: result.active ? result.receive : 0,
@@ -260,40 +259,16 @@ function beep() {
   function orderAudit(order) {
     const warnings = [];
     const paidLines = (order.items || []).filter((item) => item.regalo !== true);
-    const date = new Date((order.fecha || dateKey()) + "T12:00:00");
-    const totals = BarrioIcePricing.calculate(
-      paidLines,
-      Number.isNaN(date.getTime()) ? now().getDay() : date.getDay(),
-      menu,
-    );
+    const paidTotal = paidLines.reduce((sum, item) => sum + Number(item.p || 0) * Number(item.q || 0), 0);
     if (
-      totals.total !== Number(order.total || 0) ||
-      totals.subtotal !== Number(order.subtotal || 0) ||
-      totals.discount !== Number(order.descuento || 0)
+      paidTotal !== Number(order.total || 0) ||
+      Number(order.subtotal || 0) !== Number(order.total || 0) + Number(order.descuento || 0)
     )
       warnings.push("Total no cuadra con los productos y la promo");
 
-    const priceArrays = [
-      menu.precios?.semana,
-      menu.precios?.jueves,
-      menu.precios?.finde,
-    ].filter(Array.isArray);
     for (const item of paidLines) {
       const price = Number(item.p);
-      const isGranizado = item.g === true || item.tipo === "granizado";
-      let valid = false;
-      if (isGranizado) {
-        const size = ["Pequeño", "Mediano", "Grande"].indexOf(item.s);
-        valid =
-          size >= 0 &&
-          priceArrays.some((prices) => Number(prices[size]) === price);
-      } else {
-        const catalog = [...(menu.bebidas || []), ...(menu.combos || [])];
-        valid = catalog.some(
-          (product) => product.n === item.n && Number(product.p) === price,
-        );
-      }
-      if (!valid) {
+      if (!Number.isSafeInteger(price) || price < 0) {
         warnings.push("Precio fuera del menú: " + (item.n || "producto"));
         break;
       }
@@ -908,6 +883,7 @@ function beep() {
       render();
       adminRender();
       saveNotice($(noteId), "Guardado correctamente.", true);
+      return true;
     } catch (error) {
       console.error(error);
       welcomeNotice(
@@ -919,6 +895,7 @@ function beep() {
         "No se pudo guardar. Revisa la conexión e inténtalo de nuevo.",
         false,
       );
+      return false;
     }
   }
   function menuView() {
@@ -971,29 +948,6 @@ function beep() {
           '"></div></div>'
         );
       })
-      .join("");
-    const prices = ["semana", "jueves", "finde"]
-      .map(
-        (key, section) =>
-          "<div><h3>" +
-          ["Lunes a miércoles", "Jueves", "Viernes a domingo"][section] +
-          '</h3><div class="row">' +
-          sizes
-            .map(
-              (size, index) =>
-                '<div class="field"><label>' +
-                size +
-                '</label><input type="number" min="0" step="500" data-price-group="' +
-                key +
-                '" data-price-index="' +
-                index +
-                '" value="' +
-                (+menu.precios[key][index] || 0) +
-                '"></div>',
-            )
-            .join("") +
-          "</div></div>",
-      )
       .join("");
     const drinks = (menu.bebidas || [])
       .map(
@@ -1074,25 +1028,7 @@ function beep() {
         .filter((day) => day !== selectedDay)
         .map((day) => '<option value="' + day + '">' + days[day] + "</option>")
         .join("") +
-      '</select></div><button class="secondary" id="copyDay">Copiar</button><button class="secondary" id="repeatYesterday">Repetir ayer</button></div><div class="save"><button class="primary" id="saveDayMenu">Guardar sabores</button><span class="saved" id="menuSaved"></span></div></article><article class="card"><h2>Precios</h2>' +
-      prices +
-      '<h2 style="margin-top:15px">2x1 por día</h2><p class="notice">Activa solo los días que tendrán 2x1. Cada día se guarda por separado.</p><div class="promo-days">' +
-      ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
-        .map(
-          (day) =>
-            '<label class="switch"><span>' +
-            days[(["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"].indexOf(day) + 1) % 7] +
-            " 2x1" +
-            '</span><input type="checkbox" data-promo-day="' +
-            day +
-            '" ' +
-            (menu.promos[day] !== false ? "checked" : "") +
-            "></label>",
-        )
-        .join("") +
-      '</div><label class="switch"><span>Permitir mitad y mitad</span><input id="halfEnabled" type="checkbox" ' +
-      (menu.mitadMitad ? "checked" : "") +
-      '></label><div class="save"><button class="primary" id="savePrices">Guardar precios y promos</button><span id="priceSaved" class="saved"></span></div></article><article class="card"><h2>Bebidas</h2><div class="table-like">' +
+      '</select></div><button class="secondary" id="copyDay">Copiar</button><button class="secondary" id="repeatYesterday">Repetir ayer</button></div><div class="save"><button class="primary" id="saveDayMenu">Guardar sabores</button><span class="saved" id="menuSaved"></span></div></article><article class="card"><h2>Precios</h2><div id="biXDailyPricing"></div></article><article class="card"><h2>Bebidas</h2><div class="table-like">' +
       drinks +
       '</div><div class="row"><div class="field"><label for="newDrinkName">Nueva bebida</label><input id="newDrinkName"></div><div class="field"><label for="newDrinkPrice">Precio</label><input id="newDrinkPrice" type="number" min="0"></div><button class="secondary" id="addDrinkV4">Agregar bebida</button></div><h2 style="margin-top:22px">Combos</h2><div class="table-like">' +
       combos +
@@ -1107,7 +1043,7 @@ function beep() {
       );
     $("saveCatalogV4").onclick = () => saveMenu("catalogSaved");
     $("saveDayMenu").onclick = () => saveMenu("menuSaved");
-    $("savePrices").onclick = () => {
+    window.BarrioDailyPricingEditor.mount($("biXDailyPricing"), { menu, onSave: async (dailyPricing, half) => {
       document.querySelectorAll("[data-cat-name]").forEach((input) => {
         const index = +input.dataset.catName;
         const old = menu.cat[index]?.n;
@@ -1136,24 +1072,9 @@ function beep() {
         const item = menu.cat[+input.dataset.catActive];
         if (item) item.active = input.checked;
       });
-      ["semana", "jueves", "finde"].forEach((key) => {
-        menu.precios[key] = [0, 1, 2].map((index) =>
-          Math.max(
-            0,
-            +document.querySelector(
-              '[data-price-group="' +
-                key +
-                '"][data-price-index="' +
-                index +
-                '"]',
-            )?.value || 0,
-          ),
-        );
-      });
-      document.querySelectorAll("[data-promo-day]").forEach((input) => {
-        menu.promos[input.dataset.promoDay] = input.checked;
-      });
-      menu.mitadMitad = $("halfEnabled").checked;
+      const previousPricing = menu.dailyPricing, previousHalf = menu.mitadMitad;
+      menu.dailyPricing = dailyPricing;
+      menu.mitadMitad = half;
       document.querySelectorAll("[data-drink-name]").forEach((input) => {
         const item = menu.bebidas[+input.dataset.drinkName];
         if (item) item.n = clean(input.value, 40);
@@ -1182,8 +1103,10 @@ function beep() {
         const item = menu.combos[+input.dataset.comboActive];
         if (item) item.active = input.checked;
       });
-      return saveMenu("priceSaved");
-    };
+      const saved = await saveMenu("priceSaved");
+      if (!saved) { if (previousPricing === undefined) delete menu.dailyPricing; else menu.dailyPricing = previousPricing; menu.mitadMitad = previousHalf; }
+      return saved;
+    } });
   }
 
   function settingsView() {
@@ -1196,12 +1119,13 @@ function beep() {
       ["dropDia", "Drop de sabores del día"],
       ["armador", "Armador visual de granizados"],
       ["saboresDistintos2x1", "Sabores distintos en el 2x1"],
+      ["preciosPorDia", "Precios por día"],
       ["sonidosCliente", "Sonido y vibración del cliente"],
       ["sonidoAdmin", "Sonido de avisos del panel"],
     ];
     const featureCard = '<article class="card"><h2>Funciones nuevas</h2><p>Activa o desactiva cada función sin cambiar precios ni pedidos.</p><div class="bi-x-feature-list">' +
       featureKeys.map(([key, label]) => '<label class="switch"><span>' + label + '</span><input type="checkbox" data-feature="' + key + '" ' + (featureConfig[key] !== false ? "checked" : "") + '></label>').join("") +
-      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div><div class="admin-actions"><button class="secondary" id="allowNotifications" type="button">Permitir avisos del navegador</button><span id="notificationSaved" class="saved" role="status"></span></div></article>';
+      '</div><div class="field"><label for="themeSetting">Tema de temporada</label><select id="themeSetting"><option value="normal" ' + (featureConfig.theme !== "navidad" ? "selected" : "") + '>Normal</option><option value="navidad" ' + (featureConfig.theme === "navidad" ? "selected" : "") + '>Navidad</option></select></div><div class="admin-actions"><button class="secondary" id="allowNotifications" type="button">Permitir avisos del navegador</button><span id="notificationSaved" class="saved" role="status"></span></div><div class="save"><button class="primary" id="saveFeatureSettings" type="button">Guardar ajustes</button><span id="featureSettingsSaved" class="saved" role="status"></span></div></article>';
     const schedule = [1, 2, 3, 4, 5, 6, 0]
       .map((day) => {
         const hours =
@@ -1258,7 +1182,7 @@ function beep() {
       if (!window.Notification) { result.textContent = "Este navegador no admite avisos."; return; }
       try { result.textContent = (await Notification.requestPermission()) === "granted" ? "Avisos permitidos." : "Avisos no activados."; } catch { result.textContent = "No se pudo activar avisos."; }
     };
-    $("saveSettingsV4").onclick = async () => {
+    const saveSettings = async (event) => {
       const hours = {};
       [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
         hours[day] = {
@@ -1289,8 +1213,10 @@ function beep() {
       ));
       menu.theme = $("themeSetting").value === "navidad" ? "navidad" : "normal";
       window.BarrioIceFeatures?.setLocal("barrio-ice-admin-sound", menu.funcionesNuevas.sonidoAdmin !== false);
-      await saveMenu("settingsSaved");
+      await saveMenu(event.currentTarget.id === "saveFeatureSettings" ? "featureSettingsSaved" : "settingsSaved");
     };
+    $("saveSettingsV4").onclick = saveSettings;
+    $("saveFeatureSettings").onclick = saveSettings;
     $("repairTrackingV4").onclick = async () => {
       const button = $("repairTrackingV4");
       const result = $("trackingRepairResult");
@@ -2478,6 +2404,10 @@ async function initializeFirebase() {
 }
 
 $("soundToggle").addEventListener("click", activateSound);
+window.BarrioDailyPricing.watchDay(() => {
+  selectedDay = window.BarrioDailyPricing.dayIndex();
+  if (session.user) adminRender();
+});
 ["pointerdown", "keydown", "touchstart"].forEach((event) =>
   document.addEventListener(event, resetEmployeeIdle, { passive: true }),
 );
