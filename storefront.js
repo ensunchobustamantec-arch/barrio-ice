@@ -162,14 +162,16 @@ const BarrioShared = window.BarrioShared;
       }
       function savedOrders() {
         const records = local.get("orders", []);
-        return Array.isArray(records)
-          ? records.filter((item) => item && typeof item.id === "string").slice(0, 8)
-          : [];
+        const recent = Array.isArray(records) ? records.filter(item => item && typeof item.id === "string" && Date.now() - Date.parse(item.date) < 86400000).slice(0, 8) : [];
+        local.set("orders", recent);
+        return recent;
       }
       function rememberOrder(id) {
         id = String(id || "").slice(0, 80);
         if (!id) return;
-        const records = savedOrders().filter((item) => item.id !== id);
+        const saved = savedOrders();
+        if (saved.some(item => item.id === id)) return;
+        const records = saved;
         records.unshift({ id, date: new Date().toISOString() });
         local.set("orders", records.slice(0, 8));
         renderOrderHistory();
@@ -744,7 +746,6 @@ const BarrioShared = window.BarrioShared;
         openCart();
       }
       function showTracking(id) {
-        rememberOrder(id);
         $("storefront").classList.add("hide");
         $("tracking").classList.remove("hide");
         $("fab").classList.add("hide");
@@ -852,6 +853,7 @@ const BarrioShared = window.BarrioShared;
         addEventListener("hashchange", route);
       }
       async function boot() {
+        setInterval(renderOrderHistory, 60000);
         document.documentElement.dataset.theme = "dark";
         restore();
         events();

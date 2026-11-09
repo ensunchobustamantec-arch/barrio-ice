@@ -6,12 +6,12 @@
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) { host.remove(); return; }
   const query = new URLSearchParams(location.search);
   let seen = false;
-  try { seen = sessionStorage.getItem('barrio-entry-v5') === '1'; } catch {}
-  if (query.get('intro') === '0' || (seen && query.get('intro') !== '1')) { host.remove(); return; }
+  try { seen = localStorage.getItem('barrioice_intro_v1') === '1'; } catch {}
+  if (query.get('intro') === '0' || seen) { host.remove(); return; }
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  host.innerHTML = `<div class="entry-snow" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="left:${i*4.2}%;animation-delay:-${i*.37}s"></i>`).join('')}</div><div class="entry-stage"><div class="entry-fragments" aria-hidden="true">${Array.from({length:8},(_,i)=>`<i style="--angle:${i*45}deg"></i>`).join('')}</div><div class="entry-logo">${Array.from({length:4},(_,i)=>`<img src="/assets/brand/logo-dark.webp" width="625" height="970" alt="${i===3?'Barrio Ice':''}" style="--depth:${i*5}px" />`).join('')}</div></div><p class="entry-tag">COLD FLOW · MONTERÍA</p><button type="button" class="entry-skip">Saltar</button>`;
+  host.innerHTML = `<div class="entry-snow" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="left:${i*4.2}%;animation-delay:-${i*.37}s"></i>`).join('')}</div><div class="entry-stage"><div class="entry-fragments" aria-hidden="true">${Array.from({length:8},(_,i)=>`<i style="--angle:${i*45}deg"></i>`).join('')}</div><div class="entry-logo">${Array.from({length:4},(_,i)=>`<img src="/assets/brand/logo-dark.webp" width="625" height="970" alt="${i===3?'Barrio Ice':''}" style="--depth:${i*5}px" />`).join('')}</div></div><p class="entry-tag">COLD FLOW · MONTERÍA</p>`;
   let final = false;
-  const finish = () => { if(final)return; final=true;host.getAnimations({subtree:true}).forEach(animation=>animation.cancel());host.classList.add('entry-leaving');host.querySelector('.entry-skip').hidden=true;try{sessionStorage.setItem('barrio-entry-v5','1');}catch{};setTimeout(()=>{document.body.style.overflow=previousOverflow;host.remove();},reduced?0:220); };
+  const finish = () => { if(final)return; final=true;host.getAnimations({subtree:true}).forEach(animation=>animation.cancel());host.classList.add('entry-leaving');try{localStorage.setItem('barrioice_intro_v1','1');}catch{};setTimeout(()=>{document.body.style.overflow=previousOverflow;host.remove();},reduced?0:220); };
   host.className = 'barrio-entry';
   host.removeAttribute('aria-describedby');
   host.setAttribute('aria-label','Bienvenido a Barrio Ice');
@@ -36,7 +36,7 @@
     host.addEventListener('pointermove',e=>{if(!final||e.pointerType==='touch')return;const box=logo.getBoundingClientRect();logo.style.transform=`perspective(900px) rotateY(${Math.max(-10,Math.min(10,(e.clientX-box.left-box.width/2)/30))}deg)`;});
     host.addEventListener('pointerleave',()=>logo.style.transform='');
   }
-  host.querySelector('.entry-skip').onclick=finish;
-  const onKey=e=>{if(e.key==='Escape')finish();};document.addEventListener('keydown',onKey);
+
+
   setTimeout(finish,reduced?700:LANDING_DURATION_MS);
 })();

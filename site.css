@@ -496,6 +496,7 @@
   animation-delay: 700ms;
 }
 .hero-mark-glint {
+  display: none;
   position: absolute;
   z-index: 4;
   inset: 8% 22%;
