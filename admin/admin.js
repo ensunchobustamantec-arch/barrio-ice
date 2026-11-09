@@ -1963,6 +1963,7 @@ function startPanel(user, role = "owner", staff = null) {
   else unsubscribeLocalSales = null;
   unsubscribeMenu = store.watchMenu((data) => {
     menu = BarrioShared.mergeMenu(data || DEFAULTS);
+    document.dispatchEvent(new CustomEvent("barrio:render", { detail: { menu } }));
     adminRender();
   }, showConnectionError);
   showPanel(user, role, staff);

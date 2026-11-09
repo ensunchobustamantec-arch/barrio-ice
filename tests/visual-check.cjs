@@ -404,6 +404,16 @@ const server = http.createServer((request, response) => {
             logo.currentSrc.includes("/assets/brand/")
           );
         });
+        await page.evaluate(() => { window.__barrio.menu.theme = "navidad"; window.__barrio.render(); });
+        assert.equal(await page.locator("html").getAttribute("data-theme"), "navidad");
+        assert.equal(await page.locator(".bi-x-snow-layer span").count(), 54);
+        assert.equal(await page.locator(".bi-x-season-banner").isVisible(), true);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "Navidad no debe desbordar la pantalla");
+        if (saveScreenshots && (width === 390 || width === 1366)) await page.screenshot({ path: path.join(output, `navidad-${width}.png`) });
+        await page.evaluate(() => { window.__barrio.menu.theme = "normal"; window.__barrio.render(); });
+        assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
+        assert.equal(await page.locator(".bi-x-christmas-scene").isVisible(), false);
+        assert.equal(await page.locator(".bi-x-christmas-lights").isVisible(), false);
         if (width === 390 && theme === "dark") {
           const initialTransferBytes = await page.evaluate(() => {
             const origin = location.origin;
